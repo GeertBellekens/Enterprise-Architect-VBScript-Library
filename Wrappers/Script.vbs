@@ -14,7 +14,7 @@ Class Script
 	Private Sub Class_Initialize
 	  m_Name = ""
 	  m_Code = ""
-	  m_GroupType = ""
+	  m_Id = ""
 	  set m_Group = Nothing
 	End Sub
 
@@ -48,6 +48,8 @@ Class Script
 	End Property
 	Public Property Let Group(value)
 	  set m_Group = value
+	  'add the script to the group
+	   m_Group.Scripts.Add me
 	End Property
 
 	
@@ -96,9 +98,8 @@ Class Script
 				script.Id = id
 				script.Name = name
 				script.Code = code
-				'add the script to the group
-				scriptGroup.Scripts.Add script
-				'debug
+				'add the group to the script
+				script.Group = scriptGroup
 				'add the script to the list
 				allScripts.Add script
 			end if

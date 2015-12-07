@@ -1,4 +1,3 @@
-
 !INC Local Scripts.EAConstants-VBScript
 
 'Author: Geert Bellekens
@@ -43,4 +42,3 @@ Public Function convertQueryResultToArray(xmlQueryResult)
 	end if
     convertQueryResultToArray = result
 End Function
-
