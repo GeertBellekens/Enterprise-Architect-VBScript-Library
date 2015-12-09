@@ -8,6 +8,7 @@
 </table>
 </dl>
 
+*For some information about the background for this TaggedValue Helper, see a discussion  thread at EA's forum ni [this link](http://www.sparxsystems.com/cgi-bin/yabb/YaBB.cgi?num=1448991338/15#15 "Chart of Different Property Names, etc")*
 ####**Providing Consistent Property Names**
 This TaggedValue Helper wrapper for Enterprise Architect, written in VBScript, intends to provide advanced users of EA with simpler access to TaggedValue properties with a set of consistent property names, an orthogonality which, as of this writing, is lacking in EA regarding the TaggedValues system (see tables below about the inconsistent naming of the properties in the EA API). On this page the word `Tag`, or the acronym `TV`, may occasionally be used instead of `TaggedValue`.
 ####**Better properties**
