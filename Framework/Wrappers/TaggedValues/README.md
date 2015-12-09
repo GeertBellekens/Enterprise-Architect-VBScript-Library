@@ -47,7 +47,7 @@ For Each elem in Pkg.Elements
 Next
 ```
 
-Or, if assuming that the TV really exists, use the procedure form:
+Or, if assuming that the TV really exists, use the more "direct" version of the function, which returns the wrapper object, which then also directly provides the properties of the desired TaggedValue, in this example, the `.Notes()` property:
 
 ```vbs
 S = TagApi.WrapByName("VBA.FileName", elem).Notes()
