@@ -79,7 +79,7 @@ Support for collecting some basic runtime statistics about the number of times T
 
 ----
 ##**CLASS MEMBERS**
-**First the most frequently used Properties & Functions, and below that a full list of public members:
+First the most frequently used Properties & Functions, and below that a full list of public members:
 
 ```vbs
 Public Function Wrap(ByRef aTaggedValue) ''': EA.TaggedValue (the wrapped Tag);
