@@ -68,18 +68,21 @@ S = TagApi.WrapByName("VBA.FileName", elem).Notes()
 alt="PropertyTypes / UML Types" align="right" width="480" border="10"/>
 **The derivation follows this order** : If no *direct* value is specified a a Value() then it attempts to derive a default value from #1  `Stereotype's` "initial value" (if defined) for a given TaggedValue. 
 
-But if no default value is defined in the Stereotype then it #2 attempts to derive a default value from `Repository.PropertyTypes` instead, see fig.3 (In the text below this default value is sometimes called "global" Default value). <img src="http://wiki.rilpartner.se/w/images/wiki.rilpartner.se/3/3d/Value_and_Default_Value_in_UML_Types_-_VBA.VBAName.jpg" 
-alt="PropertyTypes / UML Types" align="right" width="480" border="10"/> Only if no default values at all are defined, and no direct value is specified (by the user), only then the Value() property gives up and returns an empty string.
+But if no default value is defined in the Stereotype then it #2 attempts to derive a default value from `Repository.PropertyTypes` instead, see fig.3 (In the text below this default value is sometimes called "global" Default value). <img src="http://wiki.rilpartner.se/w/images/wiki.rilpartner.se/3/3d/Value_and_Default_Value_in_UML_Types_-_VBA.VBAName.jpg" alt="PropertyTypes / UML Types" align="right" width="480" border="10"/> 
+
+Only if no default values are defined and no direct value is specified (by the user), only then the Value() property gives up its derivation attempts and returns an empty string instead.
  
 **An important extra feature** is that the wrapper class also provides easy access to the TaggedValue's parent objects, such as Classes, Attributes and, most difficult to access, ConnectionEnd objects for RoleTags. Property names are "aligned" to be close to similar to the property names of the EA.TaggedValue type, and the user of the class will never have to care about whether the `TaggedValue` (owned by classes, packages and interfaces) is an `AttributeTag`, `MethodTag`, `ConnectorTag` or `RoleTag` since all properties are the same (orthogonal).
+
 ###**STATISTICS**
+
 Support for collecting some basic runtime statistics about the number of times TaggedValues has been accessed and time spent evaluating them, has also been implemented in the wrapper. This functionality can be "disabled" from the code base altogether by using the following [Regular Expression](http://www.regular-expressions.info) (tested with **EditPad Lite**, a free version can be downloaded from [here](http://www.editpadlite.com/download.html "EditPad's Download page") ). Expressions to be used are the following:
 
 ######**DISABLE** the Stats code in the source code (by commenting):
 	Regex Search:		^(?!'//)(.*?\(\(\$stats\)\).*?$)
 	Regex Replace:		'//\1
 ######**ENABLE** the `Stats` code rows in the source (removes commenting):
-	Regex Search:	^(?='//)'//(.*?\(\(\$stats\)\).*?$)
+	Regex Search:		^(?='//)'//(.*?\(\(\$stats\)\).*?$)
 	Regex Replace:		\1
 
 #####**TODO**
