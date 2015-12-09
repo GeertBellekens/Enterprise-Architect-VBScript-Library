@@ -1,0 +1,17 @@
+
+''' ---------------------------------------------------------------------------
+''' CHANGELOG		: See History.txt
+''' ---------------------------------------------------------------------------
+
+-----------------
+0.9.5
+-----------------
+	- Documentation	: Some changes in the documentation.
+	- Copyright		: Aligned to the general conditions of Belleken's script repo
+	- Renamed		: Class TaggedValue
+	
+-----------------
+0.9.4			
+-----------------
+	- First release	: 2015-12-07
+
