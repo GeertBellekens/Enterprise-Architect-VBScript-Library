@@ -8,6 +8,7 @@
 ''' VERSION			: 0.9.5
 '''	RELEASE DATE	: 2015-12-08
 ''' HISTORY			: See History.txt				First release in 2015-12-07
+'''
 ''' DESCRIPTION		: A TaggedValue Helper wrapper, intending to provide access 
 '''					  to TaggedValue properties with consistent (orthogonal)  
 ''' 				  property names. More info far below.
@@ -18,10 +19,12 @@
 '''				  	  if giving proper attribution to the author and providing 
 '''					  this copyright info visible in your code and product 
 '''					  documentation, including donation info below.
+'''
 ''' DONATIONS		: If you find the script being useful you may consider 
 '''					  making a donation. All amounts amounts. For Paypal 
 '''					  donations, use the following url:
-''' https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=2VFSWN93XEPZ2
+'''
+''' https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=KJCD6N8M8MRWQ
 '''
 ''' DEPENDENCIES 	: None. The script should work as is inside Enterprise 
 '''					  Architect. 
@@ -29,12 +32,12 @@
 '''					  "RILTaggedValuehelper_TEST.vbs" for simple property access
 '''
 ''' ---------------------------------------------------------------------------
-''' 
 '''
 ''' USAGE: The code below (for example) will provide a "singleton" access to 
 '''		   the TaggedValue helper:
 
-Dim m_tagapi ''' You may use this variable the after first access to the TagAPI
+Dim m_tagapi 	''' You may want to use this variable directly, the after first 
+				''' access to the TagAPI
 
 Public Function TagAPI()
 	''' Ensure that the TaggedVaslue helper is created only once.
@@ -89,28 +92,10 @@ End Sub
 '''		
 ''' ---------------------------------------------------------------------------
 '''
-''' DESCRIPTION
-''' Some "missing" properties (in EA's Api) are published and most important,
-''' the Value() property derives, if the value was empty, Default values from #1, 
-''' Stereotype's "initial value" for a given TaggedValue (if defined) and #2, from
-''' Repository.PropertyTypes (below sometimes called "global" Default value).
-''' 
-''' An important extra feature is that the wrapper class also provides easy 
-'''	access to the TaggedValue's parent objects, such as Classes, Attributes and,
-''' most difficult to access, ConnectionEnd objects for RoleTags.
-''' 
-''' Property names are "aligned" to be close to similar to the property names of 
-''' the EA.TaggedValue type, and the user of the class will never have to care
-''' about whether the TaggedValue is an AttributeTag, MethodTag, connectorTag or
-''' RoleTag since all properties are the same (orthogonal).
-'''
-''' ---------------------------------------------------------------------------
 ''' STATISTICS
-''' ---------------------------------------------------------------------------
-''' Simple statistics support has been implemented, but can be "disabled" from 
-''' the code altogether by using the following Regex Expression (tested with 
-'''	EditPad pro, a free version can be dowloaded from here: 
-''' http://www.editpadlite.com/download.html) :
+''' 
+''' Simple statistics is supported but can be "disabled" from the code altogether 
+''' by using the following Regex Expression:
 '''
 ''' DISABLE all stats code (comment):
 ''' 	Regex Search:	^(?!'//)(.*?\(\(\$stats\)\).*?$)
@@ -119,16 +104,16 @@ End Sub
 ''' 	Regex Search:	^(?='//)'//(.*?\(\(\$stats\)\).*?$)
 '''		Regex Replace:	\1
 
-''' -----------------------------------------------------------------------
+''' ---------------------------------------------------------------------------
 ''' TODO:
-''' ---------------------------------------------------------------------------
-''' - Property IsInterfaceTag() - Check Stereotype to distinguish from regular Class
+''' - Property IsInterfaceTag() - Check Stereotype to distinguish from regular 
+'''   Class
 '''
 ''' ---------------------------------------------------------------------------
-''' TOC : PUBLIC CLASS MEMEBERS
+''' CLASS MEMEBERS
 ''' ---------------------------------------------------------------------------
 '''
-'''		'// Most used properties & functions :
+'''		''' Most used properties & functions :
 '''
 '''     ''' WrapByName: Direct access to properties assuming the TV exists
 '''		Public Function WrapByName(aName, ByRef aObj) ''': TRILTaggedValueHelper
@@ -147,10 +132,10 @@ End Sub
 '''		Public Sub StatsStart() ''': Void		''' Resets all counters and timers
 '''		Public Sub StatsStop() ''': Void		''' Keeps all count and time info until next StatsStart()
 
-'''		'// Other useful and orthogonal properties
-'''		'// In case a value isn't actually provided by the underlaying object, 
-'''		'// these properties at least provides with a fake value as to allow 
-'''		'// "type safe" traversing of EA models.
+'''		''' Other useful and orthogonal properties.
+'''		''' In case a value isn't actually provided by the underlaying object, 
+'''		''' these properties at least provides with a fake value as to allowing 
+'''		''' for "type safe" when traversing EA models.
 '''		
 '''		Public Property Get Detail() ''': String
 '''		Public Property Get FQName() ''': String
@@ -222,8 +207,9 @@ End Sub
 '''		Private Sub RegisterPropertyTypesRawData() ''': Void
 '''		Private Sub ResetData() ''': Void
 '''		Private Sub ResetStats() ''': Void					''' (($stats))
-
 ''' -----------------------------------------------------------------------
+
+
 ''' TAGGEDVALUE TYPES
 
 Public Const EA_TaggedValue 	= 12	''' Classes & Packages
