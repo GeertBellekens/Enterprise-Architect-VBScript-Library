@@ -10,7 +10,10 @@
 
 *For some information about the background for this TaggedValue Helper, see a discussion  thread at EA's forum ni [this link](http://www.sparxsystems.com/cgi-bin/yabb/YaBB.cgi?num=1448991338/15#15 "Chart of Different Property Names, etc")*
 ####**Providing Consistent Property Names**
+<img src="http://wiki.rilpartner.se/w/images/wiki.rilpartner.se/2/2d/EA-TaggedValue-System.jpg" 
+alt="TaggedValue system" align="right" width="540" border="10"/>
 This TaggedValue Helper wrapper for Enterprise Architect, written in VBScript, intends to provide advanced users of EA with simpler access to TaggedValue properties with a set of consistent property names, an orthogonality which, as of this writing, is lacking in EA regarding the TaggedValues system (see tables below about the inconsistent naming of the properties in the EA API). On this page the word `Tag`, or the acronym `TV`, may occasionally be used instead of `TaggedValue`.
+
 ####**Better properties**
 One of the most important features of the wrapper which has been added, is the much smarter Value() property, which automagically delivers any Default() values, if any such default value was defined in your own **`<<Stereotypes>>`**'  "initial value" field, or as a last alternative if no other value was defined, in the "global" TaggedValue definitions stored in **`PropertyTypes`** (called Project | Settings | "**UML Types**" in the UI).
 
@@ -61,7 +64,12 @@ S = TagApi.WrapByName("VBA.FileName", elem).Notes()
 **Missing, Renamed and Enhanced** - Some properties in EA's Api are "missing", but are published in the wrapper. This is useful when traversing the model structure and generic object names makes such loops easier. Some other properties have different names in EA's API, which the wrapper of course aligns using consistsnt naming for all Tag types. And the most important property of the all, the `Value()` property, derives its value (if it's own direct value is not specified) from Default values specified in other places, if any default values are defined at all. 
  
 ####**"Fake Polymorphism"**
-**The derivation follows this order** : If no *direct* value is specified a a Value() then it attempts to derive a default value from #1,  `Stereotype's` "initial value" (if defined) for a given TaggedValue, and if no such default value is defined in the Stereotype then it #2 attempts to derive a default value from `Repository.PropertyTypes` instead (below this default value is sometimes called "global" Default value). Only if no default values are defined, and no direct value is specified (by the user), only then the Value() property gives up and returns an empty string.
+<img src="http://wiki.rilpartner.se/w/images/wiki.rilpartner.se/0/03/TaggedValue_Default_from_Stereotype.jpg" 
+alt="PropertyTypes / UML Types" align="right" width="480" border="10"/>
+**The derivation follows this order** : If no *direct* value is specified a a Value() then it attempts to derive a default value from #1  `Stereotype's` "initial value" (if defined) for a given TaggedValue. 
+
+But if no default value is defined in the Stereotype then it #2 attempts to derive a default value from `Repository.PropertyTypes` instead, see fig.3 (In the text below this default value is sometimes called "global" Default value). <img src="http://wiki.rilpartner.se/w/images/wiki.rilpartner.se/3/3d/Value_and_Default_Value_in_UML_Types_-_VBA.VBAName.jpg" 
+alt="PropertyTypes / UML Types" align="right" width="480" border="10"/> Only if no default values at all are defined, and no direct value is specified (by the user), only then the Value() property gives up and returns an empty string.
  
 **An important extra feature** is that the wrapper class also provides easy access to the TaggedValue's parent objects, such as Classes, Attributes and, most difficult to access, ConnectionEnd objects for RoleTags. Property names are "aligned" to be close to similar to the property names of the EA.TaggedValue type, and the user of the class will never have to care about whether the `TaggedValue` (owned by classes, packages and interfaces) is an `AttributeTag`, `MethodTag`, `ConnectorTag` or `RoleTag` since all properties are the same (orthogonal).
 ###**STATISTICS**
