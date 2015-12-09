@@ -11,17 +11,17 @@
 *For some information about the background for this TaggedValue Helper, see a discussion  thread at EA's forum ni [this link](http://www.sparxsystems.com/cgi-bin/yabb/YaBB.cgi?num=1448991338/15#15 "Chart of Different Property Names, etc")*
 
 ####TOC
-[Providing Consistent Property Names](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#providing-consistent-property-names)<br>
-[Better Properties](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#better-properties)<br>
-[More Properties](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#more-properties)<br>
-[EXAMPLE OF USAGE](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#example-of-usage)<br>
-[Try or just nail it?](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#try-or-just-nail-it)<br>
-[DETAILED DESCRIPTION](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#detailed-description)<br>
-[Fake "Polymorphism"](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#fake-polymorphism)<br>
-[Statistics](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#statistics)<br>
-[TODO](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#todo)<br>
-[CLASS MEMBERS](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#class-members)<br>
-[Donations](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#donations)<br>
+[Providing Consistent Property Names](README.md#providing-consistent-property-names)<br>
+[Better Properties](README.md#better-properties)<br>
+[More Properties](README.md#more-properties)<br>
+[EXAMPLE OF USAGE](README.md#example-of-usage)<br>
+[Try or just nail it?](README.md#try-or-just-nail-it)<br>
+[DETAILED DESCRIPTION](README.md#detailed-description)<br>
+[Fake "Polymorphism"](README.md#fake-polymorphism)<br>
+[Statistics](README.md#statistics)<br>
+[TODO](README.md#todo)<br>
+[CLASS MEMBERS](README.md#class-members)<br>
+[Donations](README.md#donations)<br>
 
 ####**Providing Consistent Property Names**
 <img src="http://wiki.rilpartner.se/w/images/wiki.rilpartner.se/2/2d/EA-TaggedValue-System.jpg" 
