@@ -66,17 +66,18 @@ S = TagApi.WrapByName("VBA.FileName", elem).Notes()
 ###**STATISTICS**
 Support for collecting some basic runtime statistics about the number of times TaggedValues has been accessed and time spent evaluating them, has also been implemented in the wrapper. This functionality can be "disabled" from the code base altogether by using the following [Regular Expression](http://www.regular-expressions.info) (tested with **EditPad Lite**, a free version can be downloaded from [here](http://www.editpadlite.com/download.html "EditPad's Download page") ). Expressions to be used are the following:
 
-#####**DISABLE** the Stats code in the source code (by commenting):
+######**DISABLE** the Stats code in the source code (by commenting):
 	Regex Search:		^(?!'//)(.*?\(\(\$stats\)\).*?$)
 	Regex Replace:		'//\1
-#####**ENABLE** the `Stats` code rows in the source (removes commenting):
+######**ENABLE** the `Stats` code rows in the source (removes commenting):
 	Regex Search:	^(?='//)'//(.*?\(\(\$stats\)\).*?$)
 	Regex Replace:		\1
 
-####**TODO**
-- Property `IsInterfaceTag()` - Needs checking the Stereotype to be distinguished from a regular Class.
-----
+#####**TODO**
+    Property `IsInterfaceTag()` - Needs checking of the Stereotype in order to be 
+                                  distinguished from a regular Class.
 
+----
 ##**CLASS MEMBERS**
 **First the most frequently used Properties & Functions, and below that a full list of public members:
 
@@ -95,13 +96,10 @@ Public Property Get Notes() ''': String
 Public Sub Update() ''': Void			''' All PropertyTypes reloaded from the
 Repository in a total re-initialization
 ```
-
-#### **Control of Statistics:**
+*Other useful and orthogonal properties:*
 ```vbs
-
-''' Other useful and orthogonal properties. In case a 
-''' value isn't actually provided by the underlaying object, 
-''' these properties at least provides with a fake value  
+''' In case a value isn't actually provided by the underlaying 
+''' object, these properties at least provides with a fake value  
 ''' allowing for "type safe" traversing of EA models.
 
 ''' PUBLIC
