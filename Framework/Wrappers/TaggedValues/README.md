@@ -47,7 +47,7 @@ For Each elem in Pkg.Elements
 Next
 ```
 
-Or, if assuming that the TV really exists, use the procedure form:
+Or, if assuming that the TV really exists, use the more "direct" version of the function, which returns the wrapper object, which then also directly provides the properties of the desired TaggedValue, in this example, the `.Notes()` property:
 
 ```vbs
 S = TagApi.WrapByName("VBA.FileName", elem).Notes()
@@ -79,7 +79,7 @@ Support for collecting some basic runtime statistics about the number of times T
 
 ----
 ##**CLASS MEMBERS**
-**First the most frequently used Properties & Functions, and below that a full list of public members:
+First the most frequently used Properties & Functions, and below that a full list of public members:
 
 ```vbs
 Public Function Wrap(ByRef aTaggedValue) ''': EA.TaggedValue (the wrapped Tag);
