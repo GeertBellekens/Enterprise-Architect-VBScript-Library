@@ -93,10 +93,11 @@ Public Property Get Value() ''': String
 Public Function TryValue(ByRef S) ''': Boolean
 Public Property Get Name() ''': String
 Public Property Get Notes() ''': String
-Public Sub Update() ''': Void			''' All PropertyTypes reloaded from the
-Repository in a total re-initialization
+Public Sub Update() ''': Void			''' All PropertyTypes reloaded from
+''' the EA Repository in a total re-initialization
 ```
-*Other useful and orthogonal properties:*
+Other useful and orthogonal properties:
+
 ```vbs
 ''' In case a value isn't actually provided by the underlaying 
 ''' object, these properties at least provides with a fake value  
