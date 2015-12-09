@@ -9,12 +9,26 @@
 </dl>
 
 *For some information about the background for this TaggedValue Helper, see a discussion  thread at EA's forum ni [this link](http://www.sparxsystems.com/cgi-bin/yabb/YaBB.cgi?num=1448991338/15#15 "Chart of Different Property Names, etc")*
+
+####TOC
+[Providing Consistent Property Names](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#providing-consistent-property-names)<br>
+[Better Properties](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#better-properties)<br>
+[More Properties](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#more-properties)<br>
+[EXAMPLE OF USAGE](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#example-of-usage)<br>
+[Try or just nail it?](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#try-or-just-nail-it)<br>
+[DETAILED DESCRIPTION](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#detailed-description)<br>
+[Fake "Polymorphism"](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#fake-polymorphism)<br>
+[Statistics](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#statistics)<br>
+[TODO](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#todo)<br>
+[CLASS MEMBERS](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#class-members)<br>
+[Donations](https://github.com/RolfLampa/Enterprise-Architect-VBScript-Library/edit/master/Framework/Wrappers/TaggedValues/README.md#donations)<br>
+
 ####**Providing Consistent Property Names**
 <img src="http://wiki.rilpartner.se/w/images/wiki.rilpartner.se/2/2d/EA-TaggedValue-System.jpg" 
 alt="TaggedValue system" align="right" width="540" border="10"/>
 This TaggedValue Helper wrapper for Enterprise Architect, written in VBScript, intends to provide advanced users of EA with simpler access to TaggedValue properties with a set of consistent property names, an orthogonality which, as of this writing, is lacking in EA regarding the TaggedValues system (see tables below about the inconsistent naming of the properties in the EA API). On this page the word `Tag`, or the acronym `TV`, may occasionally be used instead of `TaggedValue`.
 
-####**Better properties**
+####**Better Properties**
 One of the most important features of the wrapper which has been added, is the much smarter Value() property, which automagically delivers any Default() values, if any such default value was defined in your own **`<<Stereotypes>>`**'  "initial value" field, or as a last alternative if no other value was defined, in the "global" TaggedValue definitions stored in **`PropertyTypes`** (called Project | Settings | "**UML Types**" in the UI).
 
 The way one retrieves these values from the inner workings of EA are *also different* for some of the Tag types, and in some cases these values requires complex programming in order to be accessed, but again, this can't be done in a consistent manner using the EA API.  But the good news is that this helper wrapper does all this for you while hiding all the complexity. And it does more than so.
@@ -94,6 +108,7 @@ Support for collecting some basic runtime statistics about the number of times T
 First the most frequently used Properties & Functions, and below that a full list of public members:
 
 ```vbs
+Class TaggedValue
 Public Function Wrap(ByRef aTaggedValue) ''': EA.TaggedValue (the wrapped Tag);
 ''' Passing Tag's parent object as "aObj" causes a lookup of the desired 
 ''' TaggedValue (returns True if the TV exists). The TV's properties are available.
@@ -192,10 +207,10 @@ Private Sub RegisterPropertyTypesDefaults() ''': Void
 Private Sub RegisterPropertyTypesRawData() ''': Void
 Private Sub ResetData() ''': Void
 Private Sub ResetStats() ''': Void				''' (($stats))
-
+End Class
 ```
 
-##**DONATIONS**
+###**Donations**
 Although we love to provide useful things for free saving you lots of time and hassle, we also spend lots of time making the life easier for EA developers. If you find the script being useful you may consider making a donation. All amounts amounts. For Paypal donations, use the following 
 [Paypal Link](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=2VFSWN93XEPZ2 "Paypal's Secure Pages")
 
