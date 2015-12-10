@@ -1,5 +1,11 @@
+'[path=\Framework\Wrappers]
+'[group=Wrappers]
+
+'include all individual scripts in this group
 !INC Wrappers.Script
 !INC Wrappers.ScriptGroup
+!INC Wrappers.TaggedValue
+'include the util group
 !INC Util.Include
 
 'Author: Geert Bellekens

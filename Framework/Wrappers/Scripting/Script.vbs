@@ -1,4 +1,8 @@
+'[path=\Framework\Wrappers\Scripting]
+'[group=Wrappers]
+
 option explicit
+
 
 !INC Util.Include
 
@@ -40,6 +44,14 @@ Class Script
 	End Property
 	Public Property Let Id(value)
 	  m_Id = value
+	End Property
+	
+	' Path property.
+	Public Property Get Path
+	  Path = getPathFromCode
+	  if len(Path) < 1 then
+		Path = "\" & me.Group.Name
+	  end if
 	End Property
 
 	' Group property.
@@ -113,5 +125,21 @@ Class Script
 		dim parts
 		parts = split(notes,"""")
 		getNameFromNotes = parts(1)
+	end function
+	
+	'the path is defined in the code as '[path=\directory\subdirectory]
+	private function getPathFromCode()
+		dim returnPath
+		returnPath = "" 'initialise emtpy
+		dim pathIndicator, startPath, indPath
+		pathIndicator = "[path="
+		startPath = instr(me.Code, pathIndicator) + len(PathIndicator)
+		if startPath > len(PathIndicator) then
+			endPath = instr(startPath, me.Code, "]")
+			if endPath > startPath then
+				returnPath = mid(me.code,startPath, endPath - StartPath)
+			end if
+		end if
+		getPathFromCode = returnPath
 	end function
 end Class

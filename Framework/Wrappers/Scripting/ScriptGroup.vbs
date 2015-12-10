@@ -1,3 +1,5 @@
+'[path=\Framework\Wrappers\Scripting]
+'[group=Wrappers]
 option explicit
 
 !INC Util.Include
