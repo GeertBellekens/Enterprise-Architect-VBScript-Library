@@ -5,8 +5,8 @@
 ''' ===========================================================================
 ''' TAGGEDVALUE HELPER
 ''' ===========================================================================
-''' VERSION			: 0.9.5
-'''	RELEASE DATE	: 2015-12-08
+''' VERSION			: 0.9.6
+'''	RELEASE DATE	: 2015-12-10
 ''' HISTORY			: See History.txt				First release in 2015-12-07
 '''
 ''' DESCRIPTION		: A TaggedValue Helper wrapper, intending to provide access 
@@ -29,7 +29,7 @@
 ''' DEPENDENCIES 	: None. The script should work as is inside Enterprise 
 '''					  Architect. 
 ''' TESTED			: Run on Enterprise Architect 12.1 Beta, using the file
-'''					  "RILTaggedValuehelper_TEST.vbs" for simple property access
+'''					  "TaggedValue_Test.vbs" for simple property access
 '''
 ''' ---------------------------------------------------------------------------
 '''
@@ -42,7 +42,7 @@ Dim m_tagapi 	''' You may want to use this variable directly, the after first
 Public Function TagAPI()
 	''' Ensure that the TaggedVaslue helper is created only once.
 	if m_tagapi is Nothing then
-		Set m_tagapi = New TaggedValue
+		Set m_tagapi = New TTaggedValueWrapper
 	End If
 	Set TagAPI = m_tagapi
 End Function
@@ -116,9 +116,9 @@ End Sub
 '''		''' Most used properties & functions :
 '''
 '''     ''' WrapByName: Direct access to properties assuming the TV exists
-'''		Public Function WrapByName(aName, ByRef aObj) ''': TRILTaggedValueHelper
+'''		Public Function WrapByName(aName, ByRef aObj) ''': TTaggedValueWrapper
 '''		Public Function TryWrapByName(aName, ByRef aObj) ''': Boolean
-'''		Public Function Wrap(ByRef aTaggedValue) ''': TRILTaggedValueHelper
+'''		Public Function Wrap(ByRef aTaggedValue) ''': TTaggedValueWrapper
 '''		Public Property Get Value() ''': String
 '''		Public Function TryValue(ByRef S) ''': Boolean
 '''		Public Property Get Name()	''': String
@@ -243,7 +243,7 @@ Private Const msg_TaggedValueType = "Invalid TaggedValue type!"
 
 ''' HELPER CLASS
 
-Class TaggedValue
+Class TTaggedValueWrapper
 	
 	''' The currently wrapped EA.TaggedValue + EA.RoleTag.
 	Dim m_tv As EA.TaggedValue
@@ -361,7 +361,7 @@ Class TaggedValue
 	''' named TaggedValue will be found, like so:
 	'''	S = TagAPI.TagByName("SomeTagName", elem).Value()      or,
 	'''	S = TagAPI.TagByName("CopyrightNotice", elem).Notes()  etc.
-	Public Function WrapByName(aName, ByRef aObj) ''': TRILTaggedValueHelper
+	Public Function WrapByName(aName, ByRef aObj) ''': TTaggedValueWrapper
 		If TryWrapByName(aName, aObj) then
 			Set WrapByName = Me
 		Else
@@ -370,18 +370,10 @@ Class TaggedValue
 	End Function
 	
 	
-	''' [TvObject]
-	''' Publishes the currently wrapped TaggedValue. Be aware of that this native 
-	''' TV object is NOT "type unsafe" due to EA tag's inherent un-orthogonality.
-	Public Property Get TvObject() ''': EA.TaggedValue
-		Set TvObject = m_tv
-	End Property
-
-	
 	''' [Wrap] 
 	''' Assigns the external TaggedValue to the wrapper class 
 	''' for use in the internal processing.
-	Public Function Wrap(ByRef aTaggedValue) ''': TRILTaggedValueHelper
+	Public Function Wrap(ByRef aTaggedValue) ''': TTaggedValueWrapper
 		''' m_tv is most often used, if not a RoleTag arrives (then m_rt instead)
 		Set m_tv = aTaggedValue
 		m_objecttype = m_tv.ObjectType
@@ -758,7 +750,16 @@ Class TaggedValue
     	End Select			
 	End Property
 	
-	
+	''' [TvObject]
+	''' Publishes the currently wrapped TaggedValue. Be aware of that this native 
+	''' TV object is NOT "type safe" due to EA tag's inherent un-orthogonality.
+	''' Use IsElemenTag, IsConnectorTag, IsRoleTag etc (via this wrapper) to determine 
+	'''	the Tag type before using this property.
+	Public Property Get TvObject() ''': EA.TaggedValue
+		Set TvObject = m_tv
+	End Property
+
+		
 	''' [ParentObject]
 	Public Property Get ParentObject() ''': EA.<Object>
     	IncStats()								''' (($stats))

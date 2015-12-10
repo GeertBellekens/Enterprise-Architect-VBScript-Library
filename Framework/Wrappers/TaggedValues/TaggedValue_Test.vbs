@@ -1,7 +1,7 @@
 Option Explicit
 
 !INC Local Scripts.EAConstants-VBScript
-!INC RILVBA.TaggedValue
+!INC TaggedValues.TaggedValue
 
 ''' --------------------------
 ''' TESTING TAGGEDVALUE HELPER
@@ -147,7 +147,7 @@ End Sub
 
 Private Function TagHelp()
 	if m_tagapi is Nothing then _
-		Set m_tagapi = New TaggedValue
+		Set m_tagapi = New TTaggedValueWrapper
 	Set TagHelp = m_tagapi
 End Function
 
