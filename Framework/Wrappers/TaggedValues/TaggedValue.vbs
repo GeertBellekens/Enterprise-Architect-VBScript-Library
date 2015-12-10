@@ -5,8 +5,8 @@
 ''' ===========================================================================
 ''' TAGGEDVALUE HELPER
 ''' ===========================================================================
-''' VERSION			: 0.9.5
-'''	RELEASE DATE	: 2015-12-08
+''' VERSION			: 0.9.6
+'''	RELEASE DATE	: 2015-12-10
 ''' HISTORY			: See History.txt				First release in 2015-12-07
 '''
 ''' DESCRIPTION		: A TaggedValue Helper wrapper, intending to provide access 
