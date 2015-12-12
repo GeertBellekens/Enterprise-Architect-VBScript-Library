@@ -1,3 +1,5 @@
+'[path=\Framework\Wrappers\TaggedValues]
+'[group=Testing]
 Option Explicit
 
 !INC Local Scripts.EAConstants-VBScript
@@ -309,4 +311,4 @@ Sub Main()
 	Module_Terminate()	
 End Sub
 
-Main 
+Main

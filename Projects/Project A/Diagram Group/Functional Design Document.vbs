@@ -1,3 +1,5 @@
+'[path=\Projects\Project A\Diagram Group]
+'[group=Diagram Group]
 option explicit
 
 !INC Local Scripts.EAConstants-VBScript
@@ -282,8 +284,8 @@ function addUseCases(masterDocument, usecases, i)
 		i = i + 1
 		
 		'use case part 3
-		addModelDocument masterDocument, "FA_Use Case details part3", usecase.Name  & " Part 3", usecase.ElementGUID, i
-		i = i + 1
+'		addModelDocument masterDocument, "FA_Use Case details part3", usecase.Name  & " Part 3", usecase.ElementGUID, i
+'		i = i + 1
 		
 '		'add the applicaiton function diagrams (should be only one per use case)
 '		dim applicationFunctions

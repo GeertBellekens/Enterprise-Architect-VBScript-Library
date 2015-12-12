@@ -1,3 +1,5 @@
+'[path=\Projects\Project A\Project Browser Element Group]
+'[group=Project Browser Element Group]
 'option explicit
 
 !INC Local Scripts.EAConstants-VBScript

@@ -1,3 +1,5 @@
+'[path=\Projects\Project A\A Scripts]
+'[group=Atrias Scripts]
 ' Script Name: DocGenUtil
 ' Author: Geert Bellekens
 ' Purpose: serves as library for other scripts for document generation

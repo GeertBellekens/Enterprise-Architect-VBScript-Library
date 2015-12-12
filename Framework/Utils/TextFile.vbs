@@ -1,3 +1,5 @@
+'[path=\Framework\Utils]
+'[group=Utils]
 'Author: Geert Bellekens
 'Date: 2015-12-07
 
@@ -45,14 +47,23 @@ Class TextFile
 
 	sub Save
 		Dim fso, MyFile
-		 Set fso = CreateObject("Scripting.FileSystemObject")
-		 'first check if the directory exists
-		 if not fso.FolderExists(me.Folder) then
-			fso.CreateFolder(me.Folder)
-		 end if 
-		 Set MyFile = fso.CreateTextFile(me.FullPath, True)
-		 MyFile.Write(Contents)
-		 MyFile.close
+		Set fso = CreateObject("Scripting.FileSystemObject")
+		'first make sure the directory exists
+		CreateFolderTree me.Folder
+		'then create file
+		Set MyFile = fso.CreateTextFile(me.FullPath, True)
+		MyFile.Write(Contents)
+		MyFile.close
+	end sub
+	
+	private sub CreateFolderTree(path)
+		Dim fso
+		Set fso = CreateObject("Scripting.FileSystemObject")
+		'first check if the path doesn't exist yet
+		if not fso.FolderExists(path) and len(path) > 1 then
+			CreateFolderTree fso.GetParentFolderName(path)
+			fso.CreateFolder path
+		end if
 	end sub
 	
 end class

@@ -1,3 +1,5 @@
+'[path=\Projects\Project A\Template fragments]
+'[group=Template fragments]
 option explicit
 
 !INC Local Scripts.EAConstants-VBScript

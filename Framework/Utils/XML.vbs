@@ -1,3 +1,5 @@
+'[path=\Framework\Utils]
+'[group=Utils]
 !INC Local Scripts.EAConstants-VBScript
 
 'Author: Geert Bellekens

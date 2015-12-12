@@ -18,7 +18,7 @@ sub main
 	'get the folder from the user
 	dim folder, shell
 	Set shell  = CreateObject( "Shell.Application" )
-    Set folder = shell.BrowseForFolder( 0, "Select Folder", 0, "C:\Temp" )
+    Set folder = shell.BrowseForFolder( 0, "Select Folder", 0)
 	if not folder is nothing then
 		set allScripts = script.getAllScripts()
 	end if

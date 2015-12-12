@@ -1,3 +1,5 @@
+'[path=\Projects\Project A\A Scripts]
+'[group=Atrias Scripts]
 option explicit
 
 	!INC Local Scripts.EAConstants-VBScript

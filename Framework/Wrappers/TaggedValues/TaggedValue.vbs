@@ -1,3 +1,5 @@
+'[path=\Framework\Wrappers\TaggedValues]
+'[group=Wrappers]
 'Option Explicit
 
 !INC Local Scripts.EAConstants-VBScript
@@ -1593,4 +1595,3 @@ Class TTaggedValueWrapper
 End Class
 
 Module_Initialize
-
