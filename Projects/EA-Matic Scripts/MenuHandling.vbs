@@ -1,3 +1,5 @@
+'[path=\Projects\EA-Matic Scripts]
+'[group=EA-Matic]
 'EA-Matic
 !INC Local Scripts.EAConstants-VBScript
 

@@ -2,6 +2,7 @@
 '[group=Utils]
 !INC Utils.XML
 !INC Utils.SQL
+!INC Utils.FileSystemFolder
 !INC Utils.TextFile
 
 'Author: Geert Bellekens

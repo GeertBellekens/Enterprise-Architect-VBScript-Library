@@ -1,3 +1,5 @@
+'[path=\Projects\EA-Matic Scripts]
+'[group=EA-Matic]
 option explicit
 
 !INC Local Scripts.EAConstants-VBScript
@@ -212,4 +214,3 @@ function getConnectorStyle(diagramLink)
 		getConnectorStyle = mode
 	end if
 end function
-

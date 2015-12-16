@@ -1,3 +1,5 @@
+'[path=\Projects\EA-Matic Scripts]
+'[group=EA-Matic]
 option explicit
 'EA-Matic
 'Author: Geert Bellekens

@@ -1,3 +1,5 @@
+'[path=\Projects\EA-Matic Scripts]
+'[group=EA-Matic]
 option explicit
 
 !INC Local Scripts.EAConstants-VBScript
@@ -66,4 +68,3 @@ function synchronizeObjectNames(element, model)
 		next
 	end if
 end function
-

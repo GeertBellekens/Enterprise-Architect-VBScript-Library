@@ -13,21 +13,22 @@ option explicit
 sub main
 	dim script
 	set script = New Script
-	dim allScripts
-	set allScripts = script.getAllScripts()
+	dim allScripts, allGroups
+	set allGroups = Nothing
 	'get the folder from the user
 	dim folder, shell
 	Set shell  = CreateObject( "Shell.Application" )
-    Set folder = shell.BrowseForFolder( 0, "Select Folder", 0)
+    Set folder = new FileSystemFolder
+	set folder = folder.getUserSelectedFolder("")
 	if not folder is nothing then
-		set allScripts = script.getAllScripts()
+		set allScripts = script.getAllScripts(allGroups)
+		Session.Output "allGroups.Count: " & allGroups.Count
 	end if
 	for each script in allScripts
-		Session.Output "filename: " & folder.Self.Path & script.Path & "\" & script.Name & ".vbs"
+		Session.Output "filename: " & folder.FullPath & script.Path & "\" & script.Name & ".vbs"
 		dim file
 		set file = New TextFile
-		file.Folder = folder.Self.Path & script.Path 
-		file.FileName = script.Name & ".vbs"
+		file.FullPath = folder.FullPath & script.Path & "\" & script.Name & ".vbs"
 		file.Contents = script.Code
 		file.Save
 	next

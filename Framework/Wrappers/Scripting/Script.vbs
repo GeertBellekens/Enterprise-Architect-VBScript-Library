@@ -9,11 +9,15 @@ option explicit
 'Author: Geert Bellekens
 'Date: 2015-12-07
 
+'for some reason all scripts in the database have this value in the column scriptCategory
+Const scriptCategory = "605A62F7-BCD0-4845-A8D0-7DC45B4D2E3F"
+
 Class Script 
 	Private m_Name
 	Private m_Code
 	Private m_Group
 	Private m_Id
+	Private m_GUID
 
 	Private Sub Class_Initialize
 	  m_Name = ""
@@ -46,6 +50,14 @@ Class Script
 	  m_Id = value
 	End Property
 	
+	' GUID property.
+	Public Property Get GUID
+	  GUID = m_GUID
+	End Property
+	Public Property Let GUID(value)
+	  m_GUID = value
+	End Property	
+	
 	' Path property.
 	Public Property Get Path
 	  Path = getPathFromCode
@@ -63,15 +75,18 @@ Class Script
 	  'add the script to the group
 	   m_Group.Scripts.Add me
 	End Property
+	
+	' GroupNameInCode property
+	Public Property Get GroupInNameCode
+	  GroupInNameCode = getGroupFromCode()
+	End Property
 
 	
 	' Gets all scripts stored in the model
-	Public function getAllScripts()
-		dim queryResult
-		dim resultArray
-		dim row
-		dim allGroups
-		set allGroups = CreateObject("Scripting.Dictionary")
+	Public function getAllScripts(allGroups)
+		dim resultArray, scriptGroup,row,queryResult
+		set scriptGroup = new scriptGroup
+		set allGroups = scriptGroup.getAllGroups()
 		dim allScripts
 		set allScripts = CreateObject("System.Collections.ArrayList")
 		dim sqlGet
@@ -81,10 +96,9 @@ Class Script
 					 " where s.notes like '<Script Name=" & getWC() & "'"
         queryResult = Repository.SQLQuery(sqlGet)
 		resultArray = convertQueryResultToArray(queryResult)
-		dim id, notes, code, group, name, groupNotes, groupID, scriptGroup
+		dim id, notes, code, group, name, groupNotes, groupID
 		dim i
 		For i = LBound(resultArray) To UBound(resultArray)
-			notes = resultArray(i,2)
 			id = resultArray(i,0)
 			notes = resultArray(i,1)
 			code = resultArray(i,2) 
@@ -142,4 +156,28 @@ Class Script
 		end if
 		getPathFromCode = returnPath
 	end function
+	'the Group is defined in the code as '[group=NameOfTheGroup]
+	private function getGroupFromCode()
+		dim returnGroup
+		returnGroup = "" 'initialise emtpy
+		dim groupIndicator, startGroup, indGroup
+		groupIndicator = "[group="
+		startGroup = instr(me.Code, groupIndicator) + len(groupIndicator)
+		if startGroup > len(groupIndicator) then
+			endGroup = instr(startGroup, me.Code, "]")
+			if endGroup > startGroup then
+				returnGroup = mid(me.code,startGroup, endGroup - StartGroup)
+			end if
+		end if
+		getGroupFromCode = returnGroup
+	end function
+	
+	'Insert the group in the database
+	public sub Create
+		dim sqlInsert
+		sqlInsert = "insert into t_script (ScriptCategory, ScriptName, ScriptAuthor, Notes, Script) " & _
+					" Values ('" & scriptCategory & "','" & me.GUID & "','" & me.Group.GUID & "','<Script Name=""" & me.Name & """ Type=""Internal"" Language=""VBScript""/>','" & escapeSQLString(me.Code) & "')"
+		Repository.Execute sqlInsert
+	end sub
+	
 end Class
