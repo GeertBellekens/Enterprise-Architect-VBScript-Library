@@ -116,7 +116,7 @@ Class ScriptGroup
 	public sub Create
 		dim sqlInsert
 		sqlInsert = "insert into t_script (ScriptCategory, ScriptName,Notes, Script) " & _
-					" Values ('" & scriptGroupCategory & "','" & me.GUID & "','<Group Type=""" & gtProjectBrowser & """ Notes=""""/>','" & me.Name & "')"
+					" Values ('" & scriptGroupCategory & "','" & me.GUID & "','<Group Type=""" & me.GroupType & """ Notes=""""/>','" & me.Name & "')"
 		Repository.Execute sqlInsert
 	end sub
 
