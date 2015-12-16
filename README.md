@@ -7,4 +7,4 @@ Some may be useful for any context, some have been written to solve a very speci
 TODO:
 
 - Add a functional wrapper library for EA's API objects
-- Add a script to easily export all scripts in a project to a folder location in order to help with version control
+
