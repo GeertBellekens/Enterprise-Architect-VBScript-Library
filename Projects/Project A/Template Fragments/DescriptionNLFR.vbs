@@ -3,6 +3,7 @@
 option explicit
 
 !INC Local Scripts.EAConstants-VBScript
+!INC Atrias Scripts.Util
 
 '
 ' Script Name: 
@@ -10,6 +11,18 @@ option explicit
 ' Purpose: 
 ' Date: 
 '
+function MyPackageRtfData(packageID, tagname)
+	dim package as EA.Package
+	dim element as EA.Element
+	set package = Repository.GetPackageByID(packageID)
+	if not package is nothing then
+		set element = Repository.GetElementByGuid(package.PackageGUID)
+		if not element is nothing then
+			MyPackageRtfData = MyRtfData (element.ElementID, tagname)
+		end if
+	end if 
+end function
+
 function MyRtfData (objectID, tagname)
 	
 	dim xmlDOM 
@@ -66,26 +79,5 @@ function MyRtfData (objectID, tagname)
 	MyRtfData = xmlDOM.xml
 end function
 
-'get the description from the given notes 
-'that is the text between <NL> and </NL> or <FR> and </FR>
-function getTagContent(notes, tag)
-	if tag = "" then
-		getTagContent = notes
-	else
-		getTagContent = ""
-		dim startTagPosition
-		dim endTagPosition
-		startTagPosition = InStr(notes,"&lt;" & tag & "&gt;")
-		endTagPosition = InStr(notes,"&lt;/" & tag & "&gt;")
-		'Session.Output "notes: " & notes & " startTagPosition: " & startTagPosition & " endTagPosition: " &endTagPosition
-		if startTagPosition > 0 and endTagPosition > startTagPosition then
-			dim startContent
-			startContent = startTagPosition + len(tag) + 8
-			dim length 
-			length = endTagPosition - startContent
-			getTagContent = mid(notes, startContent, length)
-		end if
-	end if 
-end function
-
+'msgbox MyPackageRtfData(3357,"")
 'msgbox MyRtfData(18314, "")

@@ -29,6 +29,9 @@ sub main
 		dim file
 		set file = New TextFile
 		file.FullPath = folder.FullPath & script.Path & "\" & script.Name & ".vbs"
+		'first make sure the code indicator is added to the code
+		script.addGroupToCode
+		'then save the script with the group indicator
 		file.Contents = script.Code
 		file.Save
 	next

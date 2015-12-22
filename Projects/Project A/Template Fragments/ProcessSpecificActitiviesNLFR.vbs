@@ -3,6 +3,7 @@
 option explicit
 
 !INC Local Scripts.EAConstants-VBScript
+!INC Atrias Scripts.Util
 
 '
 ' Script Name: 
@@ -120,23 +121,7 @@ function addRow (xmlData, xmlDOM, element)
 	
 end function
 
-'get the description from the given notes 
-'that is the text between <NL> and </NL> or <FR> and </FR>
-function getTagContent(notes, language)
-	getTagContent = ""
-	dim startTagPosition
-	dim endTagPosition
-	startTagPosition = InStr(notes,"&lt;" & language & "&gt;")
-	endTagPosition = InStr(notes,"&lt;/" & language & "&gt;")
-	'Session.Output "notes: " & notes & " startTagPosition: " & startTagPosition & " endTagPosition: " &endTagPosition
-	if startTagPosition > 0 and endTagPosition > startTagPosition then
-		dim startContent
-		startContent = startTagPosition + len(language) + 8
-		dim length 
-		length = endTagPosition - startContent
-		getTagContent = mid(notes, startContent, length)
-	end if
-end function
+
 
 function getSubProcesses(diagram)
 	dim sortedDiagramObjects

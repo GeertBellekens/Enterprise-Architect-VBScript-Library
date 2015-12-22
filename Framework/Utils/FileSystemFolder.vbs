@@ -65,6 +65,21 @@ Class FileSystemFolder
 		set TextFiles = result
 	End Property
 	
+	'SubFolders property
+	public property Get SubFolders
+		Dim fso, result, folders, tempfolder, subfolder
+		set result = CreateObject("System.Collections.ArrayList")
+		Set fso = CreateObject("Scripting.FileSystemObject")
+		Set tempfolder = fso.GetFolder(me.FullPath)
+		Set folders = tempfolder.SubFolders
+		For Each folder in folders
+			set subfolder = new FileSystemFolder
+			subFolder.FullPath = folder.Path
+			result.Add subFolder
+		Next
+		set SubFolders = result
+	End Property
+	
 	public function getUserSelectedFolder(startPath)
 		dim folder, shell
 		Set shell  = CreateObject( "Shell.Application" )

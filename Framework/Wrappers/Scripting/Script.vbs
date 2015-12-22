@@ -90,13 +90,13 @@ Class Script
 		dim allScripts
 		set allScripts = CreateObject("System.Collections.ArrayList")
 		dim sqlGet
-		sqlGet = "select s.ScriptID, s.Notes, s.Script,ps.Script as SCRIPTGROUP, ps.Notes as GROUPNOTES, ps.ScriptID as GroupID " & _
+		sqlGet = "select s.ScriptID, s.Notes, s.Script,ps.Script as SCRIPTGROUP, ps.Notes as GROUPNOTES, ps.ScriptID as GroupID, ps.ScriptName as GroupGUID, s.ScriptName as ScriptGUID " & _
 					 " from t_script s " & _
 					 " inner join t_script ps on s.ScriptAuthor = ps.ScriptName " & _
 					 " where s.notes like '<Script Name=" & getWC() & "'"
         queryResult = Repository.SQLQuery(sqlGet)
 		resultArray = convertQueryResultToArray(queryResult)
-		dim id, notes, code, group, name, groupNotes, groupID
+		dim id, notes, code, group, name, groupNotes, groupID, groupGUID, scriptGUID
 		dim i
 		For i = LBound(resultArray) To UBound(resultArray)
 			id = resultArray(i,0)
@@ -105,6 +105,8 @@ Class Script
 			group = resultArray(i,3)
 			groupNotes = resultArray(i,4)
 			groupID = resultArray(i,5)
+			groupGUID = resultArray(i,6)
+			scriptGUID = resultArray(i,7)
 			if len(notes) > 0 then
 				'first get or create the group
 				if allGroups.Exists(groupID) then
@@ -113,6 +115,7 @@ Class Script
 					set scriptGroup = new ScriptGroup
 					scriptGroup.Name = group
 					scriptGroup.Id = groupID
+					scriptGroup.GUID = groupGUID
 					scriptGroup.setGroupTypeFromNotes groupNotes
 					'add the group to the dictionary
 					allGroups.Add groupID, scriptGroup
@@ -124,6 +127,7 @@ Class Script
 				script.Id = id
 				script.Name = name
 				script.Code = code
+				script.GUID = scriptGUID
 				'add the group to the script
 				script.Group = scriptGroup
 				'add the script to the list
@@ -143,41 +147,58 @@ Class Script
 	
 	'the path is defined in the code as '[path=\directory\subdirectory]
 	private function getPathFromCode()
-		dim returnPath
-		returnPath = "" 'initialise emtpy
-		dim pathIndicator, startPath, indPath
-		pathIndicator = "[path="
-		startPath = instr(me.Code, pathIndicator) + len(PathIndicator)
-		if startPath > len(PathIndicator) then
-			endPath = instr(startPath, me.Code, "]")
-			if endPath > startPath then
-				returnPath = mid(me.code,startPath, endPath - StartPath)
-			end if
-		end if
-		getPathFromCode = returnPath
+		getPathFromCode = getKeyValue("path")
 	end function
 	'the Group is defined in the code as '[group=NameOfTheGroup]
-	private function getGroupFromCode()
-		dim returnGroup
-		returnGroup = "" 'initialise emtpy
-		dim groupIndicator, startGroup, indGroup
-		groupIndicator = "[group="
-		startGroup = instr(me.Code, groupIndicator) + len(groupIndicator)
-		if startGroup > len(groupIndicator) then
-			endGroup = instr(startGroup, me.Code, "]")
-			if endGroup > startGroup then
-				returnGroup = mid(me.code,startGroup, endGroup - StartGroup)
-			end if
-		end if
-		getGroupFromCode = returnGroup
+	public function getGroupFromCode()
+		getGroupFromCode = getKeyValue("group")
 	end function
 	
-	'Insert the group in the database
+	'the key-value pair is defined in the code as '[keyName=value]
+	public function getKeyValue(keyName)
+		dim returnValue
+		returnValue = "" 'initialise emtpy
+		dim keyIndicator, startKey, endKey, tempValue
+		keyIndicator = "[" & keyName & "=" 
+		startKey = instr(me.Code, keyIndicator) + len(keyIndicator)
+		if startKey > len(keyIndicator) then
+			endKey = instr(startKey, me.Code, "]")
+			if endKey > startKey then
+				tempValue = mid(me.code,startKey, endKey - startKey)
+				'filter out newline in case someone forgot to add the closing "]"
+				if instr(tempValue,vbNewLine) = 0 and instr(tempValue,vbLF) = 0 then
+					returnValue = tempValue
+				end if
+			end if
+		end if
+		getKeyValue = returnValue
+	end function
+	
+	public function addGroupToCode()
+		dim groupFromCode
+		groupFromCode = me.getGroupFromCode()
+		if not len(groupFromCode) > 0 then
+			'add the group indicator
+			me.Code = "'[group=" & me.Group.Name & "]" & vbNewLine & me.Code
+		end if
+	end function
+	
+	
+	'Insert the script in the database
 	public sub Create
 		dim sqlInsert
 		sqlInsert = "insert into t_script (ScriptCategory, ScriptName, ScriptAuthor, Notes, Script) " & _
 					" Values ('" & scriptCategory & "','" & me.GUID & "','" & me.Group.GUID & "','<Script Name=""" & me.Name & """ Type=""Internal"" Language=""VBScript""/>','" & escapeSQLString(me.Code) & "')"
 		Repository.Execute sqlInsert
+	end sub
+	
+	'update the script in the database
+	public sub Update
+		dim sqlUpdate
+		sqlUpdate = "update t_script set script = '" & escapeSQLString(me.Code) & "', ScriptAuthor = '" & me.Group.GUID & _
+					"', Notes = '<Script Name=""" & me.Name & """ Type=""Internal"" Language=""VBScript""/>' where ScriptName = '" & me.GUID & "'"
+		Session.Output sqlUpdate
+		Repository.Execute sqlUpdate
 	end sub
 	
 end Class

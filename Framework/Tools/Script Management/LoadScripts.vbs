@@ -10,23 +10,40 @@
 ' Date: 2015-12-07
 '
 sub main
-	dim selectedFolder,file, allScripts, allGroups,script
+	dim selectedFolder,file, allScripts, allGroups,script, overwriteExisting
 	set selectedFolder = new FileSystemFolder
 	set selectedFolder = selectedFolder.getUserSelectedFolder("")
+	overwriteExisting = "undecided"
 	if not selectedFolder is nothing then
 		set allGroups = Nothing
 		set script = new Script
 		'first get all existing scripts and groups
 		set allScripts = Script.getAllScripts(allGroups)
-		for each file in selectedFolder.TextFiles
-			Session.Output "FileName: " & file.FileName
-			'Session.Output "Code: " & file.Contents
-			set script = getScriptFromFile(file, allGroups, allScripts)
-		next
+		'get the scripts from the folder and its subfolders
+		getScriptsFromFolder selectedFolder, allGroups, allScripts, overwriteExisting
 	end if
 end sub
 
-function getScriptFromFile(file, allGroups, allScripts)
+'gets all the scripts from the given folder and its subfolders (if any)
+function getScriptsFromFolder(selectedFolder, allGroups, allScripts, overwriteExisting)
+	dim script, subFolder
+	for each file in selectedFolder.TextFiles
+		Session.Output "FileName: " & file.FileName
+		'Session.Output "Code: " & file.Contents
+		set script = getScriptFromFile(file, allGroups, allScripts,overwriteExisting)
+		if overwriteExisting = vbCancel then
+			exit for
+		end if
+	next
+	'then process subfolders
+	if not overwriteExisting = vbCancel then
+		for each subFolder in selectedFolder.SubFolders
+			getScriptsFromFolder subFolder, allGroups, allScripts, overwriteExisting
+		next
+	end if
+end function
+
+function getScriptFromFile(file, allGroups, allScripts,overwriteExisting)
 	dim script, newScript, foundMatch, newScriptGroupName, group, foundGroup
 	foundMatch = false
 	foundGroup = false
@@ -85,7 +102,13 @@ function getScriptFromFile(file, allGroups, allScripts)
 			newScript.Create
 			set script = newScript
 		else
-			'TODO update the script code?
+			if overwriteExisting = "undecided" then
+				overwriteExisting = Msgbox("Do you want to update existing scripts?", vbYesNoCancel+vbQuestion, "Update existing scripts")
+				if overwriteExisting = vbYes then
+					script.Code = newScript.Code
+					script.Update
+				end if
+			end if
 		end if
 
 	end if

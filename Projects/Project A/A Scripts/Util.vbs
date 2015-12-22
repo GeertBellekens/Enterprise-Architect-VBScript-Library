@@ -505,3 +505,25 @@ function getConnectorsFromQuery(sqlQuery)
 	next
 	set getConnectorsFromQuery = connectors
 end function
+
+'get the description from the given notes 
+'that is the text between <NL> and </NL> or <FR> and </FR>
+function getTagContent(notes, tag)
+	if tag = "" then
+		getTagContent = notes
+	else
+		getTagContent = ""
+		dim startTagPosition
+		dim endTagPosition
+		startTagPosition = InStr(notes,"&lt;" & tag & "&gt;")
+		endTagPosition = InStr(notes,"&lt;/" & tag & "&gt;")
+		'Session.Output "notes: " & notes & " startTagPosition: " & startTagPosition & " endTagPosition: " &endTagPosition
+		if startTagPosition > 0 and endTagPosition > startTagPosition then
+			dim startContent
+			startContent = startTagPosition + len(tag) + 8
+			dim length 
+			length = endTagPosition - startContent
+			getTagContent = mid(notes, startContent, length)
+		end if
+	end if 
+end function
