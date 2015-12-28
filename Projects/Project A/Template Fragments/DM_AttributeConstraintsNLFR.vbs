@@ -15,7 +15,8 @@ function MyRtfData (objectID, tagname)
 	'msgbox "starting MyRTFdata fo element" & objectID
 	'MyRtfData = "<?xml version=""1.0""?><EADATA><Dataset_0><Data><Row><ConstraintName>constraint 1</ConstraintName><DescriptionNL formatted=""1"">Hier staat de nederlandse bescrijving van deze constraint in &lt;b&gt;RichText&lt;/b&gt; (1)</DescriptionNL><DescriptionFR formatted=""1"">ici le français avec éàè characters &lt;b&gt;dôme&lt;/b&gt;</DescriptionFR></Row><Row><ConstraintName>constraint 2</ConstraintName><DescriptionNL formatted=""1"">Hier staat de nederlandse bescrijving van deze constraint in &lt;b&gt;RichText (2)&lt;/b&gt;</DescriptionNL><DescriptionFR formatted=""1"">ici le français avec éàè characters &lt;b&gt;dôme (2)&lt;/b&gt;</DescriptionFR></Row></Data></Dataset_0></EADATA>"
 	dim xmlDOM 
-	set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
+	'set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
+	set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
 	xmlDOM.validateOnParse = false
 	xmlDOM.async = false
 	 

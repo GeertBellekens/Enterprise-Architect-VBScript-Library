@@ -11,7 +11,7 @@ option explicit
 ' Purpose: 
 ' Date: 
 '
-function MyRtfData (objectID, tagname)
+function MyRtfData (objectID, isSource)
 
 	dim xmlDOM 
 	'set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
@@ -39,11 +39,15 @@ function MyRtfData (objectID, tagname)
 	'loop the Attributes
 	dim element as EA.Element
 	set element = Repository.GetElementByID(objectID)
-	dim attribute as EA.Attribute
+	dim connector as EA.Connector
 
-	if element.Attributes.Count > 0 then
-		for each attribute in  element.Attributes
-			addRow xmlDOM, xmlData, attribute
+	if element.Connectors.Count > 0 then
+		for each connector in  element.Connectors
+			if isSource and connector.ClientID = element.ElementID _
+			 OR  not isSource and connector.SupplierID = element.ElementID  _
+			 and connector.SupplierID <> connector.ClientID then
+				addRow xmlDOM, xmlData, connector
+			end if
 		next
 		MyRtfData = xmlDOM.xml
 	else
@@ -52,20 +56,52 @@ function MyRtfData (objectID, tagname)
 	end if
 end function
 
-function addRow(xmlDOM, xmlData, attribute)
+function addRow(xmlDOM, xmlData, connector)
 	
 	dim xmlRow
 	set xmlRow = xmlDOM.createElement( "Row" )
 	xmlData.appendChild xmlRow
 	
-	'Attribute name
-	dim xmlAttributeName
-	set xmlAttributeName = xmlDOM.createElement( "AttributeName" )	
-	xmlAttributeName.text = attribute.Name
-	xmlRow.appendChild xmlAttributeName
+	'source multiplicity
+	dim xmlSMultiplicity
+	set xmlSMultiplicity = xmlDOM.createElement( "SMultiplicity" )	
+	xmlSMultiplicity.text = connector.ClientEnd.Cardinality
+	xmlRow.appendChild xmlSMultiplicity
+	
+	'target multiplicity
+	dim xmlTMultiplicity
+	set xmlTMultiplicity = xmlDOM.createElement( "TMultiplicity" )	
+	xmlTMultiplicity.text = connector.SupplierEnd.Cardinality
+	xmlRow.appendChild xmlTMultiplicity
+	
+	'source Name
+	dim xmlSource
+	dim sourceElement as EA.Element
+	set sourceElement = Repository.GetElementByID(connector.ClientID)
+	set xmlSource = xmlDOM.createElement( "Source" )	
+	if not sourceElement is nothing then
+		xmlSource.text = sourceElement.Name
+	end if
+	xmlRow.appendChild xmlSource
+	
+	'target Name
+	dim xmlTarget
+	dim targetElement as EA.Element
+	set targetElement = Repository.GetElementByID(connector.SupplierID)
+	set xmlTarget = xmlDOM.createElement( "Target" )	
+	if not targetElement is nothing then
+		xmlTarget.text = targetElement.Name
+	end if
+	xmlRow.appendChild xmlTarget
+	
+	'ConnectorName
+	dim xmlConnectorName
+	set xmlConnectorName = xmlDOM.createElement( "ConnectorName" )	
+	xmlConnectorName.text = connector.Name
+	xmlRow.appendChild xmlConnectorName
 
 	dim descriptionfull
-	descriptionfull = attribute.Notes
+	descriptionfull = connector.Notes
 	
 	'description NL
 	dim formattedAttr 
@@ -86,28 +122,6 @@ function addRow(xmlDOM, xmlData, attribute)
 	xmlDescFR.setAttributeNode(formattedAttr)
 	xmlRow.appendChild xmlDescFR
 	
-	'multiplicity
-	dim xmlMultiplicity
-	set xmlMultiplicity = xmlDOM.createElement( "Multiplicity" )			
-	xmlMultiplicity.text = attribute.LowerBound & ".." & attribute.UpperBound
-	xmlRow.appendChild xmlMultiplicity
-	
-	'IsID
-	dim xmlIsID
-	set xmlIsID = xmlDOM.createElement( "IsID" )
-	if attribute.IsID then
-		xmlIsID.text = "Y"
-	else
-		xmlIsID.text = "N"
-	end if
-	xmlRow.appendChild xmlIsID
-	
-	'Format
-	dim xmlFormat
-	set xmlFormat = xmlDOM.createElement( "Format" )			
-	xmlFormat.text = attribute.Type
-	xmlRow.appendChild xmlFormat
-	
 end function
 
-'msgbox MyRtfData(38999, "")
+'msgbox MyRtfData(38700, true)

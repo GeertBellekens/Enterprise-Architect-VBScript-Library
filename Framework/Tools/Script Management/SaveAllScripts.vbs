@@ -16,9 +16,8 @@ sub main
 	dim allScripts, allGroups
 	set allGroups = Nothing
 	'get the folder from the user
-	dim folder, shell
-	Set shell  = CreateObject( "Shell.Application" )
-    Set folder = new FileSystemFolder
+	dim folder
+    set folder = new FileSystemFolder
 	set folder = folder.getUserSelectedFolder("")
 	if not folder is nothing then
 		set allScripts = script.getAllScripts(allGroups)

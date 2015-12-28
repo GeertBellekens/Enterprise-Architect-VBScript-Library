@@ -14,11 +14,15 @@ end function
 
 'escapes a literal string so it can be inserted using sql
 function escapeSQLString(inputString)
+	'replace the single quotes with two single quotes for all db types
+	escapeSQLString = replace(inputString, "'","''")
+	'dbspecifics
 	select case Repository.RepositoryType
 		case "POSTGRES"
 			' replace backslash "\" by double backslash "\\"
 			inputString = replace(inputString,"\","\\")
+		case "JET"
+			'replace pipe character | by '& chr(124) &'
+			inputString = replace(inputString,"|", "'& chr(124) &'")
 	end select
-	'replace the single quotes with two single quotes for all db types
-	escapeSQLString = replace(inputString, "'","''")
 end function

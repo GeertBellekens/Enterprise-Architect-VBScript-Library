@@ -6,53 +6,25 @@ option explicit
 !INC Atrias Scripts.Util
 
 '
-' Script Name: Link with Logical Data Model
+' Script Name: Validate BR uses
 ' Author: Geert Bellekens
-' Purpose: Links uses cases and rules to elements Logical Data Model entities they use in their scenariosteps for the use case and in the notes/linked documents for the Business Rules
-' Date: 28/09/2015
+' Purpose: Lists all Business rules that are linked to a use case but not referenced in the uses column.
+' Date: 23/12/2015
 '
 'name of the output tab
-const outPutName = "Link to LDM and FIS"
+const outPutName = "Check BR links"
 
 sub main
 
-	'reference to the domeain model package
-	dim domainModelPackageGUID 
-	domainModelPackageGUID = "{8A528D7F-D23B-4a85-B89A-15F5B41CE384}"
-'	dim extendedDomainModelPackageGUID 
-'	extendedDomainModelPackageGUID = "{967ED68D-A6D0-45ea-BBDE-F87E2BE34CE0}"
-	dim FISPackageGUID
-	FISPackageGUID = "{A4B198D1-FF9B-4375-8B9B-0015096DE9AD}"
 	
 	'create output tab
 	Repository.CreateOutputTab outPutName
 	Repository.ClearOutput outPutName
 	Repository.EnsureOutputVisible outPutName
 	'set timestamp
-	Repository.WriteOutput outPutName, "Starting link to LDM and FIS at " & now(), 0
+	Repository.WriteOutput outPutName, "Start check BR links at " & now(), 0
 	
-	'first get the pattern from all the classes in the Logical Data Model
-	dim dictionary
-	Set dictionary = CreateObject("Scripting.Dictionary")
-	'Logical Data Model
-	Repository.WriteOutput outPutName, "Creating dictionary from Logical Data Model", 0
-	addToClassDictionary domainModelPackageGUID, dictionary
-	'extended Logical Data Model
-	'addToClassDictionary extendedDomainModelPackageGUID, dictionary
-	
-	'FISSES
-	addToClassDictionary FISPackageGUID, dictionary
-	
-	' and prepare the regex object
-	dim pattern
-	'create the pattern based on the names in the dictionary
-	Repository.WriteOutput outPutName, "Creating regular expression", 0
-	pattern = createRegexPattern(dictionary)
-	Dim regExp  
-	Set regExp = CreateObject("VBScript.RegExp")
-	regExp.Global = True   
-	regExp.IgnoreCase = False
-	regExp.Pattern = pattern
+
 	
 	' Get the type of element selected in the Project Browser
 	dim treeSelectedType
@@ -67,26 +39,19 @@ sub main
 			'process use cases
 			dim usecases
 			set usecases = getUseCasesFromEACollection(selectedElements)
-			linkDomainClassesWithUseCases dictionary,regExp,usecases 
-			'process business rules
-			dim businessRules
-			set businessRules = getBusinessRulesFromEACollection(selectedElements)
-			Session.Output "business rules found: " & businessRules.Count
-			linkDomainClassesWithBusinessRules dictionary,regExp, businessRules
+			CheckBRLinksForUseCases usecases
 		case otPackage
 			' Code for when a package is selected
 			dim selectedPackage as EA.Package
 			set selectedpackage = Repository.GetTreeSelectedObject()
 			'link use domain classes with use cases under the selected package
-			linkDomainClassesWithUseCasesInPackage dictionary, regExp,selectedPackage
-			'link the domain classes with the business rules under the selected package
-			linkDomainClassesWithBusinessRulesInPackage dictionary, regExp,selectedPackage		
+			CheckBRLinksFromPackage selectedPackage	
 		case else
 			' Error message
 			Repository.WriteOutput outPutName, "Error: wrong type selected. You need to select a package or one or more elements", 0
 			
 	end select
-	Repository.WriteOutput outPutName, "Finished link to LDM and FIS at " & now(), 0
+	Repository.WriteOutput outPutName, "Finished checking BR links " & now(), 0
 end sub
 
 function getUseCasesFromEACollection(selectedElements)
@@ -113,7 +78,7 @@ function getBusinessRulesFromEACollection(selectedElements)
 	set getBusinessRulesFromEACollection = businessRules
 end function
 
-function linkDomainClassesWithUseCasesInPackage(dictionary,regExp,selectedPackage)
+function CheckBRLinksFromPackage(selectedPackage)
 	dim packageList 
 	set packageList = getPackageTree(selectedPackage)
 	dim packageIDString
@@ -122,58 +87,76 @@ function linkDomainClassesWithUseCasesInPackage(dictionary,regExp,selectedPackag
 	getElementsSQL = "select uc.Object_ID from t_object uc where uc.Object_Type = 'UseCase' and uc.Package_ID in (" & packageIDString & ")"
 	dim usecases
 	set usecases = getElementsFromQuery(getElementsSQL)
-	linkDomainClassesWithUseCases dictionary,regExp,usecases
+	CheckBRLinksForUseCases usecases
 end function
 
-function linkDomainClassesWithUseCases(dictionary,regExp,usecases)
+function CheckBRLinksForUseCases(usecases)
 	Session.Output usecases.Count & " use cases found"
 	dim usecase as EA.Element
-	
+	dim businessRule as EA.Element
 	'loop de use cases
 	for each usecase in usecases
-		Repository.WriteOutput outPutName, "Processing use case: " & usecase.Name, 0
+		'Repository.WriteOutput outPutName, "Processing use case: " & usecase.Name, 0
+		'first remove all automatic traces
+		removeAllAutomaticTraces usecase
+		'get the scenarios xml
+		dim xmlScenario
+		set xmlScenario = getScenariosXML(usecase)
+		'Session.output xmlScenario.xml
 		'get all dependencies left
 		dim dependencies
 		set dependencies = getDependencies(usecase)
-		
-		'first remove all automatic traces
-		removeAllAutomaticTraces usecase
-		
-		dim scenario as EA.Scenario
-		'loop scenarios
-		for each scenario in usecase.Scenarios
-			dim scenarioStep as EA.ScenarioStep
-			for each scenarioStep in scenario.Steps
-				'first remove any additional terms in the uses field
-				scenarioStep.Uses = removeAddionalUses(dependencies,scenarioStep.Uses, dictionary)
-				dim matches
-				set matches = regExp.Execute(scenarioStep.Name)
-				dim classesToMatch 
-				set classesToMatch = getClassesToMatchDictionary(matches, dictionary)
-				dim classToMatch as EA.Element
-				for each classToMatch in classesToMatch.Items
-'					Session.Output "scenarioStep.Uses before " & scenarioStep.Uses
-'					dim prefix
-'					'add the name of the class to the uses column
-'					select case classToMatch.Stereotype
-'						case "Message"
-'							prefix = "FIS"
-'						case else
-'							prefix = "LDM"
-'					end select
-'					'add to the uses field with the correct prefix
-'					addUsesToScenarioStep classToMatch, scenarioStep, prefix
-					'create the dependency between the use case and the Logical Data Model class
-					linkElementsWithAutomaticTrace usecase, classToMatch
-					'Session.Output "adding link between " & usecase.Name & " and " & Prefix & " element " & classToMatch.Name & " because of step " & scenario.Name & "." & scenarioStep.Name
-				next
-				'save scenario step
-				scenarioStep.Update
-				scenario.Update
-			next
+		for each businessRule in dependencies.Items
+			dim businessRuleFound
+			businessRuleFound = false
+			if businessRule.Stereotype = "Business Rule" then
+				'OK we have a business rule
+				'first check if <step> exists with the attribute "uses="<usecasename>
+				Dim stepNodes, itemnodes, itemnode, attributeNode 
+				Set stepNodes = xmlScenario.SelectNodes("//step[contains(@uses,'" & businessRule.Name & "')]")
+				if stepNodes.length > 0 then
+					businessRuleFound = true
+				else
+					'if not found we look for the node that has the guid of the business rule
+					'<item> nodes have an attribute guid= and an attribute oldname=
+					set itemnodes = xmlScenario.SelectNodes("//item[@guid='" & businessRule.elementGUID & "']")
+					for each itemnode in itemnodes
+						for each attributeNode in itemNode.Attributes
+							if attributeNode.Name = "oldname" then
+								Set stepNodes = xmlScenario.SelectNodes("//step[contains(@uses,'" & attributeNode.Value & "')]")
+								if stepNodes.length > 0 then
+									businessRuleFound = true
+									exit for
+								end if
+							end if
+						next
+					next
+				end if
+				'check if businessrule was found
+				if not businessRuleFound then
+					Repository.WriteOutput outPutName, "Use Case: [" & usecase.Name & "] BR not used: [" & businessRule.Name & "]", usecase.ElementID
+				end if
+			end if
 		next
 	next
 end function
+
+function getScenariosXML(usecase)
+		dim sqlGet, xmlQueryResult
+		sqlGet = "select ucs.XMLContent from t_objectscenarios ucs where ucs.Object_ID = " & usecase.ElementID
+		xmlQueryResult = Repository.SQLQuery(sqlGet)
+		
+		xmlQueryResult = replace(xmlQueryResult,"&lt;","<")
+		xmlQueryResult = replace(xmlQueryResult,"&gt;",">")
+		'Repository.WriteOutput outPutName, "xmlQueryResult: " & xmlQueryResult  , 0
+		Dim xDoc 
+		Set xDoc = CreateObject( "MSXML2.DOMDocument.4.0" )
+		'load the resultset in the xml document
+		xDoc.LoadXML xmlQueryResult
+		'return value
+		set getScenariosXML = xDoc
+end function
+
 
 function addUsesToScenarioStep (classToMatch, scenarioStep, prefix)
 	if not instr(scenarioStep.Uses,prefix & "-" & classToMatch.Name) > 0 then
@@ -186,35 +169,30 @@ function addUsesToScenarioStep (classToMatch, scenarioStep, prefix)
 	end if
 end function
 
-function removeAddionalUses( dependencies, uses, dictionary)
-	dim refName
+function removeAddionalUses(dependencies, uses)
 	dim dependency
-	if Instr(uses,"LDM-") > 0 _
-		or Instr(uses, "FIS-") > 0 then
-			'first loop all dependencies
-			for each dependency in dependencies
-				'remove LDM-<name>
-				uses = replace(uses,"LDM-" & dependency,"")
-				'remove FIS-<name>
-				uses = replace(uses,"FIS-" & dependency,"")
-			next
-			for each refName in dictionary.Keys
-				'remove LDM-<name>
-				uses = replace(uses,"LDM-" & refName,"")
-				'remove FIS-<name>
-				uses = replace(uses,"FIS-" & refName,"")
-			next
+	dim filteredUses
+	filteredUses = ""
+	if len(uses) > 0 then
+		for each dependency in dependencies.Keys
+			if Instr(uses,dependency) > 0 then
+				if len(filteredUses) > 0 then
+					filteredUses = filteredUses & " " & dependency
+				else
+					filteredUses = dependency
+				end if
+			end if
+		next
 	end if
-	removeAddionalUses = uses
+	removeAddionalUses = filteredUses
 end function
-
 
 'returns a dictionary of elements with the name as key and the element as value.
 function getDependencies(element)
 	dim getDependencySQL
 	getDependencySQL =  "select dep.Object_ID from ( t_object dep " & _
 						" inner join t_connector con on con.End_Object_ID = dep.Object_ID)   " & _
-						" where con.Connector_Type in ('Dependency','Abstraction')  " & _
+						" where con.Connector_Type = 'Dependency'  " & _
 						" and con.Start_Object_ID = " & element.ElementID   
 	set getDependencies = getElementDictionaryFromQuery(getDependencySQL)
 end function
@@ -238,7 +216,7 @@ function linkDomainClassesWithBusinessRules(dictionary,regExp, businessRules)
 	dim connector as EA.Connector
 	dim i
 	for each businessRule in BusinessRules
-		Repository.WriteOutput outPutName, "Processing Business Rule: " & businessRule.Name, 0
+		'Repository.WriteOutput outPutName, "Processing Business Rule: " & businessRule.Name, 0
 		'first remove all automatic trace elements
 		removeAllAutomaticTraces(businessRule)
 		dim ruleText
