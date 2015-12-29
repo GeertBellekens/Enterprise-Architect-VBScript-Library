@@ -83,7 +83,7 @@ Class FileSystemFolder
 	public function getUserSelectedFolder(startPath)
 		dim folder, shell
 		Set shell  = CreateObject( "Shell.Application" )
-		if len(startPath) > O then
+		if len(startPath) > 0 then
 			Set folder = shell.BrowseForFolder( 0, "Select Folder", 0,startPath)
 		else
 			Set folder = shell.BrowseForFolder( 0, "Select Folder", 0)
