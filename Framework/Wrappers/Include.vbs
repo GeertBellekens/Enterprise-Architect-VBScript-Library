@@ -5,6 +5,7 @@
 !INC Wrappers.Script
 !INC Wrappers.ScriptGroup
 !INC Wrappers.TaggedValue
+!INC Wrappers.SearchResults
 'include the util group
 !INC Utils.Include
 

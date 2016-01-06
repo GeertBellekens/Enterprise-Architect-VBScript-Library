@@ -4,7 +4,7 @@
 'Author: Geert Bellekens
 'Date: 2015-12-07
 
-option explicit
+
 
 !INC Local Scripts.EAConstants-VBScript
 !INC Utils.Include

@@ -11,7 +11,7 @@ option explicit
 ' Purpose: 
 ' Date: 
 '
-function MyRtfData (objectID, isSource)
+function MyRtfData (objectID)
 
 	dim xmlDOM 
 	'set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
@@ -36,22 +36,18 @@ function MyRtfData (objectID, isSource)
 	set xmlData = xmlDOM.createElement( "Data" )
 	xmlDataSet.appendChild xmlData
 	
-	'loop the Attributes
+	'loop the connectors
 	dim element as EA.Element
 	set element = Repository.GetElementByID(objectID)
 	dim connector as EA.Connector
 
 	if element.Connectors.Count > 0 then
 		for each connector in  element.Connectors
-			if isSource and connector.ClientID = element.ElementID _
-			 OR  not isSource and connector.SupplierID = element.ElementID  _
-			 and connector.SupplierID <> connector.ClientID then
-				addRow xmlDOM, xmlData, connector
-			end if
+			addRow xmlDOM, xmlData, connector
 		next
 		MyRtfData = xmlDOM.xml
 	else
-		'no attributes, so return empty string
+		'no connectors, so return empty string
 		MyRtfData = ""
 	end if
 end function

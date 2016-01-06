@@ -1,7 +1,6 @@
 '[path=\Framework\Wrappers\Scripting]
 '[group=Wrappers]
 
-option explicit
 
 
 !INC Utils.Include

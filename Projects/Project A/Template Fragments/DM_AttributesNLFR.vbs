@@ -108,6 +108,12 @@ function addRow(xmlDOM, xmlData, attribute)
 	xmlFormat.text = attribute.Type
 	xmlRow.appendChild xmlFormat
 	
+	'Alias
+	dim xmlAlias
+	set xmlAlias = xmlDOM.createElement( "Alias" )			
+	xmlAlias.text = attribute.Alias
+	xmlRow.appendChild xmlAlias
+	
 end function
 
 'msgbox MyRtfData(38999, "")

@@ -113,7 +113,7 @@ function CheckBRLinksForUseCases(usecases)
 				'OK we have a business rule
 				'first check if <step> exists with the attribute "uses="<usecasename>
 				Dim stepNodes, itemnodes, itemnode, attributeNode 
-				Set stepNodes = xmlScenario.SelectNodes("//step[contains(@uses,'" & businessRule.Name & "')]")
+				Set stepNodes = xmlScenario.SelectNodes("//step[contains(@uses," & sanitizeXPathSearch(businessRule.Name) & ")]")
 				if stepNodes.length > 0 then
 					businessRuleFound = true
 				else
@@ -123,7 +123,7 @@ function CheckBRLinksForUseCases(usecases)
 					for each itemnode in itemnodes
 						for each attributeNode in itemNode.Attributes
 							if attributeNode.Name = "oldname" then
-								Set stepNodes = xmlScenario.SelectNodes("//step[contains(@uses,'" & attributeNode.Value & "')]")
+								Set stepNodes = xmlScenario.SelectNodes("//step[contains(@uses," & sanitizeXPathSearch(attributeNode.Value) & ")]")
 								if stepNodes.length > 0 then
 									businessRuleFound = true
 									exit for
@@ -139,6 +139,33 @@ function CheckBRLinksForUseCases(usecases)
 			end if
 		next
 	next
+end function
+
+function sanitizeXPathSearch(searchValue)
+	dim searchParts, part, returnValue, first	
+	first = true
+	returnValue = searchValue
+	'first replace double qoutes by &amp;quot;
+	returnValue = replace(returnValue,"""","&amp;quot;")
+	'then replace any single qotes. "firstpart'secondpart' then becomes "concat('firstpart', "'",'secondpart',...)"
+	searchParts = split(returnValue,"'")
+	if Ubound(searchParts) > 0 then
+		returnValue = "concat("
+		for each part in searchParts
+			if first then
+				first = false
+			else
+				returnValue = returnValue & ",""'"","
+			end if
+			returnValue = returnValue & """" & part & """"
+		next
+		returnValue = returnValue & ")"
+		Session.Output "sanitized xpath: " & returnValue
+	else
+		'enclose in single quotes
+		returnValue = "'" & returnValue & "'"
+	end if
+	sanitizeXPathSearch = returnValue
 end function
 
 function getScenariosXML(usecase)

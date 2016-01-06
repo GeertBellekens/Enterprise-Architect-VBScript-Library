@@ -31,7 +31,7 @@ function exportToXPDL(package, folder)
 	if package.Packages.Count = 0 then
 		dim projectInterface as EA.Project
 		set projectInterface = Repository.GetProjectInterface()
-		projectInterface.ExportPackageXMIEx package.PackageGUID, xmiXPDL22,1,0,0,0,folder.FullPath & "\" & package.Name & ".xmi",epExcludeEAExtensions
+		projectInterface.ExportPackageXMIEx package.PackageGUID, xmiXPDL22,1,0,0,0,folder.FullPath & "\" & package.Name & ".xpdl",epExcludeEAExtensions
 	else
 		dim subPackage as EA.Package
 		for each subPackage in package.Packages
