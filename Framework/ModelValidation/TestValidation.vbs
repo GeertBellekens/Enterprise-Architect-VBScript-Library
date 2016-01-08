@@ -1,5 +1,5 @@
-'[group=Search scripts]
-option explicit
+'[path=\Framework\ModelValidation]
+'[group=Search Scripts]
 
 !INC Local Scripts.EAConstants-VBScript
 !INC ModelValidation.Include
