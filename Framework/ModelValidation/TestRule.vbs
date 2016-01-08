@@ -6,11 +6,15 @@ Class TestRule
 '#region private attributes
 	private m_Autofix
 	private m_Name
+	private m_ProblemStatement
+	private m_Resolution
 '#endregion private attributes
 
 '#region "Constructor"
 	Private Sub Class_Initialize
 		m_name = "Test Rule"
+		m_ProblemStatement = "There is a problem with this element"
+		m_Resolution = "Fix it dammit!"
 		me.AutoFix = true
 	end sub
 '#endregion "Constructor"
@@ -28,6 +32,16 @@ Class TestRule
 	Public Property Get Name
 	  Name = m_Name
 	End Property
+	
+	' ProblemStatement property.
+	Public Property Get ProblemStatement
+	  ProblemStatement = m_ProblemStatement
+	End Property	
+	
+	' Resolution property.
+	Public Property Get Resolution
+	  Resolution = m_Resolution
+	End Property	
 '#endregion Properties
 	
 '#region functions

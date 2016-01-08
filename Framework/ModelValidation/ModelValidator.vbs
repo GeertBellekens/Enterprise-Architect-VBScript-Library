@@ -30,6 +30,7 @@ Class ModelValidator
 		dim item, rule, validationResults, isValid, autoFixResult, validationResult
 		set validationResults = CreateObject("System.Collections.ArrayList")
 		for each item in items
+			Session.Output "Validating item " & item.Name
 			for each rule in me.Rules
 				isValid = rule.Validate(item)
 				if (alwaysAutoFix or rule.AutoFix) _

@@ -8,6 +8,8 @@ Class Rule
 '#region private attributes
 	private m_Autofix
 	private m_Name
+	private m_ProblemStatement
+	private m_Resolution
 '#endregion private attributes
 
 '#region "Constructor"
@@ -30,6 +32,16 @@ Class Rule
 	Public Property Get Name
 	  Name = m_Name
 	End Property
+	
+	' ProblemStatement property.
+	Public Property Get ProblemStatement
+	  ProblemStatement = m_ProblemStatement
+	End Property	
+	
+	' Resolution property.
+	Public Property Get Resolution
+	  Resolution = m_Resolution
+	End Property	
 '#endregion Properties
 	
 '#region functions

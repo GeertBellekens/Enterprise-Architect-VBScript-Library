@@ -106,7 +106,7 @@ function addRow(xmlDOM, xmlData, connector)
 	dim xmlDescNL
 	set xmlDescNL = xmlDOM.createElement( "DescriptionNL" )	
 	xmlDescNL.text = getTagContent(descriptionfull, "NL")
-	xmlDescNL.setAttributeNode(formattedAttr)
+'	xmlDescNL.setAttributeNode(formattedAttr)
 	xmlRow.appendChild xmlDescNL
 	
 	'description FR
@@ -115,7 +115,7 @@ function addRow(xmlDOM, xmlData, connector)
 	dim xmlDescFR
 	set xmlDescFR = xmlDOM.createElement( "DescriptionFR" )			
 	xmlDescFR.text = getTagContent(descriptionfull, "FR")
-	xmlDescFR.setAttributeNode(formattedAttr)
+'	xmlDescFR.setAttributeNode(formattedAttr)
 	xmlRow.appendChild xmlDescFR
 	
 end function

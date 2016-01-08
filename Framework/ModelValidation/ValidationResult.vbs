@@ -20,6 +20,9 @@ Class ValidationResult
 		m_Headers.Add "Name"
 		m_Headers.Add "Rule"
 		m_Headers.Add "IsValid"
+		m_Headers.Add "Problem"
+		m_Headers.Add "Resolution"
+		m_Headers.Add "Fully Qualified Name"
 	end sub
 '#endregion "Constructor"
 	
@@ -64,6 +67,10 @@ Class ValidationResult
 		resultFields.Add me.ValidatedItem.Name
 		resultFields.Add me.Rule.Name
 		resultFields.Add me.IsValid
+		resultFields.Add me.Rule.ProblemStatement
+		resultFields.Add me.Rule.Resolution
+'		resultFields.Add getFullyQualifiedName(me.ValidatedItem)
+		resultFields.Add "Qualified Name takes too long"
 		set getResultFields = resultFields
 	end function
 	

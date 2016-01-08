@@ -74,7 +74,7 @@ function addRow(xmlDOM, xmlData, attribute)
 	dim xmlDescNL
 	set xmlDescNL = xmlDOM.createElement( "DescriptionNL" )	
 	xmlDescNL.text = getTagContent(descriptionfull, "NL")
-	xmlDescNL.setAttributeNode(formattedAttr)
+'	xmlDescNL.setAttributeNode(formattedAttr)
 	xmlRow.appendChild xmlDescNL
 	
 	'description FR
@@ -83,7 +83,7 @@ function addRow(xmlDOM, xmlData, attribute)
 	dim xmlDescFR
 	set xmlDescFR = xmlDOM.createElement( "DescriptionFR" )			
 	xmlDescFR.text = getTagContent(descriptionfull, "FR")
-	xmlDescFR.setAttributeNode(formattedAttr)
+'	xmlDescFR.setAttributeNode(formattedAttr)
 	xmlRow.appendChild xmlDescFR
 	
 	'multiplicity
