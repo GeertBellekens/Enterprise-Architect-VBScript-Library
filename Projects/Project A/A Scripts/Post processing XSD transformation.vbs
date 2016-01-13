@@ -135,6 +135,7 @@ option explicit
 		dim changed
 		changed = false
 		for each connector in connectors
+			'set the connector's rolenames
 			if len(connector.ClientEnd.Role) < 1 then
 				connector.ClientEnd.Role = replace(connector.Name, " ", "_")
 				connector.ClientEnd.Update
@@ -149,6 +150,55 @@ option explicit
 				connector.Update
 			end if
 		next
+		'now get *all* associations between elements in this package in order to copy it in the other direction
+		SQLgetConnectors = "select c.Connector_ID from ((t_connector c " & _
+							" inner join t_object sob on c.Start_Object_ID = sob.Object_ID) " & _
+							" inner join t_object tob on c.End_Object_ID = tob.Object_ID) " & _
+							" where  " & _
+							" c.Connector_Type in ('Association','Aggregation') " & _
+							" and sob.Package_ID = "& package.PackageID & _
+							" and tob.Package_ID = "& package.PackageID
+		set connectors = getConnectorsFromQuery(SQLgetConnectors)
+		Session.Output "selectedconnectors: " & connectors.Count
+		for each connector in connectors
+			'copy the connector in the other direction if is an associations
+			dim target as EA.Element
+			dim copyConnector as EA.Connector
+			set target = Repository.GetElementByID(connector.SupplierID)
+			set copyConnector = target.Connectors.AddNew(connector.Name, connector.Type)
+			'set the supplierID
+			copyConnector.SupplierID = connector.ClientID
+			copyConnector.Direction = connector.Direction
+			'copy the connector ends
+			copyAssociationEnd connector.SupplierEnd, copyConnector.ClientEnd
+			copyAssociationEnd connector.ClientEnd, copyConnector.SupplierEnd
+			'save connector
+			copyConnector.Update
+		next
+	end function
+	
+	function copyAssociationEnd(source, target)
+'		dim source as EA.ConnectorEnd
+'		dim target as EA.ConnectorEnd
+		target.Aggregation = source.Aggregation
+		target.Alias = source.Alias
+		target.AllowDuplicates = source.AllowDuplicates
+		target.Cardinality = source.Cardinality
+		target.Constraint = source.Constraint
+		target.Containment = source.Containment
+		target.Derived = source.Derived
+		target.DerivedUnion = source.DerivedUnion
+		target.IsChangeable = source.IsChangeable
+		target.Navigable = source.Navigable
+		target.Ordering = source.Ordering
+		target.OwnedByClassifier = source.OwnedByClassifier
+		target.Qualifier = source.Qualifier
+		target.Role = source.Role
+		target.RoleNote = source.RoleNote
+		target.StereotypeEx = source.StereotypeEx
+		target.Visibility = source.Visibility
+		'save changes
+		target.Update
 	end function
 
 	function fixAttributePrimitives(package)	
