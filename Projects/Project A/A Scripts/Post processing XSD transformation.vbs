@@ -22,23 +22,23 @@ sub main
 		dim package as EA.Package 
 		set package = Repository.GetTreeSelectedPackage()
 		dim schemaPackage as EA.Package
-		set schemaPackage = package.Packages.AddNew(package.Name,"package")
-		schemaPackage.Update
-		schemaPackage.Element.Stereotype = "XSDSchema"
-		schemaPackage.Update
+'		set schemaPackage = package.Packages.AddNew(package.Name,"package")
+'		schemaPackage.Update
+'		schemaPackage.Element.Stereotype = "XSDSchema"
+'		schemaPackage.Update
 		' move all elements from the subpackages to the newly create package
 		'-------------------------------------------------------------------
-		mergeToSchemaPackage package, schemaPackage 'uncomment for production
-		'set schemaPackage = package 'comment out for production
+		'mergeToSchemaPackage package, schemaPackage 'uncomment for production
+		set schemaPackage = package 'comment out for production
 		'-------------------------------------------------------------------
-		' fix the elements
-		fixElements schemaPackage 
-		'fix the connectors
-		fixConnectors schemaPackage
-		'fix the attributes with a primitive type
-		fixAttributePrimitives schemaPackage
-		'set lowerbound of attributes to 0
-		fixAttributeLowerBound schemaPackage
+'		' fix the elements
+'		fixElements schemaPackage 
+'		'fix the connectors
+'		fixConnectors schemaPackage
+'		'fix the attributes with a primitive type
+'		fixAttributePrimitives schemaPackage
+'		'set lowerbound of attributes to 0
+'		fixAttributeLowerBound schemaPackage
 		'remove abstract classes
 		fixAbstractClasses schemaPackage		
 		'reload
@@ -128,12 +128,15 @@ function copyAttributes (sourceElement, targetElement)
 	dim attribute as EA.Attribute
 	dim newAttribute as EA.Attribute
 	for each attribute in sourceElement.Attributes
-		set newAttribute = targetElement.Attributes.AddNew(attribute.Name,attribute.Type)
-		'newAttribute.Type = attribute.Type
-		newAttribute.ClassifierID = attribute.ClassifierID
-		newAttribute.LowerBound = attribute.LowerBound
-		newAttribute.UpperBound = attribute.UpperBound
-		newAttribute.Update
+		'don't copy the timeslicing and versioning attributes
+		if attribute.Name <> "StartDate" and attribute.Name <> "EndDate" and attribute.Name <> "ValidFromDate" and attribute.Name <> "ValidUntilDate" then
+			set newAttribute = targetElement.Attributes.AddNew(attribute.Name,attribute.Type)
+			'newAttribute.Type = attribute.Type
+			newAttribute.ClassifierID = attribute.ClassifierID
+			newAttribute.LowerBound = attribute.LowerBound
+			newAttribute.UpperBound = attribute.UpperBound
+			newAttribute.Update
+		end if
 	next
 end function
 
@@ -349,8 +352,13 @@ function fixAttributeLowerBound(package)
 end function
 
 function fixAbstractClasses (package)
-	dim sqlUpdate
-	sqlUpdate = "delete from t_object where abstract = 1 and Package_ID = " & package.PackageID
-	Repository.Execute sqlUpdate
+	dim i
+	dim element as EA.Element
+	for i = package.Elements.Count -1 to 0 step -1
+		set element = package.Elements(i)
+		if element.Abstract = "1" then
+			package.Elements.DeleteAt i,true
+		end if
+	next
 end function
 main
