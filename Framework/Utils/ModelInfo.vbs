@@ -8,6 +8,7 @@ Dim elementCache
 dim packageCache
 
 Private Sub Module_Initialize()
+	'the cache contains the ID (package or element ID) and the fully qualified name of the element or package.
 	set elementCache = CreateObject("Scripting.Dictionary")
 	set packageCache = CreateObject("Scripting.Dictionary")
 End Sub
@@ -22,48 +23,76 @@ End Sub
 'returns the fully qualified name for the given item.
 'this is the full path of the element divided by dots e.g. "Root.GrandParent.Parent.Item"
 function getFullyQualifiedName(item)
-	dim fqn, parent
-	fqn = item.name
-	set parent = getParent(item)
-	if not parent is nothing then
-		fqn = getFullyQualifiedName(parent) & "." & fqn
-	end if
-	'return fully qualified name
+	dim fqn, parentfqn
+	fqn = ""
+	'add the parent part
+	parentFQN = getParentFQN(item)
+	if len(parentFQN) > 0 then
+		fqn = parentFQN & "."
+	end	if
+	fqn = fqn & getItemName(item)
 	getFullyQualifiedName = fqn
 end function
 
 'returns the parent object for the given object
-function getParent(item)
-	dim itemType, parentID, parent
+function getParentFQN(item)
+	dim itemType, parentID, parent, parentFQN, packageID
+	parentID = 0
+	packageID = 0
+	parentFQN = ""
 	set parent = nothing
 	itemType = TypeName(item)
 	select case itemType
 		case "IDualElement"
 			parentID = item.ParentID
-			if parentID > 0 then
-				set parent = Repository.GetElementByID(parentID)
-			else
-				set parent = Repository.GetPackageByID(item.PackageID)
-			end if
+			packageID = item.PackageID
 		case "IDualConnector"
-			set parent = Repository.GetElementByID(item.ClientID)
+			parentID = item.ClientID
 		case "IDualAttribute"
-			dim attribute as EA.Attribute
-			set parent = Repository.GetElementByID(item.parentID)
+			parentID = (item.parentID)
 		case "IDualDiagram"
 			parentID = item.ParentID
-			if parentID > 0 then
-				set parent = Repository.GetElementByID(parentID)
-			else
-				set parent = Repository.GetPackageByID(item.PackageID)
-			end if
+			packageID = item.PackageID
 		case "IDualPackage"
-			parentID = item.ParentID
-			if parentID > 0 then
-				set parent = Repository.GetPackageByID(parentID)
-			end if
+			packageID = item.ParentID
 	end select
-	set getParent = parent
+	if parentID > 0 then
+		'the item is owned by an element
+		'first check if the element is in the cache already
+		if elementCache.Exists(parentID) then
+			'get the FQN from the cache
+			parentFQN = elementCache(parentID)
+		else
+			'not in the cache, get the element and its FQN
+			set parent = Repository.GetElementByID(parentID)
+			parentFQN = getFullyQualifiedName(parent)
+			'add it to the cache
+			elementCache.Add parentID, parentFQN
+		end if
+	elseif packageID > 0 then
+		'the item is owned by a package
+		'first check if it is in the cache already
+		if packageCache.Exists(packageID) then
+			'get the FQN from the cache
+			parentFQN = packageCache(packageID)
+		else
+			'not in the cache
+			set parent = Repository.GetPackageByID(packageID)
+			parentFQN = getFullyQualifiedName(parent)
+			'add it to the cache
+			packageCache.Add packageID, parentFQN
+		end if
+	end if
+	getParentFQN = parentFQN
+end function
+
+function getItemName(item)
+	dim itemName
+	itemName = item.Name
+	if len(itemName) = 0 then
+		itemName = "[Anonymous]"
+	end if
+	getItemName = itemName
 end function
 
 'sub test

@@ -44,3 +44,28 @@ Public Function convertQueryResultToArray(xmlQueryResult)
 	end if
     convertQueryResultToArray = result
 End Function
+
+public Function sanitizeXMLString(invalidString)
+	Dim tmp, i 
+	tmp = invalidString
+	'first replace ampersand
+	tmp = Replace(tmp, chr(38), "&amp;") 
+	'then the other special characters
+	For i = 160 to 255
+		tmp = Replace(tmp, chr(i), "&#" & i & ";")
+	Next
+	'and then the special characters
+	tmp = Replace(tmp, chr(34), "&quot;")
+	tmp = Replace(tmp, chr(39), "&apos;")
+	tmp = Replace(tmp, chr(60), "&lt;")
+	tmp = Replace(tmp, chr(62), "&gt;")
+	'tmp = Replace(tmp, chr(32), "&nbsp;")
+	sanitizeXMLString = tmp
+end function
+
+'sub test
+'	dim test
+'	test = sanitizeXMLString("invali""d'strèiçng<&>")
+'	Session.Output "sanitized: " & test
+'end sub
+'test

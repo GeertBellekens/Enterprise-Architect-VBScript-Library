@@ -5,6 +5,8 @@
 
 'Author: Geert Bellekens
 'Date: 2015-12-07
+'dim outputTabName
+'outputTabName = "ModelValidation"
 
 Class SearchResults
 '#region private attributes
@@ -51,42 +53,74 @@ Class SearchResults
 '#region functions
 	'Show this resultset in the model search window
 	public function Show()
-		Repository.RunModelSearch me.Name,"searchTerm","searchOptions", makeSearchDataString()
+		dim dataString
+		Repository.WriteOutput outputTabName, now() & " starting makeDataString",0
+		dataString = makeSearchDataString()
+		Repository.WriteOutput outputTabName, now() & " finished makeDataString",0
+		Repository.RunModelSearch me.Name,"searchTerm","searchOptions", dataString
 	end function
 	
 	private function makeSearchDataString()
-		dim dataString
-		dataString = "<ReportViewData UID=""" & me.Name & """>"
-					
-		'open fields
-		dataString = dataString & "<Fields>"					
+		
+		dim xmlDOM 
+		'set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
+		set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
+		xmlDOM.validateOnParse = false
+		xmlDOM.async = false
+		 
+		dim xmlRoot 
+		set xmlRoot = xmlDOM.createElement( "ReportViewData" )
+		dim uidAttr 
+		set uidAttr = xmlDOM.createAttribute("UID")
+		uidAttr.nodeValue = me.Name
+		xmlRoot.setAttributeNode(uidAttr)
+		xmlDOM.appendChild xmlRoot
+
+		dim xmlFields
+		set xmlFields = xmlDOM.createElement( "Fields" )
+		xmlRoot.appendChild xmlFields
 		'loop the fields
 		dim field
 		for each field in me.Fields
-			dataString = dataString & "<Field name=""" & field & """/>" 
+			dim xmlField 
+			set xmlField = xmlDOM.createElement( "Field" )
+			dim nameAttr
+			set nameAttr = xmlDOM.createAttribute("name")
+			nameAttr.nodeValue = field
+			xmlField.setAttributeNode(nameAttr)
+			xmlFields.appendChild xmlField
 		next
-		'close fields
-		dataString = dataString & "</Fields>"
-		'open rows
-		dataString = dataString & "<Rows>"
+		'add rows
+		dim xmlRows
+		set xmlRows = xmlDOM.createElement( "Rows" )
+		xmlRoot.appendChild xmlRows
+		'add row
 		dim result, resultField, i
 		for each result in me.Results
-			'open row
-			dataString = dataString & "<Row>"
+			dim xmlRow
+			set xmlRow = xmlDOM.createElement( "Row" )
+			xmlRows.appendChild xmlRow
+			'add fields
 			for i = 0 to result.Count -1
 				resultField = result(i)
 				field = m_Fields(i)
-				dataString = dataString & "<Field name=""" & field & """ value=""" & resultField & """/>" 
+				'field attribute
+				set xmlField = xmlDOM.createElement( "Field" )
+				set nameAttr = xmlDOM.createAttribute("name")
+				nameAttr.nodeValue = field
+				'value attribute
+				xmlField.setAttributeNode(nameAttr)
+				dim valueAttr
+				set valueAttr = xmlDOM.createAttribute("value")
+				valueAttr.nodeValue = resultField
+				xmlField.setAttributeNode(valueAttr)
+				'add the field to the row
+				xmlRow.appendChild xmlField
 			next
-			'close row
-			dataString = dataString & "</Row>"
 		next
-		'close rows
-		dataString = dataString & "</Rows>"
-		'close ReportViewData
-		dataString = dataString & "</ReportViewData>"
-		'return data
-		makeSearchDataString = dataString
+		'return
+		makeSearchDataString = xmlDOM.xml
+		
 	end function
 	
 '#endregion functions	

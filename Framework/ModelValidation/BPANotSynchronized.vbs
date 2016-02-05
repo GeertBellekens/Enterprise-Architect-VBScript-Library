@@ -1,8 +1,10 @@
 '[path=\Framework\ModelValidation]
 '[group=ModelValidation]
 
+!INC Local Scripts.EAConstants-VBScript
 
-Class TestRule
+
+Class Rule_BPANotSynchronized
 '#region private attributes
 	private m_Autofix
 	private m_Name
@@ -12,10 +14,10 @@ Class TestRule
 
 '#region "Constructor"
 	Private Sub Class_Initialize
-		m_name = "Test Rule"
-		m_ProblemStatement = "There is a problem with this element"
-		m_Resolution = "Fix it dammit!"
-		me.AutoFix = true
+		me.m_name = "BPA not synchronised"
+		me.m_ProblemStatement = "The Business Process Activity from the library is used as Link on this diagram"
+		me.m_Resolution "Execute the Synchronize script on this Business Process Activity"
+		me.AutoFix = false
 	end sub
 '#endregion "Constructor"
 	
@@ -46,22 +48,13 @@ Class TestRule
 	
 '#region functions
 	'The Validate will validate the given item agains this rule
-	'It the validation result
 	public function Validate(item)
-		dim validationResult
-		set validationResult = new ValidationResult
-		validationResult.Rule = me
-		validationResult.IsValid = false
-		validationResult.ValidatedItem = item
-		validationResult.ProblemStatement = "the element " & getItemName(item) & " is not valid"
-		validationResult.Resolution = "fix " & getItemName(item) & " and fast!"
-		set Validate = validationResult
+		if 
 	end function
 	
 	'the Fix function will fix the problem if possible
 	' returns true if the fix succeeded and false if it wasn't able to fix the problem
 	public function Fix(item, options)
-		'msgbox "Fixed it!"
 	end function
 '#endregion functions	
 End class

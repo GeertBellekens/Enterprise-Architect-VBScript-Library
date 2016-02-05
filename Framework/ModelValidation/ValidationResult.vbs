@@ -7,6 +7,8 @@ Class ValidationResult
 	private m_IsValid
 	private m_Rule
 	private m_Headers
+	private m_ProblemStatement
+	private m_Resolution
 '#endregion private attributes
 
 '#region "Constructor"
@@ -55,6 +57,31 @@ Class ValidationResult
 	Public Property Get Headers
 		Set Headers = m_Headers
 	end Property
+	
+	' ProblemStatement property
+	Public Property Get ProblemStatement
+	  if len(m_ProblemStatement) = 0 then
+		ProblemStatement = me.Rule.ProblemStatement
+	  else
+		ProblemStatement = m_ProblemStatement
+	  end if
+	End Property
+	Public Property Let ProblemStatement(value)
+	  m_ProblemStatement = value
+	End Property
+	
+	' Resolution property
+	Public Property Get Resolution
+	  if len(m_Resolution) = 0 then
+		Resolution = me.Rule.Resolution
+	  else
+		Resolution = m_Resolution
+	  end if
+	End Property
+	Public Property Let Resolution(value)
+	  m_Resolution = value
+	End Property
+
 '#endregion Properties
 	
 '#region functions
@@ -67,10 +94,10 @@ Class ValidationResult
 		resultFields.Add me.ValidatedItem.Name
 		resultFields.Add me.Rule.Name
 		resultFields.Add me.IsValid
-		resultFields.Add me.Rule.ProblemStatement
-		resultFields.Add me.Rule.Resolution
-'		resultFields.Add getFullyQualifiedName(me.ValidatedItem)
-		resultFields.Add "Qualified Name takes too long"
+		resultFields.Add me.ProblemStatement
+		resultFields.Add me.Resolution
+		resultFields.Add getFullyQualifiedName(me.ValidatedItem)
+'		resultFields.Add "Qualified Name takes too long"
 		set getResultFields = resultFields
 	end function
 	

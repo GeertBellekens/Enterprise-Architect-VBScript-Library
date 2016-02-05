@@ -26,21 +26,17 @@ Class ModelValidator
 '#endregion Properties
 	
 '#region functions
-	public function Validate(items, alwaysAutoFix, neverAutoFix, options)
-		dim item, rule, validationResults, isValid, autoFixResult, validationResult
+	public function Validate(items, alwaysAutoFix, neverAutoFix, options, outputTabName)
+		dim item, rule, validationResults,  autoFixResult, validationResult
 		set validationResults = CreateObject("System.Collections.ArrayList")
 		for each item in items
-			Session.Output "Validating item " & item.Name
+			Repository.WriteOutput outputTabName, "Validating item: " & getItemName(item),0
 			for each rule in me.Rules
-				isValid = rule.Validate(item)
+				set validationResult = rule.Validate(item)
 				if (alwaysAutoFix or rule.AutoFix) _
-						and not neverAutoFix then
+						and not neverAutoFix and not validationResult.IsValid then
 					autoFixResult = rule.Fix(item,options)
 				end if
-				set validationResult = new ValidationResult
-				validationResult.Rule = rule
-				validationResult.IsValid = isValid
-				validationResult.ValidatedItem = item
 				validationResults.Add validationResult
 			next
 		next
