@@ -49,7 +49,14 @@ Class Rule_BPANotSynchronized
 '#region functions
 	'The Validate will validate the given item agains this rule
 	public function Validate(item)
-		if 
+		'Rule should only be executed on a Business Process.
+		if item.ObjectType = otElement then
+			dim businessProcess as EA.Element
+			set businessProcess = item
+			if businessProcess.Stereotype = "BusinessProcess" or businessProcess.Stereotype = "Activity" then
+				
+			end if
+		end if
 	end function
 	
 	'the Fix function will fix the problem if possible

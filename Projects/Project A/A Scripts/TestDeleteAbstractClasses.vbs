@@ -355,12 +355,10 @@ function fixAbstractClasses (package)
 	dim i
 	dim element as EA.Element
 	for i = package.Elements.Count -1 to 0 step -1
+		set element = package.Elements(i)
 		if element.Abstract = "1" then
-			package.Elements.DeleteAt(i)
+			package.Elements.DeleteAt i,true
 		end if
 	next
-'	dim sqlUpdate
-'	sqlUpdate = "delete from t_object where abstract = 1 and Package_ID = " & package.PackageID
-'	Repository.Execute sqlUpdate
 end function
 main
