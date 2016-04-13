@@ -68,8 +68,8 @@ sub main
 		Repository.WriteOutput outputTabName, "Results processed, starting showing results",0
 		'show the results
 		searchResults.Show
-		Repository.WriteOutput outputTabName, now() & ": Finished Model Validation",0
 	end if
+	Repository.WriteOutput outputTabName, now() & ": Finished Model Validation",0
 
 end sub
 

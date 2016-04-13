@@ -49,11 +49,14 @@ function synchronizeObjectNames(diagramObject, diagram)
 	set element = Repository.GetElementByID(diagramObject.ElementID)
 	synchronizeElement element
 	'set default size for message objects
-	if element.Type = "Object" AND element.Stereotype = "Message" then
+	if element.Type = "Object" AND (element.Stereotype = "Message" or element.Stereotype = "FIS") then
 		diagramObject.bottom = diagramObject.top - 25
 		diagramObject.right = diagramObject.left + 40
 		setFont diagramObject
 		diagramObject.Update
+		if element.Stereotype = "FIS" then
+			copyMessageDirection(element)
+		end if
 	end if
 	'check if it is local activity
 	if element.Type = "Activity" and element.Stereotype = "Activity" and (element.PackageID <> diagram.packageID ) then
@@ -111,6 +114,44 @@ function synchronizeObjectNames(diagramObject, diagram)
 	end if
 end function
 
+function copyMessageDirection(message)
+	dim tv as EA.TaggedValue
+	dim messageClassifier as EA.Element
+	'get the classifier message
+	if message.ClassifierID > 0 then
+		set messageClassifier = Repository.GetElementByID(message.ClassifierID)
+		if not messageClassifier is nothing then
+			dim parentDirection
+			parentDirection = getDirection(messageClassifier)
+			if parentDirection = "In" or parentDirection = "Out" then
+				setDirection message, parentDirection
+			end if
+		end if
+	end if
+end function
+
+function getDirection(message)
+	dim tv as EA.TaggedValue
+	getDirection = ""
+	for each tv in message.TaggedValues
+		if tv.Name = "Direction" then
+			getDirection = tv.Value 
+			exit for
+		end if
+	next
+end function
+
+function setDirection(message, value)
+	dim tv as EA.TaggedValue
+	for each tv in message.TaggedValues
+		if tv.Name = "Direction" then
+			tv.Value = value
+			tv.Update
+			exit for
+		end if
+	next
+end function
+
 function setFont(diagramObject)
 	dim styleParts
 	styleParts = Split (diagramObject.Style , ";") 
@@ -144,3 +185,29 @@ function setFont(diagramObject)
 end function
 
 OnDiagramScript
+'test
+sub test
+	' Get a reference to the current diagram
+	dim currentDiagram as EA.Diagram
+	set currentDiagram = Repository.GetDiagramByGuid("{4FBDF6B6-B684-4b40-839F-D2A65A9F5418}")
+	
+	if not currentDiagram is nothing then
+		' Get a reference to any selected connector/objects
+		'save the diagram before anything else
+		Repository.SaveDiagram currentDiagram.DiagramID
+		dim selectedObjects as EA.Collection
+		set selectedObjects = currentDiagram.SelectedObjects
+		'if nothing is selected then we do synchronize on all objects
+		if selectedObjects.Count < 1 then
+			set selectedObjects = currentDiagram.DiagramObjects
+		end if
+		dim selectedObject as EA.DiagramObject
+		for each selectedObject in selectedObjects
+			synchronizeObjectNames selectedObject, currentDiagram
+		next
+		'reload the diagram to be able to click through
+		Repository.ReloadDiagram(currentDiagram.DiagramID)
+	else
+		Session.Prompt "This script requires a diagram to be visible", promptOK
+	end if
+end sub

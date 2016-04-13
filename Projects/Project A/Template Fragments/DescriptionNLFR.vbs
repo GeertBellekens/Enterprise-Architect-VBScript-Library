@@ -26,8 +26,8 @@ end function
 function MyRtfData (objectID, tagname)
 	
 	dim xmlDOM 
-	'set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
-	set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
+	set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
+	'set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
 	xmlDOM.validateOnParse = false
 	xmlDOM.async = false
 	 
@@ -81,4 +81,17 @@ function MyRtfData (objectID, tagname)
 end function
 
 'msgbox MyPackageRtfData(3357,"")
-'msgbox MyRtfData(18314, "")
+function test
+	dim outputString
+	dim fileSystemObject
+	dim outputFile
+	
+	outputString =  MyRtfData(62899, "definition")
+	
+	set fileSystemObject = CreateObject( "Scripting.FileSystemObject" )
+	set outputFile = fileSystemObject.CreateTextFile( "c:\\temp\\NLFRtest.xml", true )
+	outputFile.Write outputString
+	outputFile.Close
+end function 
+
+'test

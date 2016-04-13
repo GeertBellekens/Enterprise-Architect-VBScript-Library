@@ -15,8 +15,8 @@ function MyRtfData (objectID, tagname)
 	'msgbox "starting MyRTFdata fo element" & objectID
 	'MyRtfData = "<?xml version=""1.0""?><EADATA><Dataset_0><Data><Row><ConstraintName>constraint 1</ConstraintName><DescriptionNL formatted=""1"">Hier staat de nederlandse bescrijving van deze constraint in &lt;b&gt;RichText&lt;/b&gt; (1)</DescriptionNL><DescriptionFR formatted=""1"">ici le français avec éàè characters &lt;b&gt;dôme&lt;/b&gt;</DescriptionFR></Row><Row><ConstraintName>constraint 2</ConstraintName><DescriptionNL formatted=""1"">Hier staat de nederlandse bescrijving van deze constraint in &lt;b&gt;RichText (2)&lt;/b&gt;</DescriptionNL><DescriptionFR formatted=""1"">ici le français avec éàè characters &lt;b&gt;dôme (2)&lt;/b&gt;</DescriptionFR></Row></Data></Dataset_0></EADATA>"
 	dim xmlDOM 
-	'set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
-	set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
+	set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
+	'set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
 	xmlDOM.validateOnParse = false
 	xmlDOM.async = false
 	 
@@ -45,11 +45,11 @@ function MyRtfData (objectID, tagname)
 		for each constraint in  element.Constraints
 			addRow xmlDOM, xmlData, constraint
 		next
-		MyRtfData = xmlDOM.xml
 	else
-		'no constraints, so return empty string
-		MyRtfData = ""		
+		'no constraints, add N.A row
+		addNotApplicableRow xmlDOM, xmlData
 	end if
+	MyRtfData = xmlDOM.xml
 end function
 
 function addRow(xmlDOM, xmlData, constraint)
@@ -92,7 +92,7 @@ function addRow(xmlDOM, xmlData, constraint)
 	xmlRow.appendChild xmlDescFR
 end function
 
-function addEmptyRow(xmlDOM, xmlData)
+function addNotApplicableRow(xmlDOM, xmlData)
 	dim xmlRow
 	set xmlRow = xmlDOM.createElement( "Row" )
 	xmlData.appendChild xmlRow
@@ -100,12 +100,12 @@ function addEmptyRow(xmlDOM, xmlData)
 	'constraint names are the same in NL/FR, except when adding an empty row
 	dim xmlConstraintNameNL
 	set xmlConstraintNameNL = xmlDOM.createElement( "ConstraintNameNL" )	
-	xmlConstraintNameNL.text = "Niet van toepassing"
+	xmlConstraintNameNL.text = "n.v.t."
 	xmlRow.appendChild xmlConstraintNameNL
 	
 	dim xmlConstraintNameFR
 	set xmlConstraintNameFR = xmlDOM.createElement( "ConstraintNameFR" )	
-	xmlConstraintNameFR.text = "Sans object"
+	xmlConstraintNameFR.text = "S.O."
 	xmlRow.appendChild xmlConstraintNameFR
 	
 	'add empty tags for DescriptionNL/FR because otherwise the tag name is shown

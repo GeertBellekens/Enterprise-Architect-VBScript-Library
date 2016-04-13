@@ -93,7 +93,11 @@ Class ValidationResult
 		resultFields.Add me.ValidatedItem.Type
 		resultFields.Add me.ValidatedItem.Name
 		resultFields.Add me.Rule.Name
-		resultFields.Add me.IsValid
+		if me.IsValid then
+			resultFields.Add "True"
+		else
+			resultFields.Add "False"
+		end if
 		resultFields.Add me.ProblemStatement
 		resultFields.Add me.Resolution
 		resultFields.Add getFullyQualifiedName(me.ValidatedItem)

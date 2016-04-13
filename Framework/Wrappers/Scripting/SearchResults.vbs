@@ -63,8 +63,8 @@ Class SearchResults
 	private function makeSearchDataString()
 		
 		dim xmlDOM 
-		'set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
-		set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
+		set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
+		'set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
 		xmlDOM.validateOnParse = false
 		xmlDOM.async = false
 		 

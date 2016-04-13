@@ -14,7 +14,8 @@ option explicit
 function MyRtfData (objectID)
 	
 	dim xmlDOM 
-	set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
+	'set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
+	set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
 	xmlDOM.validateOnParse = false
 	xmlDOM.async = false
 	 

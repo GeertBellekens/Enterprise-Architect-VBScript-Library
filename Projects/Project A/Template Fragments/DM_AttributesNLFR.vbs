@@ -14,8 +14,8 @@ option explicit
 function MyRtfData (objectID, tagname)
 
 	dim xmlDOM 
-	'set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
-	set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
+	set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
+	'set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
 	
 	xmlDOM.validateOnParse = false
 	xmlDOM.async = false
@@ -45,11 +45,12 @@ function MyRtfData (objectID, tagname)
 		for each attribute in  element.Attributes
 			addRow xmlDOM, xmlData, attribute
 		next
-		MyRtfData = xmlDOM.xml
+		
 	else
-		'no attributes, so return empty string
-		MyRtfData = ""
+		'no attributes, add N.A row
+		addNotApplicableRow xmlDOM, xmlData
 	end if
+	MyRtfData = xmlDOM.xml
 end function
 
 function addRow(xmlDOM, xmlData, attribute)
@@ -116,4 +117,61 @@ function addRow(xmlDOM, xmlData, attribute)
 	
 end function
 
+function addNotApplicableRow(xmlDOM, xmlData)
+	dim xmlRow
+	set xmlRow = xmlDOM.createElement( "Row" )
+	xmlData.appendChild xmlRow
+	
+	'Attribute name
+	dim xmlAttributeName
+	set xmlAttributeName = xmlDOM.createElement( "AttributeName" )	
+	xmlAttributeName.text = "N/A"
+	xmlRow.appendChild xmlAttributeName
+	
+	'description NL
+	dim formattedAttr 
+	set formattedAttr = xmlDOM.createAttribute("formatted")
+	formattedAttr.nodeValue="1"
+	dim xmlDescNL
+	set xmlDescNL = xmlDOM.createElement( "DescriptionNL" )	
+	xmlDescNL.text = "n.v.t."
+'	xmlDescNL.setAttributeNode(formattedAttr)
+	xmlRow.appendChild xmlDescNL
+	
+	'description FR
+	set formattedAttr = xmlDOM.createAttribute("formatted")
+	formattedAttr.nodeValue="1"
+	dim xmlDescFR
+	set xmlDescFR = xmlDOM.createElement( "DescriptionFR" )			
+	xmlDescFR.text = "S.O."
+'	xmlDescFR.setAttributeNode(formattedAttr)
+	xmlRow.appendChild xmlDescFR
+	
+	'multiplicity
+	dim xmlMultiplicity
+	set xmlMultiplicity = xmlDOM.createElement( "Multiplicity" )			
+	xmlMultiplicity.text = ""
+	xmlRow.appendChild xmlMultiplicity
+	
+	'IsID
+	dim xmlIsID
+	set xmlIsID = xmlDOM.createElement( "IsID" )
+	xmlIsID.text = ""
+	xmlRow.appendChild xmlIsID
+	
+	'Format
+	dim xmlFormat
+	set xmlFormat = xmlDOM.createElement( "Format" )			
+	xmlFormat.text = ""
+	xmlRow.appendChild xmlFormat
+	
+	'Alias
+	dim xmlAlias
+	set xmlAlias = xmlDOM.createElement( "Alias" )			
+	xmlAlias.text = ""
+	xmlRow.appendChild xmlAlias
+end function
+
+
 'msgbox MyRtfData(38999, "")
+'msgbox MyRtfData(52460, "")

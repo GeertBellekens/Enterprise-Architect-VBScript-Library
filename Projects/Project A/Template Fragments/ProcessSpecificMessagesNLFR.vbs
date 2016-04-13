@@ -14,7 +14,8 @@ option explicit
 function MyRtfData (objectID)
 	
 	dim xmlDOM 
-	set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
+	'set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
+	set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
 	xmlDOM.validateOnParse = false
 	xmlDOM.async = false
 	 
@@ -66,19 +67,20 @@ function addRow (xmlData, xmlDOM, messageFlow)
 		dim xmlRow
 		set xmlRow = xmlDOM.createElement( "Row" )
 		xmlData.appendChild xmlRow
+
+		dim xmlFISName
+		set xmlFISName = xmlDOM.createElement( "FISName" )			
+		xmlFISName.text = messageElement.Name
+		xmlRow.appendChild xmlFISName
 		
-		'name: technical name (FIS name )
-		dim nameString
-		if not technicalMessage is nothing then
-			nameString = technicalMessage.Name
+		dim xmlMessageName
+		set xmlMessageName = xmlDOM.createElement( "MessageName" )	
+		if not technicalMessage is nothing then		
+			xmlMessageName.text = technicalMessage.Name
+		else
+			xmlMessageName.text = ""
 		end if
-		
-		nameString = nameString & " (" & messageElement.Name & ")"
-		
-		dim xmlActivityName
-		set xmlActivityName = xmlDOM.createElement( "MessageName" )			
-		xmlActivityName.text = nameString
-		xmlRow.appendChild xmlActivityName
+		xmlRow.appendChild xmlMessageName
 		
 		'description
 		dim notes
@@ -91,7 +93,7 @@ function addRow (xmlData, xmlDOM, messageFlow)
 		end if
 		
 		dim descriptionfull
-		descriptionfull = getTagContent(notes, "definition")
+		descriptionfull = getTagContent(notes, "")
 		
 		dim formattedAttr 
 		

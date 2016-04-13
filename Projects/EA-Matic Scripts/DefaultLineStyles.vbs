@@ -43,7 +43,7 @@ function determineStyle(connector)
 			determineStyle = lsOrthogonalRoundedTree
 		case "Generalization", "Realization", "Realisation"
 			determineStyle = lsTreeVerticalTree
-		case "UseCase", "Dependency","NoteLink"
+		case "UseCase", "Dependency","NoteLink", "Abstraction"
 			determineStyle = lsDirectMode
 		case else
 			determineStyle = defaultStyle

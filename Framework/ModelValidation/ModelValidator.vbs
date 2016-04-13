@@ -11,7 +11,10 @@ Class ModelValidator
 	Private Sub Class_Initialize
 		'initialize all rules
 		me.Rules = CreateObject("System.Collections.ArrayList")
-		me.Rules.Add new TestRule
+		'me.Rules.Add new TestRule
+		me.Rules.Add new Rule_BPANotSynchronized
+		me.Rules.Add new Rule_MessageNotSynchronized
+		me.Rules.Add new Rule_MessageUsedAsLink
 	end sub
 '#endregion "Constructor"
 	
@@ -37,7 +40,9 @@ Class ModelValidator
 						and not neverAutoFix and not validationResult.IsValid then
 					autoFixResult = rule.Fix(item,options)
 				end if
-				validationResults.Add validationResult
+				if validationResult.IsValid = false then
+					validationResults.Add validationResult
+				end if
 			next
 		next
 		set Validate = validationResults

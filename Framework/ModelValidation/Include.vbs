@@ -6,6 +6,8 @@
 
 'include the util group
 !INC Utils.Include
+'include the Atrials Rules group
+!INC Atrias Rules.Include
 
 'include the scripts in this folder
 !INC ModelValidation.ModelValidator

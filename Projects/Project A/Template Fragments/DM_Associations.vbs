@@ -11,11 +11,11 @@ option explicit
 ' Purpose: 
 ' Date: 
 '
-function MyRtfData (objectID)
+function MyRtfData (objectID, endpoint)
 
 	dim xmlDOM 
-	'set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
-	set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
+	set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
+	'set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )
 	
 	xmlDOM.validateOnParse = false
 	xmlDOM.async = false
@@ -40,16 +40,39 @@ function MyRtfData (objectID)
 	dim element as EA.Element
 	set element = Repository.GetElementByID(objectID)
 	dim connector as EA.Connector
-
-	if element.Connectors.Count > 0 then
-		for each connector in  element.Connectors
-			addRow xmlDOM, xmlData, connector
-		next
-		MyRtfData = xmlDOM.xml
+	
+	'first get the source and target associations in separate lists
+	dim sourceAssociations
+	dim targetAssociations
+	set sourceAssociations = CreateObject("System.Collections.ArrayList")
+	set targetAssociations = CreateObject("System.Collections.ArrayList")
+	for each connector in  element.Connectors
+		if connector.Type = "Association" or connector.type = "Aggregation" then
+			if connector.ClientID = element.ElementID then
+				sourceAssociations.Add connector
+			else
+				targetAssociations.Add connector
+			end if
+		end if
+	next
+	'then set the appropriate lists
+	dim associations
+	if endpoint = "source" then
+		set associations = sourceAssociations
 	else
-		'no connectors, so return empty string
-		MyRtfData = ""
+		set associations = targetAssociations
 	end if
+	'then loop the list of associations to add the rows
+	for each connector in associations
+		addRow xmlDOM, xmlData, connector
+	next
+	
+	'check if we need to add a not applicable row.
+	'Only needed in case of "source" and bot collections of associations are emtpy
+	if endpoint = "source" and sourceAssociations.Count = 0 and targetAssociations.Count = 0 then
+		addNotApplicableRow xmlDOM, xmlData
+	end if
+	MyRtfData = xmlDOM.xml
 end function
 
 function addRow(xmlDOM, xmlData, connector)
@@ -120,4 +143,60 @@ function addRow(xmlDOM, xmlData, connector)
 	
 end function
 
-'msgbox MyRtfData(38700, true)
+function addNotApplicableRow(xmlDOM, xmlData)
+	dim xmlRow
+	set xmlRow = xmlDOM.createElement( "Row" )
+	xmlData.appendChild xmlRow
+	
+	'source multiplicity
+	dim xmlSMultiplicity
+	set xmlSMultiplicity = xmlDOM.createElement( "SMultiplicity" )	
+	xmlSMultiplicity.text = ""
+	xmlRow.appendChild xmlSMultiplicity
+	
+	'target multiplicity
+	dim xmlTMultiplicity
+	set xmlTMultiplicity = xmlDOM.createElement( "TMultiplicity" )	
+	xmlTMultiplicity.text = ""
+	xmlRow.appendChild xmlTMultiplicity
+	
+	'source Name
+	dim xmlSource
+	set xmlSource = xmlDOM.createElement( "Source" )	
+	xmlSource.text = "N/A"
+	xmlRow.appendChild xmlSource
+	
+	'target Name
+	dim xmlTarget
+	set xmlTarget = xmlDOM.createElement( "Target" )	
+	xmlTarget.text = "N/A"
+	xmlRow.appendChild xmlTarget
+	
+	'ConnectorName
+	dim xmlConnectorName
+	set xmlConnectorName = xmlDOM.createElement( "ConnectorName" )	
+	xmlConnectorName.text = "N/A"
+	xmlRow.appendChild xmlConnectorName
+
+	'description NL
+	dim formattedAttr 
+	set formattedAttr = xmlDOM.createAttribute("formatted")
+	formattedAttr.nodeValue="1"
+	dim xmlDescNL
+	set xmlDescNL = xmlDOM.createElement( "DescriptionNL" )	
+	xmlDescNL.text = "n.v.t."
+'	xmlDescNL.setAttributeNode(formattedAttr)
+	xmlRow.appendChild xmlDescNL
+	
+	'description FR
+	set formattedAttr = xmlDOM.createAttribute("formatted")
+	formattedAttr.nodeValue="1"
+	dim xmlDescFR
+	set xmlDescFR = xmlDOM.createElement( "DescriptionFR" )			
+	xmlDescFR.text = "S.O."
+'	xmlDescFR.setAttributeNode(formattedAttr)
+	xmlRow.appendChild xmlDescFR
+		
+end function
+
+'msgbox MyRtfData(74179, "source")
