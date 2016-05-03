@@ -3,7 +3,7 @@
 
 <dl>
 <table>
-<tr><td>Author:</td><td>Rolf Lampa, rolf.lampa@rilnet.com</td></tr>
+<tr><td>Author:</td><td>Rolf Lampa, rolf.lampa@gmail.com</td></tr>
 <tr><td>Copyright:</td><td>(C) Rolf Lampa, 2015. This script is free to use for commercial projects provided that proper attribution is given to the author, and providing this copyright info in a visible place in your code and product documentation, including a link to this page.</td></tr>
 </table>
 </dl>
