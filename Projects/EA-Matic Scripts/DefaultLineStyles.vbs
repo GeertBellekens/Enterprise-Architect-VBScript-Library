@@ -14,7 +14,7 @@ dim lsDirectMode, lsAutoRouteMode, lsCustomMode, lsTreeVerticalTree, lsTreeHoriz
 lsLateralHorizontalTree, lsLateralVerticalTree, lsOrthogonalSquareTree, lsOrthogonalRoundedTree
 
 lsDirectMode = "1"
-lsAutoRouteMode = "2" 
+lsAutoRouteMode = "2"
 lsCustomMode = "3"
 lsTreeVerticalTree = "V"
 lsTreeHorizontalTree = "H"
@@ -56,7 +56,7 @@ function EA_OnPostNewConnector(Info)
 	'get the connector id from the Info
 	dim connectorID
 	connectorID = Info.Get("ConnectorID")
-	dim connector 
+	dim connector
 	set connector = Repository.GetConnectorByID(connectorID)
 	'get the current diagram
 	dim diagram
@@ -85,14 +85,14 @@ function EA_GetMenuItems(MenuLocation, MenuName)
 	if MenuName = "" and MenuLocation = "Diagram" then
 		'Menu Header
 		EA_GetMenuItems = menuDefaultLines
-	end if 
+	end if
 end function
 
 
 'react to user clicking a menu option
 function EA_MenuClick(MenuLocation, MenuName, ItemName)
 	if ItemName = menuDefaultLines then
-		dim diagram 
+		dim diagram
 		dim diagramLink
 		dim connector
 		dim dirty
@@ -123,7 +123,7 @@ end function
 
 'gets the diagram link object
 function getdiagramLinkForConnector(connector, diagram)
-	dim diagramLink 
+	dim diagramLink
 	set getdiagramLinkForConnector = nothing
 	for each diagramLink in diagram.DiagramLinks
 		if diagramLink.ConnectorID = connector.ConnectorID then
@@ -151,7 +151,7 @@ function setConnectorStyle(diagramLink, connectorStyle)
 	tree = ""
 	dim i
 	'find if Mode and Tree are already defined
-	for i = 0 to Ubound(styleparts) -1 
+	for i = 0 to Ubound(styleparts) -1
 		stylePart = styleparts(i)
 		if Instr(stylepart,"Mode=") > 0 then
 			modeIndex = i
