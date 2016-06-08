@@ -140,7 +140,7 @@ function getXSDRootForMessage(message)
 		AND (connector.Type = "Realisation" OR connector.Type = "Realization") then
 			dim connectedElement as EA.Element
 			set connectedElement = Repository.GetElementByID(connector.ClientID)
-			if connectedElement.Stereotype = "XSDcomplexType" then
+			if connectedElement.Stereotype = "XSDtopLevelElement" then
 				set xsdRoot = connectedElement
 				exit for
 			end if

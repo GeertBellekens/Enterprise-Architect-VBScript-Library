@@ -5,7 +5,7 @@ option explicit
 !INC Local Scripts.EAConstants-VBScript
 
 ' EA-Matic
-' Script Name: DefaultLineStyles
+' Script Name: DefaultLineStyles bla
 ' Author: Geert Bellekens
 ' Purpose: Allows to determine the standard style of new connectors when they are created on a diagram
 ' Date: 14/03/2015
@@ -14,7 +14,7 @@ dim lsDirectMode, lsAutoRouteMode, lsCustomMode, lsTreeVerticalTree, lsTreeHoriz
 lsLateralHorizontalTree, lsLateralVerticalTree, lsOrthogonalSquareTree, lsOrthogonalRoundedTree
 
 lsDirectMode = "1"
-lsAutoRouteMode = "2"
+lsAutoRouteMode = "2" 
 lsCustomMode = "3"
 lsTreeVerticalTree = "V"
 lsTreeHorizontalTree = "H"
@@ -34,33 +34,20 @@ menuDefaultLines = "&Set default linestyles"
 ' set here the default style to be used
 defaultStyle = lsOrthogonalSquareTree
 
-' set here the line style to be used for each type of connector
-function determineLineStyle(connector)
+' set there the style to be used for each type of connector
+function determineStyle(connector)
 	dim connectorType
 	connectorType = connector.Type
 	select case connectorType
 		case "ControlFlow", "StateFlow","ObjectFlow","InformationFlow"
-			determineLineStyle = lsOrthogonalRoundedTree
+			determineStyle = lsOrthogonalRoundedTree
 		case "Generalization", "Realization", "Realisation"
-			determineLineStyle = lsTreeVerticalTree
+			determineStyle = lsTreeVerticalTree
 		case "UseCase", "Dependency","NoteLink", "Abstraction"
-			determineLineStyle = lsDirectMode
+			determineStyle = lsDirectMode
 		case else
-			determineLineStyle = defaultStyle
+			determineStyle = defaultStyle
 	end select
-end function
-
-'set here the color to be used for each type of connector
-' use SparxColorFromRGB("E8", "8C", "0C") to get the correct integer color value
-function determineColor(connector)
-	' the default color
-	determineColor = -1
-end function
-
-'set here the line width to be used for each type of connector
-function determineLineWidth(connector)
-	' the default line width
-	determineLineWidth = 1
 end function
 '************AND HERE****************
 
@@ -69,7 +56,7 @@ function EA_OnPostNewConnector(Info)
 	'get the connector id from the Info
 	dim connectorID
 	connectorID = Info.Get("ConnectorID")
-	dim connector
+	dim connector 
 	set connector = Repository.GetConnectorByID(connectorID)
 	'get the current diagram
 	dim diagram
@@ -82,7 +69,7 @@ function EA_OnPostNewConnector(Info)
 		set diagramLink = getdiagramLinkForConnector(connector, diagram)
 		if not diagramLink is nothing then
 			'set the connectorstyle
-			setConnectorStyle diagramLink, connector
+			setConnectorStyle diagramLink, determineStyle(connector)
 			'save the diagramlink
 			diagramLink.Update
 			'reload the diagram to show the link style
@@ -98,49 +85,45 @@ function EA_GetMenuItems(MenuLocation, MenuName)
 	if MenuName = "" and MenuLocation = "Diagram" then
 		'Menu Header
 		EA_GetMenuItems = menuDefaultLines
-	end if
+	end if 
 end function
 
-' Do the work of setting default line styles
-function DoDefaultLineStyles()
-	dim diagram
-	dim diagramLink
-	dim connector
-	dim dirty
-	dirty = false
-	set diagram = Repository.GetCurrentDiagram
-	'save the diagram first
-	Repository.SaveDiagram diagram.DiagramID
-	'then loop all diagramLinks
-	if not diagram is nothing then
-		for each diagramLink in diagram.DiagramLinks
-			set connector = Repository.GetConnectorByID(diagramLink.ConnectorID)
-			if not connector is nothing then
-				'set the connectorstyle
-				setConnectorStyle diagramLink, connector
-				'save the diagramlink
-				diagramLink.Update
-				dirty = true
-			end if
-		next
-		'reload the diagram if we changed something
-		if dirty then
-			'reload the diagram to show the link style
-			Repository.ReloadDiagram diagram.DiagramID
-		end if
-	end if
-end function
 
 'react to user clicking a menu option
 function EA_MenuClick(MenuLocation, MenuName, ItemName)
 	if ItemName = menuDefaultLines then
-		DoDefaultLineStyles
+		dim diagram 
+		dim diagramLink
+		dim connector
+		dim dirty
+		dirty = false
+		set diagram = Repository.GetCurrentDiagram
+		'save the diagram first
+		Repository.SaveDiagram diagram.DiagramID
+		'then loop all diagramLinks
+		if not diagram is nothing then
+			for each diagramLink in diagram.DiagramLinks
+				set connector = Repository.GetConnectorByID(diagramLink.ConnectorID)
+				if not connector is nothing then
+					'set the connectorstyle
+					setConnectorStyle diagramLink, determineStyle(connector)
+					'save the diagramlink
+					diagramLink.Update
+					dirty = true
+				end if
+			next
+			'reload the diagram if we changed something
+			if dirty then
+				'reload the diagram to show the link style
+				Repository.ReloadDiagram diagram.DiagramID
+			end if
+		end if
 	end if
 end function
 
 'gets the diagram link object
 function getdiagramLinkForConnector(connector, diagram)
-	dim diagramLink
+	dim diagramLink 
 	set getdiagramLinkForConnector = nothing
 	for each diagramLink in diagram.DiagramLinks
 		if diagramLink.ConnectorID = connector.ConnectorID then
@@ -151,83 +134,83 @@ function getdiagramLinkForConnector(connector, diagram)
 end function
 
 'actually sets the connector style
-function setConnectorStyle(diagramLink, connector)
+function setConnectorStyle(diagramLink, connectorStyle)
 	'split the style into its parts
 	dim styleparts
 	dim styleString
-	' Throw away the last ; so that an empty cell at the end is not created when its Split
-	styleString = Left(diagramLink.Style, Len(diagramLink.Style)-1)
+	styleString = diagramLink.Style
 	styleparts = Split(styleString,";")
+	dim stylePart
 	dim mode
+	dim modeIndex
+	modeIndex = -1
 	dim tree
-	dim linestyle
+	dim treeIndex
+	treeIndex = -1
 	mode = ""
 	tree = ""
-
-	linestyle = determineLineStyle(connector)
-	'these connectorstyles use mode=3 and the tree
-	if  linestyle = lsTreeVerticalTree or _
-		linestyle = lsTreeHorizontalTree or _
-		linestyle = lsLateralHorizontalTree or _
-		linestyle = lsLateralVerticalTree or _
-		linestyle = lsOrthogonalSquareTree or _
-		linestyle = lsOrthogonalRoundedTree then
-		mode = "3"
-		tree = linestyle
-	else
-		mode = linestyle
-	end if
-	'set the mode value
-	setStylePart styleparts, "Mode", mode
-	'set the tree value
-	setStylePart styleparts, "TREE", tree
-
-	setStylePart styleparts, "Color", determineColor(connector)
-	setStylePart styleparts, "LWidth", determineLineWidth(connector)
-
-	' update style (add in trailing ; that is needed)
-	diagramLink.Style = join(styleparts, ";") & ";"
-end function
-
-' Set the style to the specified value
-function setStylePart(styleparts, style, value)
 	dim i
-	dim stylePart
-	dim index
-
-	index = -1
-
-	for i = 0 to Ubound(styleparts)
+	'find if Mode and Tree are already defined
+	for i = 0 to Ubound(styleparts) -1 
 		stylePart = styleparts(i)
-		if Instr(stylepart, style & "=") > 0 then
-			index = i
+		if Instr(stylepart,"Mode=") > 0 then
+			modeIndex = i
+		elseif Instr(stylepart,"TREE=") > 0 then
+			treeIndex = i
 		end if
 	next
-
-
-	If Len(value) > 0 then
-		' Adding to style
-		if index = -1 then
-			' extend the array when style is not already in array
-			redim preserve styleparts(Ubound(styleparts) + 1)
-			index = Ubound(styleparts)
-		end if
-		styleparts(index) = style & "=" & value
+	'these connectorstyles use mode=3 and the tree
+	if  connectorStyle = lsTreeVerticalTree or _
+		connectorStyle = lsTreeHorizontalTree or _
+		connectorStyle = lsLateralHorizontalTree or _
+		connectorStyle = lsLateralVerticalTree or _
+		connectorStyle = lsOrthogonalSquareTree or _
+		connectorStyle = lsOrthogonalRoundedTree then
+		mode = "3"
+		tree = connectorStyle
 	else
-		' Removing style from styleparts
-		if index >= 0 then
-			' copy the last value over the top of index, and then shrink the array
-			styleparts(index) = styleparts(Ubound(styleparts))
-			redim preserve styleparts(Ubound(styleparts) - 1)
-		end if
-		' if the index was -1 it already did not exist in the styleparts
+		mode = connectorStyle
 	end if
-
+	'set the mode value
+	if modeIndex >= 0 then
+		styleparts(modeIndex) = "Mode=" & mode
+		diagramLink.Style = join(styleparts,";")
+	else
+		diagramLink.Style = "Mode=" & mode& ";"& diagramLink.Style
+	end if
+	'set the tree value
+	if treeIndex >= 0 then
+		if len(tree) > 0 then
+			styleparts(treeIndex) = "TREE=" & tree
+			diagramLink.Style = join(styleparts,";")
+		else
+			'remove tree part
+			diagramLink.Style = replace(diagramLink.Style,styleparts(treeIndex)&";" , "")
+		end if
+	else
+		diagramLink.Style = diagramLink.Style & "TREE=" & tree & ";"
+	end if
 end function
 
-' From http://www.sparxsystems.com.au/enterprise_architect_user_guide/11/automation_and_scripting/diagramobjects.html
-' The color value is a decimal representation of the hex RGB value, where Red=FF, Green=FF00 and Blue=FF0000
-' Who would write an RGB as BGR. YAEAB
-function SparxColorFromRGB(red, green, blue)
-	SparxColorFromRGB = CLng("&h" & blue & green & red)
+function getConnectorStyle(diagramLink)
+	'split the style
+	dim styleparts
+	styleparts = Split(diagramLink.Style,";")
+	dim stylePart
+	dim mode
+	dim tree
+	mode = ""
+	tree = ""
+	for each stylepart in styleparts
+		if Instr(stylepart,"Mode=") > 0 then
+			mode = right(stylepart, 1)
+		elseif Instr(stylepart,"TREE=") > 0 then
+			tree = replace(stylepart, "TREE=", "")
+		end if
+	next
+	if tree <> "" then
+		getConnectorStyle = tree
+	else
+		getConnectorStyle = mode
+	end if
 end function

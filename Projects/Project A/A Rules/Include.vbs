@@ -5,3 +5,4 @@
 !INC Rule_BPANotSynchronized
 !INC Rule_MessageNotSynchronized
 !INC Rule_MessageUsedAsLink
+!INC Rule_MessageFlowWithoutMessage

@@ -54,9 +54,7 @@ function synchronizeObjectNames(diagramObject, diagram)
 		diagramObject.right = diagramObject.left + 40
 		setFont diagramObject
 		diagramObject.Update
-		if element.Stereotype = "FIS" then
-			copyMessageDirection(element)
-		end if
+'		copyMessageDirection(element)
 	end if
 	'check if it is local activity
 	if element.Type = "Activity" and element.Stereotype = "Activity" and (element.PackageID <> diagram.packageID ) then
@@ -114,6 +112,25 @@ function synchronizeObjectNames(diagramObject, diagram)
 	end if
 end function
 
+function getOrCreateTaggedValue(element, taggedValueName)
+		'add tagged value if not exists yet
+		dim taggedValue as EA.TaggedValue
+		dim taggedValueExists
+		taggedValueExists = false
+		for each taggedValue in element.TaggedValues
+			if taggedValue.Name = taggedValueName then
+				taggedValueExists = true
+				exit for
+			end if
+		next
+		'create tagged value is not existing yet
+		if taggedValueExists = false then
+			set taggedValue = element.TaggedValues.AddNew(taggedValueName,"")
+			taggedValue.Update
+		end if
+		set getOrCreateTaggedValue = taggedValue
+end function
+
 function copyMessageDirection(message)
 	dim tv as EA.TaggedValue
 	dim messageClassifier as EA.Element
@@ -134,7 +151,7 @@ function getDirection(message)
 	dim tv as EA.TaggedValue
 	getDirection = ""
 	for each tv in message.TaggedValues
-		if tv.Name = "Direction" then
+		if tv.Name = "Atrias::Direction" then
 			getDirection = tv.Value 
 			exit for
 		end if
@@ -143,13 +160,9 @@ end function
 
 function setDirection(message, value)
 	dim tv as EA.TaggedValue
-	for each tv in message.TaggedValues
-		if tv.Name = "Direction" then
-			tv.Value = value
-			tv.Update
-			exit for
-		end if
-	next
+	set tv = getOrCreateTaggedValue(message, "Atrias::Direction")
+	tv.Value = value
+	tv.Update
 end function
 
 function setFont(diagramObject)

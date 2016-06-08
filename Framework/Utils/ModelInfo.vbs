@@ -6,11 +6,15 @@
 'TODO: use caching to speed up the process
 Dim elementCache 	
 dim packageCache
+'initialise the cache objects
+init
 
 Private Sub Module_Initialize()
 	'the cache contains the ID (package or element ID) and the fully qualified name of the element or package.
-	set elementCache = CreateObject("Scripting.Dictionary")
-	set packageCache = CreateObject("Scripting.Dictionary")
+	'this only seems to work in debug mode for some reason?
+'	set elementCache = CreateObject("Scripting.Dictionary")
+'	set packageCache = CreateObject("Scripting.Dictionary")
+	init
 End Sub
 
 Private Sub Module_Terminate()
@@ -18,6 +22,14 @@ Private Sub Module_Terminate()
 	set packageCache = nothing
 End Sub
 
+private sub init()
+	if not IsObject(elementCache) then
+		set elementCache = CreateObject("Scripting.Dictionary")
+	end if
+	if not IsObject(packageCache) then
+		set packageCache = CreateObject("Scripting.Dictionary")
+	end if
+end sub
 'Group of functions related to information from the model
 
 'returns the fully qualified name for the given item.

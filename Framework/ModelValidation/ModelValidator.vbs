@@ -15,6 +15,7 @@ Class ModelValidator
 		me.Rules.Add new Rule_BPANotSynchronized
 		me.Rules.Add new Rule_MessageNotSynchronized
 		me.Rules.Add new Rule_MessageUsedAsLink
+		me.Rules.Add new Rule_MessageFlowWithoutMessage
 	end sub
 '#endregion "Constructor"
 	
