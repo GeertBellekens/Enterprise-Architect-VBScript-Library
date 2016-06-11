@@ -7,6 +7,7 @@ option explicit
 ' Script Name: ExportHTML
 ' Author: Geert Bellekens
 ' Purpose: Export the model HTML format. This script is suitable to be executed as a scheduled task in order to export the model
+'		to HTML and publish it on a webserver or sharepoint site.
 ' Date: 09/06/2016
 '
 sub main
@@ -16,13 +17,13 @@ sub main
 	
 	'the path to put the inital export to
 	dim exportPath 
-	exportPath = "C:\temp\EAExport\"
+	exportPath = "C:\temp\EAExport"
 	
 	' the path where the exported model should be copied to (sharepoint location, or webserver)
 	' in case of a sharepoint location make sure to use the UNC path (\\sharepoint-site\location\) 
 	' and make sure that section of sharepoint not version controlled (no check-in/checkout)
 	dim publishPath
-	publishPath = "c:\temp\copiedFolder"
+	publishPath = "C:\temp\copiedFolder"
 	
 	'the path to the eap file
 	dim eapPath
