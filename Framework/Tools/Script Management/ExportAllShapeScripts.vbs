@@ -66,21 +66,4 @@ sub main
 	next
 end sub
 
-'Function SaveBinaryData(FileName, ByteArray)
-'	Const adTypeBinary = 1
-'	Const adSaveCreateOverWrite = 2
-'	'Create Stream object
-'	Dim BinaryStream
-'	Set BinaryStream = CreateObject("ADODB.Stream")
-'	'Specify stream type – we want To save binary data.
-'	BinaryStream.Type = adTypeBinary
-'	'Open the stream And write binary data To the object
-'	BinaryStream.Open
-'	BinaryStream.Write ByteArray
-'	'Save binary data To disk
-'	BinaryStream.SaveToFile FileName, adSaveCreateOverWrite
-'End Function
-
-
-
 main
