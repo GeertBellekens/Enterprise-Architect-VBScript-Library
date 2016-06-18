@@ -41,75 +41,46 @@ sub main
 			dim shapeScriptDecoded
 			shapeScriptDecoded = imageNode.nodeTypedValue
 			'save as temp zip file
-			dim tempFileName
-			tempFileName = replace(getTempFilename, ".tmp",".zip")
-			SaveBinaryData tempFileName, shapeScriptDecoded
+			dim tempZipFile
+			set tempZipFile = new BinaryFile
+			tempZipFile.FullPath = replace(getTempFilename, ".tmp",".zip")
+			tempZipFile.Contents = shapeScriptDecoded
+			tempZipFile.Save
 			'unzip 
 			dim tempFolderPath
-			tempfolderPath = unzip(tempFileName)
+			tempfolderPath = unzip(tempZipFile.FullPath)
 			'get the text file 
 			dim tempFolder
 			set tempFolder = new FileSystemFolder
 			tempFolder.FullPath = tempfolderPath
 			dim scriptFile
 			For each scriptfile in tempfolder.TextFiles
+				'save the script
 				scriptFile.FullPath = selectedFolder.FullPath & "\" & profile.Name & "\" & stereotype.Name & ".shapeScript"
 				scriptFile.Save
 			next
+			'delete the temp folder and temp file name
+			tempfolder.Delete
+			tempZipFile.Delete
 		end if
 	next
 end sub
 
-Function SaveBinaryData(FileName, ByteArray)
-	Const adTypeBinary = 1
-	Const adSaveCreateOverWrite = 2
-	'Create Stream object
-	Dim BinaryStream
-	Set BinaryStream = CreateObject("ADODB.Stream")
-	'Specify stream type – we want To save binary data.
-	BinaryStream.Type = adTypeBinary
-	'Open the stream And write binary data To the object
-	BinaryStream.Open
-	BinaryStream.Write ByteArray
-	'Save binary data To disk
-	BinaryStream.SaveToFile FileName, adSaveCreateOverWrite
-End Function
+'Function SaveBinaryData(FileName, ByteArray)
+'	Const adTypeBinary = 1
+'	Const adSaveCreateOverWrite = 2
+'	'Create Stream object
+'	Dim BinaryStream
+'	Set BinaryStream = CreateObject("ADODB.Stream")
+'	'Specify stream type – we want To save binary data.
+'	BinaryStream.Type = adTypeBinary
+'	'Open the stream And write binary data To the object
+'	BinaryStream.Open
+'	BinaryStream.Write ByteArray
+'	'Save binary data To disk
+'	BinaryStream.SaveToFile FileName, adSaveCreateOverWrite
+'End Function
 
-function getTempFilename
-	Dim fso
-	Set fso = CreateObject("Scripting.FileSystemObject")
-	Dim tfolder, tname
-	Const TemporaryFolder = 2
-	Set tfolder = fso.GetSpecialFolder(TemporaryFolder)
-	tname = fso.GetTempName    
-	getTempFilename = tfolder &"\"& tname
-End Function
 
-function unzip (zipfile)
-	'The folder the contents should be extracted to.
-	dim extractTo, fso, filename, foldername
-	Set fso = CreateObject("Scripting.FileSystemObject")
-	filename = fso.GetFileName(zipfile)
-	foldername = Replace(FileName, ".zip", "")
-	extractTo = fso.GetParentFolderName(zipfile) & "\" & foldername
-	'If the extraction location does not exist create it.
-	
-	If NOT fso.FolderExists(extractTo) Then
-	   fso.CreateFolder(extractTo)
-	End If
-
-	'Extract the contants of the zip file.
-	set objShell = CreateObject("Shell.Application")
-	dim filesInZip
-	set FilesInZip = objShell.NameSpace(zipfile).items
-	objShell.NameSpace(extractTo).CopyHere(filesInZip)
-	
-	'clear objects
-	Set fso = Nothing
-	Set objShell = Nothing
-	
-	'return folder name
-	unzip = extractTo
-end function
 
 main

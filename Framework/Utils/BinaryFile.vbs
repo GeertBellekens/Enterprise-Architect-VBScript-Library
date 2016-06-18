@@ -4,13 +4,15 @@
 'Date: 2015-12-07
 !INC Utils.Include
 
+Const adTypeBinary = 1
+Const adSaveCreateOverWrite = 2
 
-Class TextFile
+Class BinaryFile
 	Private m_FullPath
 	Private m_Contents
 	Private m_Folder
 	Private m_FileName
-
+	
 	Private Sub Class_Initialize
 	  set m_Folder = Nothing
 	  m_FileName = ""
@@ -24,17 +26,11 @@ Class TextFile
 	public Property Let FullPath(value)
 	  dim startBackslash
 	  startBackslash = InstrRev(value, "\", -1, 1)
-	  dim folderPath
-	  folderPath = left(value, startBackslash -1) 'get everything before the last "\"
-	  if ucase(folderPath) <> ucase(me.Folder.FullPath) then
-		'make new folder object to avoid side effects on the folder object
-		me.Folder = New FileSystemFolder
-		me.Folder.FullPath = left(value, startBackslash -1) 'get everything before the last "\"
-	  end if
+	  me.Folder.FullPath = left(value, startBackslash -1) 'get everything before the last "\"
 	  me.FileName = mid(value, startBackslash + 1) 'get everything after the last "."
 	end Property
 		
-	' Contents property.
+	' Contents property, should be a array of bytes.
 	Public Property Get Contents
 	  Contents = m_Contents
 	End Property
@@ -73,16 +69,21 @@ Class TextFile
 	  set m_Folder = value
 	End Property
 	
-	'save the file
+	'save the file to disk
 	sub Save
-		Dim fso, MyFile
-		Set fso = CreateObject("Scripting.FileSystemObject")
 		'first make sure the directory exists
 		me.Folder.Save
-		'then create file
-		Set MyFile = fso.CreateTextFile(me.FullPath, True)
-		MyFile.Write(Contents)
-		MyFile.close
+		'then create file	
+		'Create Stream object
+		Dim BinaryStream
+		Set BinaryStream = CreateObject("ADODB.Stream")
+		'Specify stream type – we want To save binary data.
+		BinaryStream.Type = adTypeBinary
+		'Open the stream And write binary data To the object
+		BinaryStream.Open
+		BinaryStream.Write Contents
+		'Save binary data To disk
+		BinaryStream.SaveToFile me.FullPath, adSaveCreateOverWrite
 	end sub
 	
 	'delete the file
@@ -94,5 +95,4 @@ Class TextFile
 		end if
 	end sub
 
-	
 end class

@@ -79,7 +79,7 @@ Class FileSystemFolder
 		Next
 		set SubFolders = result
 	End Property
-	
+	'let the user select a folder, optionally from a given starting path.
 	public function getUserSelectedFolder(startPath)
 		dim folder, shell
 		Set shell  = CreateObject( "Shell.Application" )
@@ -96,7 +96,7 @@ Class FileSystemFolder
 			set getUserSelectedFolder = Nothing
 		end if
 	end function
-	
+	'save the folder
 	public sub Save()
 		Dim fso
 		Set fso = CreateObject("Scripting.FileSystemObject")
@@ -106,6 +106,14 @@ Class FileSystemFolder
 				me.ParentFolder.Save
 			end if
 			fso.CreateFolder me.FullPath
+		end if
+	end sub
+	'delete the folder
+	public sub Delete()
+		Dim fso
+		Set fso = CreateObject("Scripting.FileSystemObject")
+		if fso.FolderExists(me.FullPath) then
+			fso.DeleteFolder me.FullPath
 		end if
 	end sub
 End Class
