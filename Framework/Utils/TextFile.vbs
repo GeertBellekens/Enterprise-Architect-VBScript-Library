@@ -20,7 +20,7 @@ Class TextFile
 	' FullPath property.
 	Public Property Get FullPath
 	  FullPath = me.Folder.FullPath & "\" & me.FileName
-	End Property
+	End Property	
 	public Property Let FullPath(value)
 	  dim startBackslash
 	  startBackslash = InstrRev(value, "\", -1, 1)

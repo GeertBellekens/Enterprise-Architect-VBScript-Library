@@ -46,7 +46,7 @@ sub test()
 	Msgbox "Finished!"
 end sub
 
-test
+'test
 
 '
 ' Diagram Script main function
@@ -95,7 +95,7 @@ sub OnDiagramScript()
 	end if
 end sub
 
-'OnDiagramScript
+OnDiagramScript
 
 'create a process book for the given business processes with the given document name
 function createProcessBook(selectedBusinessProcesses, documentName)

@@ -5,6 +5,7 @@
 !INC Utils.FileSystemFolder
 !INC Utils.TextFile
 !INC Utils.ModelInfo
+!INC Utils.Base64
 
 'Author: Geert Bellekens
 'Date: 2015-12-07

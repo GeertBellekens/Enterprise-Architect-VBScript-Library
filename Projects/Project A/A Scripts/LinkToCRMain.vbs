@@ -143,7 +143,7 @@ function linkToCR(selectedItem, selectedItemType, CRToUse, userLogin, comments)
 	if not crTag is nothing then
 		crTag.Value = CRToUse.ElementGUID
 		crTag.Notes = "user=" & userLogin & ";" & _
-					 "date=" & Year(Date) & "-" & Month(Date) & "-" & Day(Date) & ";" & _
+					 "date=" & Year(Date) & "-" & Right("0" & Month(Date),2) & "-" & Right("0" & Day(Date),2) & ";" & _
 					 "comments=" & comments
 		crTag.Update
 	end if

@@ -107,6 +107,47 @@ function getItemName(item)
 	getItemName = itemName
 end function
 
+'gets the attributes by the id's returned by the given query
+function getAttributesByQuery(sqlQuery)
+	dim xmlResult
+	xmlResult = Repository.SQLQuery(sqlQuery)
+	dim attributeIDs
+	attributeIDs = convertQueryResultToArray(xmlResult)
+	dim attributes 
+	set attributes = CreateObject("System.Collections.ArrayList")
+	dim attributeID
+	dim attribute as EA.Attribute
+	for each attributeID in attributeIDs
+		if attributeID > 0 then
+			set attribute = Repository.GetAttributeByID(attributeID)
+			if not attribute is nothing then
+				attributes.Add(attribute)
+			end if
+		end if
+	next
+	set getAttributesByQuery = attributes
+end function
+
+function getConnectorsFromQuery(sqlQuery)
+	dim xmlResult
+	xmlResult = Repository.SQLQuery(sqlQuery)
+	dim connectorIDs
+	connectorIDs = convertQueryResultToArray(xmlResult)
+	dim connectors 
+	set connectors = CreateObject("System.Collections.ArrayList")
+	dim connectorID
+	dim connector as EA.Connector
+	for each connectorID in connectorIDs
+		if connectorID > 0 then
+			set connector = Repository.GetConnectorByID(connectorID)
+			if not connector is nothing then
+				connectors.Add(connector)
+			end if
+		end if
+	next
+	set getConnectorsFromQuery = connectors
+end function
+
 'sub test
 '	dim selectedElement, fqn
 '	set selectedElement = Repository.GetContextObject()
