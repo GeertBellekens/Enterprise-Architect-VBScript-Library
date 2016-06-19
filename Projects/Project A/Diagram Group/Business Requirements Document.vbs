@@ -1,3 +1,4 @@
+'[path=\Projects\Project A\Diagram Group]
 '[group=Diagram Group]
 option explicit
 

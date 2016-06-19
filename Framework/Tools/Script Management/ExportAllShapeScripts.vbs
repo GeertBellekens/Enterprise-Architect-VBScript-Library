@@ -24,46 +24,55 @@ sub main
 	dim selectedFolder
 	set selectedFolder = new FileSystemFolder
 	set selectedFolder = selectedFolder.getUserSelectedFolder("")
+
 	'loop the shape script attributes
 	for each shapeScriptAttribute in shapeScriptAttributes
-		Dim xDoc 
-		Set xDoc = CreateObject( "MSXML2.DOMDocument.3.0" )
+		'get the stereotype
 		dim stereotype as EA.Element
 		set stereotype = Repository.GetElementByID(shapeScriptAttribute.ParentID)
 		dim profile as EA.Package
-		set profile = Repository.GetPackageByID(stereotype.PackageID)
+		set profile = findProfilePackage(stereotype)
 		'load the resultset in the xml document
-		If xDoc.LoadXML(shapeScriptAttribute.Default) Then    
-			dim imageNode 
-			set imageNode = xDoc.SelectSingleNode("//Image")
-			dim shapeScriptEncoded
-			shapeScriptEncoded = imageNode.text
-			dim shapeScriptDecoded
-			shapeScriptDecoded = imageNode.nodeTypedValue
-			'save as temp zip file
-			dim tempZipFile
-			set tempZipFile = new BinaryFile
-			tempZipFile.FullPath = replace(getTempFilename, ".tmp",".zip")
-			tempZipFile.Contents = shapeScriptDecoded
-			tempZipFile.Save
-			'unzip 
-			dim tempFolderPath
-			tempfolderPath = unzip(tempZipFile.FullPath)
-			'get the text file 
-			dim tempFolder
-			set tempFolder = new FileSystemFolder
-			tempFolder.FullPath = tempfolderPath
+		dim shapeScript
+		shapeScript = decodeBase64zippedXML(shapeScriptAttribute.Default,"Image")
+		if len(shapeScript) > 0 then
 			dim scriptFile
-			For each scriptfile in tempfolder.TextFiles
-				'save the script
-				scriptFile.FullPath = selectedFolder.FullPath & "\" & profile.Name & "\" & stereotype.Name & ".shapeScript"
-				scriptFile.Save
-			next
-			'delete the temp folder and temp file name
-			tempfolder.Delete
-			tempZipFile.Delete
+			set scriptFile = New TextFile
+			'save the script
+			scriptFile.FullPath = selectedFolder.FullPath & "\" & profile.Name & "\" & stereotype.Name & ".shapeScript"
+			scriptFile.Save
+			'debug info
+			Session.Output "saving script: " & scriptFile.FullPath
 		end if
 	next
 end sub
+
+'finds the owning package with stereotype Profile.
+'if not found returns the owning package of the attribute
+function findProfilePackage(stereotype)
+	dim profile as EA.Package
+	set profile = Repository.GetPackageByID(stereotype.PackageID)
+	if profile.StereotypeEx <> "profile" then
+		dim parentProfile as EA.Package
+		set parentProfile = getParentProfilePackage(profile)
+		if not parentProfile is nothing then
+			set profile = parentProfile
+		end if
+	end if
+	set findProfilePackage = profile
+end Function
+
+'recurse up the tree until the profile package is found
+function getParentProfilePackage(profile)
+	dim parentProfile as EA.Package
+	set parentProfile = nothing
+	if profile.ParentID > 0 then
+		set parentProfile = Repository.GetPackageByID(profile.ParentID)
+		if parentProfile.StereotypeEx <> "profile" then
+			set parentProfile = getParentProfilePackage(parentProfile)
+		end if
+	end if
+	set getParentProfilePackage = parentProfile
+end function
 
 main

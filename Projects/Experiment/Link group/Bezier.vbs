@@ -1,4 +1,6 @@
+'[path=\Projects\Experiment\Link group]
 '[group=Link group]
+
 sub main
 	dim selectedConnector as EA.Connector
 	set selectedConnector = Repository.GetContextObject

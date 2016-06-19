@@ -1,4 +1,4 @@
-'[path=\Projects\Project A\Temp
+'[path=\Projects\Project A\Temp]
 '[group=Temp]
 option explicit
 
