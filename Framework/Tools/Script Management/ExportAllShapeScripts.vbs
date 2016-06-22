@@ -38,6 +38,7 @@ sub main
 		if len(shapeScript) > 0 then
 			dim scriptFile
 			set scriptFile = New TextFile
+			scriptfile.Contents = shapeScript
 			'save the script
 			scriptFile.FullPath = selectedFolder.FullPath & "\" & profile.Name & "\" & stereotype.Name & ".shapeScript"
 			scriptFile.Save

@@ -2,6 +2,7 @@
 '[group=Utils]
 'Author: Geert Bellekens
 'Date: 2015-12-07
+'EA-Matic
 
 'returns the SQL wildcard depending on the type of repository
 function getWC()
