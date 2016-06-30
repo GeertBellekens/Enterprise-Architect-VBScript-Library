@@ -100,12 +100,12 @@ function addNotApplicableRow(xmlDOM, xmlData)
 	'constraint names are the same in NL/FR, except when adding an empty row
 	dim xmlConstraintNameNL
 	set xmlConstraintNameNL = xmlDOM.createElement( "ConstraintNameNL" )	
-	xmlConstraintNameNL.text = "n.v.t."
+	xmlConstraintNameNL.text = "Niet van toepassing"
 	xmlRow.appendChild xmlConstraintNameNL
 	
 	dim xmlConstraintNameFR
 	set xmlConstraintNameFR = xmlDOM.createElement( "ConstraintNameFR" )	
-	xmlConstraintNameFR.text = "S.O."
+	xmlConstraintNameFR.text = "Sans objet"
 	xmlRow.appendChild xmlConstraintNameFR
 	
 	'add empty tags for DescriptionNL/FR because otherwise the tag name is shown

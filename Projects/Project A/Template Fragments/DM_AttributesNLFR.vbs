@@ -134,7 +134,7 @@ function addNotApplicableRow(xmlDOM, xmlData)
 	formattedAttr.nodeValue="1"
 	dim xmlDescNL
 	set xmlDescNL = xmlDOM.createElement( "DescriptionNL" )	
-	xmlDescNL.text = "n.v.t."
+	xmlDescNL.text = "Niet van toepassing"
 '	xmlDescNL.setAttributeNode(formattedAttr)
 	xmlRow.appendChild xmlDescNL
 	
@@ -143,7 +143,7 @@ function addNotApplicableRow(xmlDOM, xmlData)
 	formattedAttr.nodeValue="1"
 	dim xmlDescFR
 	set xmlDescFR = xmlDOM.createElement( "DescriptionFR" )			
-	xmlDescFR.text = "S.O."
+	xmlDescFR.text = "Sans objet"
 '	xmlDescFR.setAttributeNode(formattedAttr)
 	xmlRow.appendChild xmlDescFR
 	

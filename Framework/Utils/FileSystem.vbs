@@ -43,3 +43,65 @@ function unzip (zipfile)
 	'return folder name
 	unzip = extractTo
 end function
+
+Function ChooseFile (ByVal initialDir, filter)
+
+	dim shel, fso, tempdir, tempfile, powershellfile, powershellOutputFile,psScript, textFile
+	Set shell = CreateObject("WScript.Shell")
+
+	Set fso = CreateObject("Scripting.FileSystemObject")
+
+	tempDir = shell.ExpandEnvironmentStrings("%TEMP%")
+
+	tempFile = tempDir & "\" & fso.GetTempName
+
+	' temporary powershell script file to be invoked
+	powershellFile = tempFile & ".ps1"
+
+	' temporary file to store standard output from command
+	powershellOutputFile = tempFile & ".txt"
+
+	'if the filter is empty we use all files
+	if len(filter) = 0 then
+	filter = "All Files (*.*)|*.*"
+	end if
+
+	'input script
+	psScript = psScript & "[System.Reflection.Assembly]::LoadWithPartialName(""System.windows.forms"") | Out-Null" & vbCRLF
+	psScript = psScript & "$dlg = New-Object System.Windows.Forms.OpenFileDialog" & vbCRLF
+	psScript = psScript & "$dlg.initialDirectory = """ &initialDir & """" & vbCRLF
+	'psScript = psScript & "$dlg.filter = ""ZIP files|*.zip|Text Documents|*.txt|Shell Scripts|*.*sh|All Files|*.*""" & vbCRLF
+	psScript = psScript & "$dlg.filter = """ & filter & """" & vbCRLF
+	' filter index 4 would show all files by default
+	' filter index 1 would should zip files by default
+	psScript = psScript & "$dlg.FilterIndex = 1" & vbCRLF
+	psScript = psScript & "$dlg.Title = ""Select a file""" & vbCRLF
+	psScript = psScript & "$dlg.ShowHelp = $True" & vbCRLF
+	psScript = psScript & "$dlg.ShowDialog() | Out-Null" & vbCRLF
+	psScript = psScript & "Set-Content """ &powershellOutputFile & """ $dlg.FileName" & vbCRLF
+	'MsgBox psScript
+
+	Set textFile = fso.CreateTextFile(powershellFile, True)
+	textFile.WriteLine(psScript)
+	textFile.Close
+	Set textFile = Nothing
+
+	' objShell.Run (strCommand, [intWindowStyle], [bWaitOnReturn]) 
+	' 0 Hide the window and activate another window.
+	' bWaitOnReturn set to TRUE - indicating script should wait for the program 
+	' to finish executing before continuing to the next statement
+
+	Dim appCmd
+	appCmd = "powershell -ExecutionPolicy unrestricted &'" & powershellFile & "'"
+	'MsgBox appCmd
+	shell.Run appCmd, 0, TRUE
+
+	' open file for reading, do not create if missing, using system default format
+	Set textFile = fso.OpenTextFile(powershellOutputFile, 1, 0, -2)
+	ChooseFile = textFile.ReadLine
+	textFile.Close
+	Set textFile = Nothing
+	fso.DeleteFile(powershellFile)
+	fso.DeleteFile(powershellOutputFile)
+
+End Function

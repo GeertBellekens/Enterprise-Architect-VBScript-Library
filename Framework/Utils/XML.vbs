@@ -80,29 +80,31 @@ public function decodeBase64zippedXML(xmlString,nodeName)
 		If xDoc.LoadXML(xmlString) Then    
 			dim contentsNode 
 			set contentsNode = xDoc.SelectSingleNode("//" & nodeName)
-			dim contentsDecoded
-			contentsDecoded = contentsNode.nodeTypedValue
-			'save as temp zip file
-			dim tempZipFile
-			set tempZipFile = new BinaryFile
-			tempZipFile.FullPath = replace(getTempFilename, ".tmp",".zip")
-			tempZipFile.Contents = contentsDecoded
-			tempZipFile.Save
-			'unzip 
-			dim tempFolderPath
-			tempfolderPath = unzip(tempZipFile.FullPath)
-			'get the text file 
-			dim tempFolder
-			set tempFolder = new FileSystemFolder
-			tempFolder.FullPath = tempfolderPath
-			dim contentsFile
-			For each contentsFile in tempfolder.TextFiles
-				decodeBase64zippedXML = contentsFile.Contents
-				'there should be only one file
-				exit for
-			next
-			'delete the temp folder and temp file name
-			tempfolder.Delete
-			tempZipFile.Delete
+			if not contentsNode is nothing then
+				dim contentsDecoded
+				contentsDecoded = contentsNode.nodeTypedValue
+				'save as temp zip file
+				dim tempZipFile
+				set tempZipFile = new BinaryFile
+				tempZipFile.FullPath = replace(getTempFilename, ".tmp",".zip")
+				tempZipFile.Contents = contentsDecoded
+				tempZipFile.Save
+				'unzip 
+				dim tempFolderPath
+				tempfolderPath = unzip(tempZipFile.FullPath)
+				'get the text file 
+				dim tempFolder
+				set tempFolder = new FileSystemFolder
+				tempFolder.FullPath = tempfolderPath
+				dim contentsFile
+				For each contentsFile in tempfolder.TextFiles
+					decodeBase64zippedXML = contentsFile.Contents
+					'there should be only one file
+					exit for
+				next
+				'delete the temp folder and temp file name
+				tempfolder.Delete
+				tempZipFile.Delete
+			end if
 		end if
 end function

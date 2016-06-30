@@ -34,6 +34,40 @@ function addMasterDocument (packageGUID, documentName)
 	set addMasterDocument = masterDocumentPackage
 end function
 
+'improved version of the addMasterDocumentWithDetails usign the tagged values
+function addMasterDocumentWithDetailTags (packageGUID,masterDocumentName,documentAlias,documentName,documentTitle,documentVersion)
+	dim ownerPackage as EA.Package
+	set ownerPackage = Repository.GetPackageByGuid(packageGUID)
+	dim masterDocumentPackage as EA.Package
+	set masterDocumentPackage = ownerPackage.Packages.AddNew(masterDocumentName, "package")
+	masterDocumentPackage.Update
+	masterDocumentPackage.Element.Stereotype = "master document"
+	masterDocumentPackage.Update
+	'link to the master template
+	dim templateTag as EA.TaggedValue
+	for each templateTag in masterDocumentPackage.Element.TaggedValues
+		select case templateTag.Name 
+			case "RTFTemplate" 
+				templateTag.Value = "(model document: master template)"
+				templateTag.Notes = "Default: (model document: master template)"
+			case "ReportAlias"
+				templateTag.Value = documentAlias
+			case "ReportAuthor"
+				templateTag.Value = masterDocumentPackage.Element.Author
+			case "ReportName"
+				templateTag.Value = documentName
+			case "ReportTitle"
+				templateTag.Value = documentName
+			case "ReportVersion"
+				templateTag.Value = documentVersion
+		end select
+		'save changed
+		templateTag.Update
+	next
+	'return
+	set addMasterDocumentWithDetailTags = masterDocumentPackage
+end function
+
 function addMasterDocumentWithDetails (packageGUID, documentName,documentVersion,documentAlias)
 	dim ownerPackage as EA.Package
 	set ownerPackage = Repository.GetPackageByGuid(packageGUID)

@@ -93,6 +93,30 @@ Class TextFile
 			fso.DeleteFile me.FullPath
 		end if
 	end sub
-
+	'let the user select a file from the file system
+	public function UserSelect(initialDir,filter)
+		dim selectedFileName
+		selectedFileName = ChooseFile(initialDir,filter)
+		'check if anything was selected
+		if len(selectedFileName) > 0 then
+			me.FullPath = selectedFileName
+			UserSelect = true
+			me.LoadContents
+		else
+			UserSelect = false
+		end if
+	end function
+	'load the contents of the file from the file system
+	public function loadContents()
+		Dim fso
+		dim fsoFile
+		dim ts
+		Set fso = CreateObject("Scripting.FileSystemObject")
+		if fso.FileExists(me.FullPath) then
+			set fsoFile = fso.GetFile(me.FullPath)
+			set ts = fsoFile.OpenAsTextStream(ForReading, TristateUseDefault)
+			me.Contents = ts.ReadAll
+		end if
+	end function
 	
 end class

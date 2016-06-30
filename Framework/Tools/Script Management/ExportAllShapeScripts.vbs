@@ -7,7 +7,7 @@
 ' Script Name: ExportAllShapeScripts
 ' Author: Geert Bellekens
 ' Purpose: Export all shapescripts to files on the file system
-' Date: 2016-07-18
+' Date: 2016-06-18
 '
 sub main
 	'get all attributes with name _image that have shapescript in the default field and a parent with stereotype «stereotype»
