@@ -3,6 +3,14 @@
 'Author: Geert Bellekens
 'Date: 2016-01-08
 
+'sub test
+'	dim selectedElement, fqn
+'	set selectedElement = Repository.GetContextObject()
+'	fqn = getFullyQualifiedName(selectedElement)
+'	Session.Output "FQN: " & fqn
+'end sub
+'test
+
 'TODO: use caching to speed up the process
 Dim elementCache 	
 dim packageCache
@@ -148,10 +156,143 @@ function getConnectorsFromQuery(sqlQuery)
 	set getConnectorsFromQuery = connectors
 end function
 
-'sub test
-'	dim selectedElement, fqn
-'	set selectedElement = Repository.GetContextObject()
-'	fqn = getFullyQualifiedName(selectedElement)
-'	Session.Output "FQN: " & fqn
-'end sub
-'test
+
+
+function selectObjectFromQualifiedName(rootPackage,rootElement, qualifiedName, seperator)
+	dim foundObject
+	set foundObject = nothing
+	'devide qualified name into parts
+	dim parts
+	parts = Split(qualifiedName,seperator)
+	if ubound(parts) >= 0 then
+		dim rootPart
+		dim rootOK, rootName
+		rootOK = false
+		dim hasElement
+		hasElement = false
+		rootPart = parts(0)
+		'check if we have a root element
+		if not rootElement is nothing then
+			rootName = rootElement.Name
+			hasElement = true
+		else
+			rootName = rootPackage.Name
+		end if
+		'check the rootname
+		if lcase(rootName) = lcase(rootPart) then
+			rootOK = true
+		end if
+		if rootOK then
+			if ubound(parts) > 0 then
+				dim childPart
+				childPart = parts(1)
+				'check attributes if the childpart is the last part
+				'debug
+				'Session.Output "Searching root = " & rootName & " child = " & childPart & " qualifiedName = " & qualifiedName
+				if hasElement AND ubound(parts) = 1 then
+					set foundObject = getAttributeByName(rootElement, childPart)
+					'if no attribute found we try to find an operation
+					if foundObject is nothing then
+						set foundObject = getOperationByName(rootElement, childPart)
+					end if
+				end if
+				
+				'nothing found we go deeper
+				if foundObject is nothing then
+					dim subElement as EA.Element
+					dim subPackage as EA.Package
+					set subPackage  = nothing
+					if hasElement then
+						set subElement = getSubElementByName(rootElement,childPart)
+					else
+						set subElement = getSubElementByName(rootPackage,childPart)
+						if subElement is nothing then
+							set subPackage = getSubPackageByName(rootPackage, childPart)
+						end if
+					end if
+					'go deeper
+					dim substring
+					substring = mid(qualifiedName, len(rootPart) + len(seperator) +1)
+					if not subElement is nothing then
+						set foundObject = selectObjectFromQualifiedName(nothing,subElement, substring, seperator)
+					elseif not subPackage is nothing then
+						set foundObject = selectObjectFromQualifiedName(subPackage,nothing, substring, seperator)
+					end if
+				end if
+			else
+				'only one part is given, return root
+				if hasElement then
+					set foundObject = rootElement
+				else
+					set foundObject = rootPackage
+				end if
+			end if
+		end if
+	end if
+	set selectObjectFromQualifiedName = foundObject
+end function
+
+function getAttributeByName(element, attributeName)
+	set getAttributeByName = nothing
+	if not element is nothing then
+		dim attribute as EA.Attribute
+		for each attribute in element.Attributes
+			if lcase(attribute.Name) = lcase(attributeName) then
+				set getAttributeByName = attribute
+				exit for
+			end if
+		next
+	end if
+end function
+
+function getOperationByName(element, operationName)
+	set getOperationByName = nothing
+	if not element is nothing then
+		dim operation as EA.Method
+		for each operation in element.Methods
+			if lcase(operation.Name) = lcase(operationName) then
+				set getOperationByName = operation
+				exit for
+			end if
+		next
+	end if
+end function
+
+function getSubElementByName(owner, elementName)
+	set getSubElementByName = nothing
+	if not owner is nothing then
+		dim subElement as EA.Element
+		for each subElement in owner.Elements
+			if lcase(subElement.Name) = lcase(elementName) then
+				set getSubElementByName = subElement
+				exit for
+			end if
+		next
+	end if
+end function
+
+function getSubPackageByName(package, packageName)
+	set getSubPackageByName = nothing
+	if not package is nothing then
+		dim subPackage as EA.Package
+		for each subPackage in package.Packages
+			if lcase(subPackage.Name) = lcase(packageName) then
+				set getSubPackageByName = subPackage
+				exit for
+			end if
+		next
+	end if
+end function
+
+'returns an ArrayList with the elements accordin tot he ObjectID's in the given query
+function getElementsFromQuery(sqlQuery)
+	dim elements 
+	set elements = Repository.GetElementSet(sqlQuery,2)
+	dim result
+	set result = CreateObject("System.Collections.ArrayList")
+	dim element
+	for each element in elements
+		result.Add Element
+	next
+	set getElementsFromQuery = result
+end function
