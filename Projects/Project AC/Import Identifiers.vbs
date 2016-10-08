@@ -35,21 +35,24 @@ sub main
 			if Ubound(parts) = 3 then
 				dim IdentifierFQN, idName, isAttribute
 				IdentifierFQN = parts(0)
-				idName = parts(1)
-				if len(parts(2)) > 0 then
-					isAttribute = true
-				else
-					isAttribute = false
-				end if
-				dim classFQN
-				'remove the last part of of the IdentifierFQN in order to get the class name
-				classFQN = mid(IdentifierFQN , 1 , instrRev(IdentifierFQN,"::") - 1)
-				if isAttribute then
-					'set identifier on attribute
-					setIdentifierAttribute logicalPackage,classFQN,idName
-				else
-					'set identifier on association end
-					setIdenfifierAssociation logicalPackage,classFQN,idName
+				'check if the IdentifierFQN is not empty and is a valid FQN
+				if len(IdentifierFQN) > 0 AND instrRev(IdentifierFQN,"::") > 1 then
+					idName = parts(1)
+					if len(parts(2)) > 0 then
+						isAttribute = true
+					else
+						isAttribute = false
+					end if
+					dim classFQN
+					'remove the last part of of the IdentifierFQN in order to get the class name
+					classFQN = mid(IdentifierFQN , 1 , instrRev(IdentifierFQN,"::") - 1)
+					if isAttribute then
+						'set identifier on attribute
+						setIdentifierAttribute logicalPackage,classFQN,idName
+					else
+						'set identifier on association end
+						setIdenfifierAssociation logicalPackage,classFQN,idName
+					end if
 				end if
 			end if
 		next

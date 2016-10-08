@@ -147,6 +147,9 @@ function traceAttributes(originalAttribute,copyAttribute)
 	traceTag.Update
 	'set the alias on the original element with the name of the copyElement
 	originalAttribute.Alias = copyAttribute.Name
+	if copyAttribute.AllowDuplicates then
+		originalAttribute.LowerBound = "0"
+	end if
 	originalAttribute.Update
 end function
 
