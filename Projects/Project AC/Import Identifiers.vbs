@@ -10,6 +10,10 @@
 ' Purpose: Import the identifiers exported from MEGA's Candidate key members
 ' Date: 2016-07-14
 '
+
+const outPutName = "Import Identifiers"
+
+
 sub main
 	dim mappingFile
 	set mappingFile = New TextFile
@@ -20,6 +24,12 @@ sub main
 	'first select the mapping file
 	if mappingFile.UserSelect("","CSV Files (*.csv)|*.csv") _
 	   AND not logicalPackage is nothing then
+	   'create output tab
+		Repository.CreateOutputTab outPutName
+		Repository.ClearOutput outPutName
+		Repository.EnsureOutputVisible outPutName
+		'set timestamp
+		Repository.WriteOutput outPutName, "Starting import identifiers " & now(), 0
 		'split into lines
 		dim lines
 		lines = Split(mappingFile.Contents, vbCrLf)
@@ -35,6 +45,8 @@ sub main
 			if Ubound(parts) = 3 then
 				dim IdentifierFQN, idName, isAttribute
 				IdentifierFQN = parts(0)
+				'log progress
+				Repository.WriteOutput outPutName, "Processing " & IdentifierFQN,0
 				'check if the IdentifierFQN is not empty and is a valid FQN
 				if len(IdentifierFQN) > 0 AND instrRev(IdentifierFQN,"::") > 1 then
 					idName = parts(1)
@@ -56,6 +68,8 @@ sub main
 				end if
 			end if
 		next
+		'set timestamp
+		Repository.WriteOutput outPutName, "End import identifiers " & now(), 0
 	end if
 end sub
 
@@ -64,6 +78,8 @@ function setIdentifierAttribute(logicalPackage,classFQN,idName)
 	set attribute = selectObjectFromQualifiedName(logicalPackage,nothing, classFQN & "::" & idName , "::") 
 	if not attribute is nothing then
 		'set isID property on attribute
+		'log progress
+		Repository.WriteOutput outPutName, "setting {id} on attribute " & classFQN & "." & atribute.Name,0
 		attribute.IsID = true
 		attribute.Update
 	end if
@@ -85,7 +101,10 @@ function setIdenfifierAssociation(logicalPackage,classFQN,idName)
 					set associationEnd = association.ClientEnd
 				end if
 				if not associationEnd is nothing then
+					
 					if associationEnd.Role = idName then
+						'log progress
+						Repository.WriteOutput outPutName, "setting {id} on association " & classFQN & "." & idName,0
 						'found the correct one
 						associationEnd.Constraint = "id"
 						associationEnd.Update

@@ -9,7 +9,9 @@
 ' Author: Geert Bellekens
 ' Purpose: Import the database mappings from a csv file exported from MEGA
 ' Date: 2016-07-07
-'
+const outPutName = "Import database mappings"
+
+
 sub main
 	dim mappingFile
 	set mappingFile = New TextFile
@@ -25,12 +27,20 @@ sub main
 	if mappingFile.UserSelect("C:\Temp\","CSV Files (*.csv)|*.csv") _
 		AND not logicalPackage is nothing _
 		AND not physicalPackage is nothing then
+		'create output tab
+		Repository.CreateOutputTab outPutName
+		Repository.ClearOutput outPutName
+		Repository.EnsureOutputVisible outPutName
+		'set timestamp
+		Repository.WriteOutput outPutName, "Starting import database mappings " & now(), 0
 		'split into lines
 		dim lines
 		lines = Split(mappingFile.Contents, vbCrLf)
 		dim line
 		dim associationDictionary
 		set associationDictionary = CreateObject("Scripting.Dictionary")
+		dim packagesTraced
+		packagesTraced = false
 		for each line in lines
 			'replace any "." with "::" 
 			line = Replace(line,".","::")
@@ -44,12 +54,18 @@ sub main
 				physicalPath = parts(1)
 				dim logicalObject
 				dim physicalObject
+				
 				set logicalObject = selectObjectFromQualifiedName(logicalPackage,nothing, logicalPath, "::")
 				set physicalObject = selectObjectFromQualifiedName(physicalPackage,nothing, physicalPath, "::")
 				if not physicalObject is nothing then
 					if not logicalObject is nothing then
-						Session.Output "logical: type = " & TypeName(logicalObject) & " name= " & logicalObject.Name & " => Physical: " & physicalObject.Name
+						Repository.WriteOutput outPutName, "logical: type = " & TypeName(logicalObject) & " name= " & logicalObject.Name & " => Physical: " & physicalObject.Name , 0
 						if logicalObject.ObjectType = otElement AND physicalObject.ObjectType = otElement then
+							'if the packages are not traced yet then we do that now
+							if not packagesTraced then
+								tracePackages logicalObject,physicalPackage
+								packagesTraced = true
+							end if
 							'make a trace between the elements
 							traceElements logicalObject, physicalObject
 						elseif physicalObject.ObjectType = otAttribute and logicalObject.ObjectType = otAttribute then
@@ -67,9 +83,37 @@ sub main
 				end if
 			end if
 		next
+		Repository.WriteOutput outPutName, "Mapping associations" , 0
 		mapAssociations logicalPackage, associationDictionary
+		'set timestamp
+		Repository.WriteOutput outPutName, "Finished import database mappings " & now(), 0
 	end if
 end sub
+
+function tracePackages (logicalObject,physicalPackage)
+	dim pkconPackage as EA.Package
+	set pkconPackage = Repository.GetPackageByID(logicalObject.PackageID)
+	if not pkconPackage is nothing then
+		Repository.WriteOutput outPutName, "Making trace between package " & pkconPackage.Name & " and package " & physicalPackage.Name,0
+			'check if the connector exists already
+		for each connector in physicalPackage.Connectors
+			if connector.SupplierID = pkconPackage.Element.ElementID _
+			AND connector.Type = "Abstraction" _
+			AND connector.Stereotype = "trace" then
+				traceExists = true
+				exit for
+			end if
+		next
+		'if it doesn't exist yet we create a new one
+		if traceExists = false then
+			set trace = physicalPackage.Connectors.AddNew("","Abstraction")
+			trace.SupplierID = pkconPackage.Element.ElementID
+			trace.Stereotype = "trace"
+			trace.Update
+		end if
+	end if
+end function
+
 
 function mapAssociations (logicalPackage, associationDictionary)
 	dim logicalPath,bracketPosition, associationName
