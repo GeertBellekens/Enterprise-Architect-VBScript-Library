@@ -97,7 +97,7 @@ function traceElements (originalElement,copyElement)
 	dim keepDeleting
 	keepDeleting = true
 	do
-		 keepDeleting = deleteOriginalTraces(originalElement,copyElement)
+		 keepDeleting = deleteOriginalTraces(copyElement)
 	loop while keepDeleting
 	
 	dim traceExists
@@ -125,31 +125,21 @@ function traceElements (originalElement,copyElement)
 	traceAssociations originalElement,copyElement
 end function
 
-function deleteOriginalTraces(originalElement,copyElement)
+function deleteOriginalTraces(copyElement)
 	dim i
 	dim copyConnector as EA.Connector
 	deleteOriginalTraces = false
 	'make sure the connectors are refreshed
 	copyElement.Connectors.Refresh
-	originalElement.Connectors.Refresh
 	'remove all the traces to domain model classes
 	for each copyConnector in copyElement.Connectors
 		if copyConnector.Type = "Abstraction" AND copyConnector.Stereotype = "trace" then
-			'check if the original element has the same trace
-			dim originalConnector as EA.Connector
-			for each originalConnector in originalElement.Connectors
-				if copyConnector.Type = "Abstraction" AND _
-				copyConnector.Stereotype = "trace" AND _
-				copyConnector.SupplierID = originalConnector.SupplierID then
-					deleteConnector copyElement, copyConnector
-					'refresh again and exit function
-					copyElement.Connectors.Refresh
-					originalElement.Connectors.Refresh
-					'found on, try again
-					deleteOriginalTraces = true
-					exit function
-				end if
-			next
+			deleteConnector copyElement, copyConnector
+			'refresh again and exit function
+			copyElement.Connectors.Refresh
+			'found on, try again
+			deleteOriginalTraces = true
+			exit function
 		end if
 	next
 end function
