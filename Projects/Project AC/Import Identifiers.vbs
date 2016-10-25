@@ -79,7 +79,7 @@ function setIdentifierAttribute(logicalPackage,classFQN,idName)
 	if not attribute is nothing then
 		'set isID property on attribute
 		'log progress
-		Repository.WriteOutput outPutName, "setting {id} on attribute " & classFQN & "." & atribute.Name,0
+		Repository.WriteOutput outPutName, "setting {id} on attribute " & classFQN & "." & attribute.Name,0
 		attribute.IsID = true
 		attribute.Update
 	end if
