@@ -38,6 +38,22 @@ sub main
                            " or " & _
                            " isnull(convert( varchar(500),c.StyleEx),'') <> 'FKINFO=SRC=' + c.SourceRole + ':DST=' + op.Name + ':;')"
        Repository.Execute sqlUpdate
+	   'set the "with default" values
+	   sqlUpdate = "begin tran update a set a.[Default] = 'DEFAULT' " & _
+					" from t_attribute a  " & _
+					" inner join t_object o on o.Object_ID = a.Object_ID " & _
+					" inner join t_package p on p.Package_ID = o.Package_ID " & _
+					" where a.Stereotype = 'column' " & _
+					" and a.AllowDuplicates = 1 " & _
+					" and (a.[Default] is null or convert(varchar(500),a.[Default]) like 'CURRENT%') " & _
+					" and isnull(convert(varchar(500),a.[Default]),'') <> 'DEFAULT' " & _
+					" and not exists " & _ 
+					" (select opp.ea_guid from t_operation op " & _ 
+					" inner join t_operationparams opp on op.OperationID = opp.OperationID " & _
+					" where op.Object_ID = o.object_id " & _
+					" and op.Stereotype in ('PK','FK') " & _
+					" and opp.Name = a.Name) "
+	   Repository.Execute sqlUpdate
 end sub
  
 main
