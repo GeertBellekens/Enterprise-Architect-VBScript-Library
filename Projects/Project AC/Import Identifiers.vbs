@@ -45,8 +45,6 @@ sub main
 			if Ubound(parts) = 3 then
 				dim IdentifierFQN, idName, isAttribute
 				IdentifierFQN = parts(0)
-				'log progress
-				Repository.WriteOutput outPutName, "Processing " & IdentifierFQN,0
 				'check if the IdentifierFQN is not empty and is a valid FQN
 				if len(IdentifierFQN) > 0 AND instrRev(IdentifierFQN,"::") > 1 then
 					idName = parts(1)
@@ -82,7 +80,11 @@ function setIdentifierAttribute(logicalPackage,classFQN,idName)
 		Repository.WriteOutput outPutName, "setting {id} on attribute " & classFQN & "." & attribute.Name,0
 		attribute.IsID = true
 		attribute.Update
+	else
+		'log the fact that we didn't find it
+		Repository.WriteOutput outPutName, "ERROR: could not find attribute for " & classFQN & "." & idName,0
 	end if
+	
 end function
 
 function setIdenfifierAssociation(logicalPackage,classFQN,idName)
@@ -91,6 +93,9 @@ function setIdenfifierAssociation(logicalPackage,classFQN,idName)
 	if not classElement is nothing then
 		'find the associationEnd
 		dim association as EA.Connector
+		'register the fact that we found it or not
+		dim foundIt
+		foundIt = false
 		for each association in classElement.Connectors
 			if association.Type = "Association" or association.Type = "Aggregation" then
 				dim associationEnd as EA.ConnectorEnd
@@ -102,17 +107,27 @@ function setIdenfifierAssociation(logicalPackage,classFQN,idName)
 				end if
 				if not associationEnd is nothing then
 					
-					if associationEnd.Role = idName then
-						'log progress
-						Repository.WriteOutput outPutName, "setting {id} on association " & classFQN & "." & idName,0
-						'found the correct one
-						associationEnd.Constraint = "id"
-						associationEnd.Update
-						exit for
+					if associationEnd.Role = idName _
+						AND left(associationEnd.Cardinality,1) = "1" then 'only for obligatory associations
+						if not foundIt then
+							'log progress
+							Repository.WriteOutput outPutName, "setting {id} on association " & classFQN & "." & idName,0
+							'found the correct one
+							associationEnd.Constraint = "id"
+							associationEnd.Update
+							'register that we found one
+							foundIt = true
+						else
+							Repository.WriteOutput outPutName, "ERROR: found duplicate rolename for " & classFQN & "." & idName,0
+						end if
 					end if
 				end if
 			end if
 		next
+		if not foundIt then
+			'log the fact that we didn't find it
+			Repository.WriteOutput outPutName, "ERROR: could not find association role for " & classFQN & "." & idName,0
+		end if
 	end if
 end function
 
