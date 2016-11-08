@@ -4,7 +4,6 @@
 !INC Local Scripts.EAConstants-VBScript
 !INC Wrappers.Include
 
-'TODO: finish!
 '
 ' Script Name: Create default views
 ' Author: Geert Bellekens
@@ -23,6 +22,12 @@ sub main
 	set databasePackage = selectPackage()
 	if not databasePackage is nothing then
 		if databasePackage.StereotypeEx = "Database" or databasePackage.StereotypeEx = "DataModel" then
+			'create output tab
+			Repository.CreateOutputTab outPutName
+			Repository.ClearOutput outPutName
+			Repository.EnsureOutputVisible outPutName
+			'timestamp
+			Repository.WriteOutput outPutName, "Starting create default views " & now(), 0
 			'get the viewsPackage
 			dim viewsPackage
 			set viewsPackage = getViewsPackage(databasePackage)
@@ -38,15 +43,17 @@ sub main
 			dim table
 			'loop the tables and make a view for each table
 			for each table in tables
-				'TODO:
 				dim viewName
 				viewname = left(table.Name,2) & "V" & mid(table.Name,4)
 				'check if view doesn't exist yet
 				if not elementExistsInPackage (viewsPackage, viewname) then
 					'create new view
+					Repository.WriteOutput outPutName, "Adding view  " & viewname, 0
 					createDefaultView viewsPackage, viewName, table
 				end if
 			next
+			'timestamp end
+			Repository.WriteOutput outPutName, "Finished create default views " & now(), 0
 		end if
 	end if 
 end sub
@@ -110,6 +117,3 @@ function getViewsPackage(databasePackage)
 end function
 
 main
-
-	'Steretotype: EAUML::view
-	'Tagged value: viewdef	<memo>	SELECT * FROM ACERTA.GBTOAA01 blablabla

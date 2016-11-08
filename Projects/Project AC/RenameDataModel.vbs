@@ -20,7 +20,7 @@ sub main
 			'ask user for name
 			dim modelName
 			modelName = InputBox( "Please enter new name for the data model", "Data Model Name" )
-			if len(modelName > 0) then
+			if len(modelName) > 0 then
 				'rename data model package
 				dataModel.Name = modelName
 				dataModel.Update
