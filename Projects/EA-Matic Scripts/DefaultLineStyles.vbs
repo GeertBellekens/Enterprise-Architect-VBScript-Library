@@ -156,7 +156,7 @@ function setConnectorStyle(diagramLink, connector)
 	dim styleparts
 	dim styleString
 	' Throw away the last ; so that an empty cell at the end is not created when its Split
-	if len diagramLink.Style > 0 then
+	if len(diagramLink.Style) > 0 then
 		styleString = Left(diagramLink.Style, Len(diagramLink.Style)-1)
 	else
 		styleString = ""
