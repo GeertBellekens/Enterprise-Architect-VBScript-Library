@@ -280,7 +280,7 @@ function makeIDString(elements)
 		idString = idString & element.ElementID
 	next 
 	'if there are no elements then we return "0"
-	if elements.Count = 0 then
+	if idString = "" then
 		idString = "0"
 	end if
 	'return idString
@@ -439,6 +439,8 @@ Public Function convertQueryResultToArray(xmlQueryResult)
     Dim j 
     j = 0
     Dim result()
+	'initialize emtpy
+	ReDim result(0,0)
     Dim xDoc 
     Set xDoc = CreateObject( "MSXML2.DOMDocument" )
     'load the resultset in the xml document
@@ -540,4 +542,10 @@ function getTaggedValueValue(owner, taggedValueName)
 			exit for
 		end if
 	next
+end function
+
+function putOnClipBoard(stringValue)
+	dim WshShell
+	Set WshShell = CreateObject("WScript.Shell")
+	WshShell.Run "cmd.exe /c echo " & stringValue & " | clip", 0, TRUE
 end function
