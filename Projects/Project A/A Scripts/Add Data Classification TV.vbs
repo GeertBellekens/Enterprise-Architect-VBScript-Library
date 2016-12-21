@@ -97,5 +97,3 @@ function AddTaggedValuetoOwnedAttributes(element, tvName, tvValue)
 end function
 
 main
-
-

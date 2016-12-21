@@ -104,10 +104,10 @@ function getScriptFromFile(file, allGroups, allScripts,overwriteExisting)
 		else
 			if overwriteExisting = "undecided" then
 				overwriteExisting = Msgbox("Do you want to update existing scripts?", vbYesNoCancel+vbQuestion, "Update existing scripts")
-				if overwriteExisting = vbYes then
-					script.Code = newScript.Code
-					script.Update
-				end if
+			end if
+			if overwriteExisting = vbYes then
+				script.Code = newScript.Code
+				script.Update
 			end if
 		end if
 

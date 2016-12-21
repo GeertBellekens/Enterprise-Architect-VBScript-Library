@@ -532,10 +532,10 @@ function getAplicationFunctionsForUseCases(usecases)
 	useCaseIDString = makeIDString(usecases)
 	dim sqlSelect 
 	sqlSelect = 	"select distinct af.Object_ID from (( t_object uc  "&_
-					"inner join [t_connector] ucaf on uc.[Object_ID] = ucaf.[End_Object_ID]) "&_
+					"inner join [t_connector] ucaf on uc.Object_ID = ucaf.[End_Object_ID]) "&_
 					"inner join t_object af on af.Object_ID = ucaf.[Start_Object_ID]) "&_
 					"where  "&_
-					"uc.[Object_ID] in (" & usecaseIDstring & ") "&_
+					"uc.Object_ID in (" & usecaseIDstring & ") "&_
 					"and af.[Object_Type] = 'Activity' and af.[Stereotype] = 'Archimate_ApplicationFunction'"
 	
 	set getAplicationFunctionsForUseCases = getElementsFromQuery(sqlSelect)
@@ -547,9 +547,9 @@ function getDataStoresForApplicationFunctions(apfs)
 	dim sqlSelect 
 	sqlSelect = 	"select distinct ds.Object_ID from (( t_object af   "&_
 					"inner join [t_connector] afds on af.Object_ID = afds.[Start_Object_ID]) "&_
-					"inner join t_object ds on ds.[Object_ID] = afds.[End_Object_ID] )  "&_
+					"inner join t_object ds on ds.Object_ID = afds.[End_Object_ID] )  "&_
 					"where  "&_
-					"af.[Object_ID] in (" & apfIDstring & ") "&_
+					"af.Object_ID in (" & apfIDstring & ") "&_
 					"and ds.[Object_Type] = 'Class' and ds.[Stereotype] = 'Archimate_DataObject'"
 	
 	set getDataStoresForApplicationFunctions = getElementsFromQuery(sqlSelect)
@@ -560,12 +560,12 @@ function getBusinessProcessActivitiesForUseCases(usecases)
 	useCaseIDString = makeIDString(usecases)
 	dim sqlSelect 
 	sqlSelect = "select distinct bpa.Object_ID from (((( t_object uc "&_ 
-					" inner join t_connector ucrq on ucrq.[Start_Object_ID] = uc.[Object_ID]) "&_ 
-					" inner join t_object rq on ucrq.[End_Object_ID] = rq.[Object_ID] ) "&_ 
-					" inner join [t_connector] rqbpa on rq.[Object_ID] = rqbpa.[Start_Object_ID])  "&_ 
+					" inner join t_connector ucrq on ucrq.[Start_Object_ID] = uc.Object_ID) "&_ 
+					" inner join t_object rq on ucrq.[End_Object_ID] = rq.Object_ID ) "&_ 
+					" inner join [t_connector] rqbpa on rq.Object_ID = rqbpa.[Start_Object_ID])  "&_ 
 					" inner join t_object bpa on bpa.Object_ID = rqbpa.[End_Object_ID])  "&_ 
 					"where  "&_
-					"uc.[Object_ID] in (" & usecaseIDstring & ") "&_
+					"uc.Object_ID in (" & usecaseIDstring & ") "&_
 					"and bpa.[Object_Type] = 'Activity' and bpa.[Stereotype] = 'Activity' "
 	
 	set getBusinessProcessActivitiesForUseCases = getElementsFromQuery(sqlSelect)
@@ -577,10 +577,10 @@ function getBusinessProcessesForActivities(activities)
 	dim sqlSelect 
 	sqlSelect = "select distinct bp.Object_ID from ((((t_object bpa  "&_
 				"inner join [t_objectproperties] bpatv on bpatv.VALUE like bpa.[ea_guid]) "&_
-				"inner join t_object bpai on bpai.[Object_ID] = bpatv.[Object_ID]) "&_
-				"inner join t_diagramObjects bpaido on bpaido.[Object_ID] = bpai.Object_ID) "&_
+				"inner join t_object bpai on bpai.Object_ID = bpatv.Object_ID) "&_
+				"inner join t_diagramObjects bpaido on bpaido.Object_ID = bpai.Object_ID) "&_
 				"inner join t_object bp on bp.pdata1 like bpaido.Diagram_ID) "&_
-				"where bpa.[Object_ID] in (" & bpaIDString & ") "&_
+				"where bpa.Object_ID in (" & bpaIDString & ") "&_
 				"and bpa.[Object_Type] = 'Activity' and bpa.[Stereotype] = 'Activity'  "&_
 				"and bpatv.Property = 'calledActivityRef' "&_
 				"and bp.[Object_Type] = 'Activity' and bp.[Stereotype] = 'Archimate_BusinessProcess' and bp.name like '"& WC &"BPMD"& WC &"' "
@@ -594,7 +594,7 @@ function getBPOsForBPMDs(businessprocesses)
 	sqlSelect = "select distinct bpo.Object_ID from ((t_object bp  "&_
 				"inner join t_diagramobjects bpdo on bp.object_id = bpdo.object_id) "&_
 				"inner join t_object bpo on bpo.pdata1 like bpdo.Diagram_ID) "&_
-				"where bp.[Object_ID] in (" & bpmdIDstring & ") "&_
+				"where bp.Object_ID in (" & bpmdIDstring & ") "&_
 				"and bpo.[Object_Type] = 'Activity' and bpo.[Stereotype] = 'Archimate_BusinessProcess' and bpo.name like '"& WC &"BPO"& WC &"' "
 	set getBPOsForBPMDs = getElementsFromQuery(sqlSelect)
 end function

@@ -196,7 +196,6 @@ Class Script
 		dim sqlUpdate
 		sqlUpdate = "update t_script set script = '" & escapeSQLString(me.Code) & "', ScriptAuthor = '" & me.Group.GUID & _
 					"', Notes = '<Script Name=""" & me.Name & """ Type=""Internal"" Language=""VBScript""/>' where ScriptName = '" & me.GUID & "'"
-		Session.Output sqlUpdate
 		Repository.Execute sqlUpdate
 	end sub
 	
