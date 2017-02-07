@@ -27,24 +27,27 @@ sub main
 	'get the elements with OCL constraints
 	dim OCLElements
 	set OCLElements = getElementWithOCLConstraints()
-	'remember the strings we don't want to fix
-	dim skippedStrings
-	set skippedStrings = CreateObject("System.Collections.ArrayList")
-	'get the package ID string of the messaging model
-	dim messagingPackageIDs
-	dim messagingRoot as EA.Package
-	set messagingRoot = Repository.GetPackageByGuid(messagingModelGUID)
-	if not messagingRoot is nothing then
-		messagingPackageIDs = getPackageTreeIDString(messagingRoot)
-		'fix the OCLElements
-		dim OCLElement as EA.Element
-		for each OCLElement in OCLElements
-			fixOCLConstraints OCLElement, skippedStrings,messagingPackageIDs
-		next
-	else
-		msgbox "GUID " & messagingModelGUID & " is not a valid GUID for the messaging model root package!" _
-			,vbOKOnly+vbExclamation ,"Wrong messagingModelGUID!"
-	end if 
+	'if nothing found then we don't need to bother
+	if OCLElements.Count > 0 then
+		'remember the strings we don't want to fix
+		dim skippedStrings
+		set skippedStrings = CreateObject("System.Collections.ArrayList")
+		'get the package ID string of the messaging model
+		dim messagingPackageIDs
+		dim messagingRoot as EA.Package
+		set messagingRoot = Repository.GetPackageByGuid(messagingModelGUID)
+		if not messagingRoot is nothing then
+			messagingPackageIDs = getPackageTreeIDString(messagingRoot)
+			'fix the OCLElements
+			dim OCLElement as EA.Element
+			for each OCLElement in OCLElements
+				fixOCLConstraints OCLElement, skippedStrings,messagingPackageIDs
+			next
+		else
+			msgbox "GUID " & messagingModelGUID & " is not a valid GUID for the messaging model root package!" _
+				,vbOKOnly+vbExclamation ,"Wrong messagingModelGUID!"
+		end if 
+	end if
 	'set timestamp for end
 	Repository.WriteOutput outPutName,now() & " Finished fixing OCL constraints"  , 0
 end sub
@@ -52,15 +55,28 @@ end sub
 
 
 function getElementWithOCLConstraints()
-	dim packageIDString
-	packageIDString = getCurrentPackageTreeIDString()
-	dim sqlGetOCLElements
-	sqlGetOCLElements = "select distinct o.Object_ID from t_objectconstraint ocl " & _
-						" inner join t_object o on ocl.Object_ID = o.Object_ID " & _
-						" where ocl.ConstraintType = 'OCL' " & _
-						" and o.Stereotype = 'XSDtopLevelElement' " & _
-						" and o.Package_ID in (" & packageIDString & ")"
-	set getElementWithOCLConstraints = getElementsFromQuery(sqlGetOCLElements)
+	'initialize empty
+	set getElementWithOCLConstraints = CreateObject("System.Collections.ArrayList")
+	'ask the user to select the messages package
+	msgbox "Please select the Messages root package"
+	dim messagesPackage
+	set messagesPackage = selectPackage()
+	'ask confirmation
+	dim response
+	if not messagesPackage is nothing then
+		response = Msgbox("Fix OCL constraints on messages in package '" & messagesPackage.Name & "'?", vbYesNo+vbQuestion, "Fix OCL Constraints?")
+		if response = vbYes then
+			dim packageIDString
+			packageIDString = getCurrentPackageTreeIDString()
+			dim sqlGetOCLElements
+			sqlGetOCLElements = "select distinct o.Object_ID from t_objectconstraint ocl " & _
+								" inner join t_object o on ocl.Object_ID = o.Object_ID " & _
+								" where ocl.ConstraintType = 'OCL' " & _
+								" and o.Stereotype = 'XSDtopLevelElement' " & _
+								" and o.Package_ID in (" & packageIDString & ")"
+			set getElementWithOCLConstraints = getElementsFromQuery(sqlGetOCLElements)
+		end if
+	end if
 end function
 
 'fix the OCL constraints for this element
