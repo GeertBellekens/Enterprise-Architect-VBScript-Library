@@ -99,6 +99,7 @@ function fixOCLConstraints(OCLElement, skippedStrings, messagingPackageIDs)
 		dim matches
 		set matches = regExp.Execute(constraintText)
 		'loop the matches and replace the _Type with empty string
+		dim match
 		For each match in matches
 			dim matchText
 			matchText = match.Value

@@ -227,7 +227,7 @@ end function
 'get the package id string of the currently selected package tree
 function getPackageTreeIDString(package)
 	'initialize at "0"
-	getCurrentPackageTreeIDString = "0"
+	getPackageTreeIDString = "0"
 	dim packageTree
 	dim currentPackage as EA.Package
 	if not package is nothing then
