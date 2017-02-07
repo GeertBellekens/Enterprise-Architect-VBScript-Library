@@ -208,6 +208,36 @@ function getElementDictionaryFromQuery(sqlQuery)
 	set getElementDictionaryFromQuery = result
 end function
 
+'get the package id string of the currently selected package tree
+function getCurrentPackageTreeIDString()
+	'initialize at "0"
+	getCurrentPackageTreeIDString = "0"
+	dim packageTree
+	dim currentPackage as EA.Package
+	'get selected package
+	set currentPackage = Repository.GetTreeSelectedPackage()
+	if not currentPackage is nothing then
+		'get the whole tree of the selected package
+		set packageTree = getPackageTree(currentPackage)
+		' get the id string of the tree
+		getCurrentPackageTreeIDString = makePackageIDString(packageTree)
+	end if 
+end function
+
+'get the package id string of the currently selected package tree
+function getPackageTreeIDString(package)
+	'initialize at "0"
+	getCurrentPackageTreeIDString = "0"
+	dim packageTree
+	dim currentPackage as EA.Package
+	if not package is nothing then
+		'get the whole tree of the selected package
+		set packageTree = getPackageTree(package)
+		' get the id string of the tree
+		getPackageTreeIDString = makePackageIDString(packageTree)
+	end if 
+end function
+
 'returns an ArrayList of the given package and all its subpackages recursively
 function getPackageTree(package)
 	dim packageList
