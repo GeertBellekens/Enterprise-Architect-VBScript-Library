@@ -21,9 +21,9 @@ function escapeSQLString(inputString)
 	select case Repository.RepositoryType
 		case "POSTGRES"
 			' replace backslash "\" by double backslash "\\"
-			inputString = replace(inputString,"\","\\")
+			escapeSQLString = replace(escapeSQLString,"\","\\")
 		case "JET"
 			'replace pipe character | by '& chr(124) &'
-			inputString = replace(inputString,"|", "'& chr(124) &'")
+			escapeSQLString = replace(escapeSQLString,"|", "'& chr(124) &'")
 	end select
 end function
