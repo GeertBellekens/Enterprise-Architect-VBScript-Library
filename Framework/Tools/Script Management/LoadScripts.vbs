@@ -78,6 +78,7 @@ function getScriptFromFile(file, allGroups, allScripts,overwriteExisting)
 					'found the group
 					'add the group to the new script
 					newScript.Group = group
+					checkGroupTypeAndOverwrite group, newScript
 					foundGroup = true
 					exit for
 				end if
@@ -87,7 +88,7 @@ function getScriptFromFile(file, allGroups, allScripts,overwriteExisting)
 				set group = new ScriptGroup
 				group.Name = newScriptGroupName
 				group.GUID = GUIDGenerateGUID()
-				group.GroupType = gtNormal
+				group.GroupType = newScript.GroupType
 				'create the Group in the database
 				group.Create
 				'refresh allGroups
@@ -106,6 +107,7 @@ function getScriptFromFile(file, allGroups, allScripts,overwriteExisting)
 				overwriteExisting = Msgbox("Do you want to update existing scripts?", vbYesNoCancel+vbQuestion, "Update existing scripts")
 			end if
 			if overwriteExisting = vbYes then
+				checkGroupTypeAndOverwrite group, newScript
 				script.Code = newScript.Code
 				script.Update
 			end if
@@ -114,5 +116,16 @@ function getScriptFromFile(file, allGroups, allScripts,overwriteExisting)
 	end if
 	set getScriptFromFile = script
 end function
+
+sub checkGroupTypeAndOverwrite(group, newScript)
+	if group.GroupType <> newScript.GroupType then
+		dim updateGroupType
+		updateGroupType = Msgbox("Update Group " & group.Name & " from GroupType=" & group.GroupType & " to new GroupType=" & newScript.GroupType & "?", vbYesNoCancel+vbQuestion, "Script group type does not match Group group type")
+		if updateGroupType = vbYes then
+			group.GroupType = newScript.GroupType
+			group.Update
+		end if
+	end if
+end sub
 
 main
