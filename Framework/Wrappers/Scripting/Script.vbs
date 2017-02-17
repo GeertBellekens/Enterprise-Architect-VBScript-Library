@@ -80,6 +80,11 @@ Class Script
 	  GroupInNameCode = getGroupFromCode()
 	End Property
 
+	' GroupTypeFromCode property
+	Public Property Get GroupType
+		GroupType = getGroupTypeFromCode()
+	End Property
+
 	
 	' Gets all scripts stored in the model
 	Public function getAllScripts(allGroups)
@@ -151,6 +156,14 @@ Class Script
 	'the Group is defined in the code as '[group=NameOfTheGroup]
 	public function getGroupFromCode()
 		getGroupFromCode = getKeyValue("group")
+	end function
+	' the Group Type is defined in the code as '[group_type=GroupType]
+	' if not specified then defaults to gtNormal
+	private function getGroupTypeFromCode()
+		getGroupTypeFromCode = getKeyValue("group_type")
+		if getGroupTypeFromCode = "" then
+			getGroupTypeFromCode = gtNormal
+		end if
 	end function
 	
 	'the key-value pair is defined in the code as '[keyName=value]

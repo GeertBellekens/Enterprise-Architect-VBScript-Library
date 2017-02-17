@@ -71,6 +71,9 @@ Class ScriptGroup
 		dim parts
 		parts = split(notes,"""")
 		getGroupTypeFromNotes = parts(1)
+		if getGroupTypeFromNotes = "" then
+			getGroupTypeFromNotes = gtNormal
+		end if
 	end function
 	
 	'sets the GroupType based on the given notes
@@ -118,6 +121,12 @@ Class ScriptGroup
 		sqlInsert = "insert into t_script (ScriptCategory, ScriptName,Notes, Script) " & _
 					" Values ('" & scriptGroupCategory & "','" & me.GUID & "','<Group Type=""" & me.GroupType & """ Notes=""""/>','" & me.Name & "')"
 		Repository.Execute sqlInsert
+	end sub
+
+	public sub Update
+		dim sqlUpdate
+		sqlUpdate = "update t_script set Notes = '<Group Type=""" & me.GroupType & """ Notes=""""/>' where ScriptName = '" & me.GUID & "'"
+		Repository.Execute sqlUpdate
 	end sub
 
 end Class
