@@ -1,3 +1,5 @@
+'[path=\Projects\Project K\DiagramGroup]
+'[group=DiagramGroup]
 option explicit
 
 !INC Local Scripts.EAConstants-VBScript
@@ -139,5 +141,3 @@ function switchRelationEnds (relation)
 	relation.ClientEnd.Update
 	relation.SupplierEnd.Update
 end function
-
-
