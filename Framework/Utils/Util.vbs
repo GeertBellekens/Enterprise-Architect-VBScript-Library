@@ -273,7 +273,7 @@ function makePackageIDString(packages)
 		idString = idString & package.PackageID
 	next 
 	'if there are no packages then we return "0"
-	if packages.Count = 0 then
+	if idString = "" then
 		idString = "0"
 	end if
 	'return idString
@@ -296,7 +296,7 @@ function makeIDString(elements)
 		idString = idString & element.ElementID
 	next 
 	'if there are no elements then we return "0"
-	if elements.Count = 0 then
+	if idString = "" then
 		idString = "0"
 	end if
 	'return idString

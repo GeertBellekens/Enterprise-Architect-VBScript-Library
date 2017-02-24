@@ -54,10 +54,11 @@ Class SearchResults
 	'Show this resultset in the model search window
 	public function Show()
 		dim dataString
-		Repository.WriteOutput outputTabName, now() & " starting makeDataString",0
+'		Repository.WriteOutput outputTabName, now() & " starting makeDataString",0
 		dataString = makeSearchDataString()
-		Repository.WriteOutput outputTabName, now() & " finished makeDataString",0
-		Repository.RunModelSearch me.Name,"searchTerm","searchOptions", dataString
+'		Repository.WriteOutput outputTabName, now() & " Datastring: " & dataString,0
+'		Repository.WriteOutput outputTabName, now() & " finished makeDataString",0
+		Repository.RunModelSearch "","","", dataString
 	end function
 	
 	private function makeSearchDataString()
