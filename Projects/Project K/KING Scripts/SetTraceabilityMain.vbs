@@ -1,5 +1,4 @@
-'[path=\Projects\Project K\KING Scripts]
-'[group=KING Scripts]
+
 !INC Local Scripts.EAConstants-VBScript
 
 '
@@ -98,7 +97,7 @@ function traceElements (originalElement,copyElement)
 	dim keepDeleting
 	keepDeleting = true
 	do
-		 keepDeleting = deleteOriginalTraces(copyElement)
+		 keepDeleting = deleteOriginalTraces(originalElement,copyElement)
 	loop while keepDeleting
 	
 	dim traceExists
@@ -126,21 +125,31 @@ function traceElements (originalElement,copyElement)
 	traceAssociations originalElement,copyElement
 end function
 
-function deleteOriginalTraces(copyElement)
+function deleteOriginalTraces(originalElement,copyElement)
 	dim i
 	dim copyConnector as EA.Connector
 	deleteOriginalTraces = false
 	'make sure the connectors are refreshed
 	copyElement.Connectors.Refresh
+	originalElement.Connectors.Refresh
 	'remove all the traces to domain model classes
 	for each copyConnector in copyElement.Connectors
 		if copyConnector.Type = "Abstraction" AND copyConnector.Stereotype = "trace" then
-			deleteConnector copyElement, copyConnector
-			'refresh again and exit function
-			copyElement.Connectors.Refresh
-			'found on, try again
-			deleteOriginalTraces = true
-			exit function
+			'check if the original element has the same trace
+			dim originalConnector as EA.Connector
+			for each originalConnector in originalElement.Connectors
+				if copyConnector.Type = "Abstraction" AND _
+				copyConnector.Stereotype = "trace" AND _
+				copyConnector.SupplierID = originalConnector.SupplierID then
+					deleteConnector copyElement, copyConnector
+					'refresh again and exit function
+					copyElement.Connectors.Refresh
+					originalElement.Connectors.Refresh
+					'found on, try again
+					deleteOriginalTraces = true
+					exit function
+				end if
+			next
 		end if
 	next
 end function
@@ -307,7 +316,9 @@ function transformAttribute(originalAttribute,originalElement, copyAttribute)
 	end select
 	
 	'not for enum values. Enum Values have a parent of type enumeration and have not "IsLiteral=0" in the styleEx field
-	if NOT (originalElement.Type = "Enumeration" and not instr(originalAttribute.StyleEx, "IsLiteral=0;") > 0) then
+	if NOT(originalElement.Type = "Enumeration" _
+		or instr(originalAttribute.StyleEx, "IsLiteral=1;") > 0
+		or originalElement.Stereotype = "Enumeration") then
 		'name => camelCase
 		copyAttribute.Name = getCamelCase(originalAttribute.Name)
 	end if
@@ -390,3 +401,4 @@ function removeTaggedValuesExcept(item, tvsToKeep)
 		end if	
 	next
 end function
+
