@@ -1,12 +1,13 @@
 '[path=\Framework\Utils]
 '[group=Utils]
-!INC Utils.XML
-!INC Utils.SQL
-!INC Utils.FileSystemFolder
-!INC Utils.TextFile
-!INC Utils.ModelInfo
 !INC Utils.BinaryFile
+!INC Utils.DocGenHelpers
 !INC Utils.FileSystem
+!INC Utils.FileSystemFolder
+!INC Utils.ModelInfo
+!INC Utils.SQL
+!INC Utils.TextFile
+!INC Utils.XML
 !INC Utils.Util
 
 'Author: Geert Bellekens

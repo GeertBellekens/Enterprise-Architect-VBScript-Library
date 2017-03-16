@@ -616,3 +616,167 @@ function getExistingOrNewTaggedValue(owner, tagname)
 	'return
 	set getExistingOrNewTaggedValue = returnTag
 end function
+
+function isRequireUserLockEnabled()
+	dim reqUserLockToEdit
+	'default is false
+	reqUserLockToEdit = false
+	'check if security is enabled
+	if Repository.IsSecurityEnabled then
+		dim getReqUserLockSQL
+		getReqUserLockSQL =	"select sc.Value from t_secpolicies sc " & _
+							"where sc.Property = 'RequireLock' "
+		dim xmlQueryResult
+		xmlQueryResult = Repository.SQLQuery(getReqUserLockSQL)
+		dim reqUserLockResults
+		reqUserLockResults = convertQueryResultToArray(xmlQueryResult)
+		if Ubound(reqUserLockResults) > 0 then
+			if reqUserLockResults(0,0) = "1" then
+				reqUserLockToEdit = true
+			end if
+		end if
+	end if
+	isRequireUserLockEnabled = reqUserLockToEdit
+end function
+
+function copyDiagram(diagram, targetOwner)
+	dim copiedDiagram as EA.Diagram
+	'initialize at nothing
+	set copiedDiagram = nothing
+	'get the owner package
+	dim ownerPackage as EA.Package
+	set ownerPackage = Repository.GetPackageByID(diagram.PackageID)
+	'check if we need to lock the package to clone it
+	if isRequireUserLockEnabled() then
+		dim ownerOfOwnerPackage as EA.Package
+		if ownerPackage.ParentID > 0 then
+			set ownerOfOwnerPackage = Repository.GetPackageByID(ownerPackage.ParentID)
+			if not ownerOfOwnerPackage.ApplyUserLock() then
+				'tell the user we couldn't do it and then exit the function
+				msgbox "Could not lock package " &  ownerPackage.Name & " in order to copy the diagram " & diagram.Name,vbError,"Could not lock Package"
+				exit function
+			end if
+		end if
+	end if
+	'then actually clone the owner package
+	dim clonedPackage as EA.Package
+	set clonedPackage = ownerPackage.Clone()
+'	if isRequireUserLockEnabled() then
+'		clonedPackage.ApplyUserLockRecursive true,true,true
+'	end if
+	'then get the diagram corresponding to the diagram to copy
+	set copiedDiagram = getCorrespondingDiagram(clonedPackage,diagram)
+	'set the owner of the copied diagram
+	if targetOwner.ObjectType = otElement then
+		copiedDiagram.ParentID = targetOwner.ElementID
+	else
+		copiedDiagram.PackageID = targetOwner.PackageID
+	end if
+	'save the update to the owner
+	copiedDiagram.Update
+	'delete the cloned package
+	deletePackage(clonedPackage)
+	'return the copied diagram
+	set copyDiagram = copiedDiagram
+end function
+
+function deletePackage(package)
+	if package.ParentID > 0 then
+		'get parent package
+		dim parentPackage as EA.Package
+		set parentPackage = Repository.GetPackageByID(package.ParentID )
+		dim i
+		'delete the pacakge
+		for i = parentPackage.Packages.Count -1 to 0 step -1
+			dim currentPackage as EA.Package
+			set currentPackage = parentPackage.Packages(i)
+			if currentPackage.PackageID = package.PackageID then
+				parentPackage.Packages.DeleteAt i,false
+				exit for
+			end if
+		next
+	end if
+end function
+
+function getCorrespondingDiagram(clonedPackage,diagram)
+	dim correspondingDiagram as EA.Diagram
+	dim candidateDiagrams
+	dim getCandidateDiagramsSQL
+	dim packageIDs
+	packageIDs = getPackageTreeIDString(clonedPackage)
+	getCandidateDiagramsSQL = 	"select d.Diagram_ID from t_diagram d " & _
+								" where d.name = '" & diagram.Name & "' " & _
+								" and d.Package_ID in (" & packageIDs& ") "
+	set candidateDiagrams = getDiagramsFromQuery(getCandidateDiagramsSQL)
+	'if there is only one candidate then that is the one we take
+	if candidateDiagrams.Count = 1 then
+		set correspondingDiagram = candidateDiagrams(0)
+	end if
+	'if there are multiple candidates then we have to filter them
+	'first create a dictionary with the diagrams and their owner
+	dim candidateDiagramsDictionary
+	set candidateDiagramsDictionary = CreateObject("Scripting.Dictionary")
+	dim currentDiagram
+	for each currentDiagram in candidateDiagrams
+		'add the diagram and its owner to the dictionary
+		candidateDiagramsDictionary.Add currentDiagram, getOwner(diagram)
+	next
+	dim currentowner
+	set currentOwner = nothing
+	'filter the diagrams until we have only one diagram left
+	set correspondingDiagram = filterDiagrams(candidateDiagramsDictionary,diagram, clonedPackage, currentOwner)
+	'return the diagram
+	set getCorrespondingDiagram = correspondingDiagram
+end function
+
+function filterDiagrams(candidateDiagramsDictionary,diagram, clonedPackage, currentOwner)
+	dim filteredDiagrams
+	dim filteredDiagram as EA.Diagram
+	'initialize at nothing
+	set filteredDiagram = nothing
+	set filteredDiagrams = CreateObject("Scripting.Dictionary")
+	if currentOwner is nothing then
+		set currentOwner = getOwner(diagram)
+	end if
+	'compare the diagrams and their owner with the current owner
+	dim candidateDiagram as EA.Diagram
+	dim candidateOwner
+	for each candidateDiagram in candidateDiagramsDictionary.Keys
+		set candidateOwner = candidateDiagramsDictionary(candidateDiagram)
+		if candidateOwner.Name = currentOwner.Name then
+			'add the diagram to the new list 
+			filteredDiagrams.Add candidateDiagram, getOwner(candidateOwner)
+		end if
+	next
+	'check the number if we have reached he level of the cloned package, or if there is only one diagram left
+	if filteredDiagrams.Count = 1 _
+	OR currentOwner.ObjectType = otPackage AND currentOwner.ParentID = clonedPackage.PackageID then
+		'return the first one
+		set filteredDiagram = filteredDiagrams.Keys()(0)
+	else
+		'go one level deeper to filter the diagrams
+		set currentOwner = getOwner(currentOwner)
+		set filteredDiagram = filterDiagrams(filteredDiagrams,diagram, clonedPackage, currentOwner)
+	end if
+	'return filtered diagram
+	set filterDiagrams = filteredDiagram
+end function
+
+function getOwner(item)
+	dim owner
+	select case item.ObjectType
+		case otElement,otDiagram,otPackage
+			'if it has an element as owner then we return the element
+			if item.ParentID > 0 then
+				set owner = Repository.GetElementByID(item.ParentID)
+			else
+				if item.ObjectType <> otPackage then
+					'else we return the package (not for packages because then we have a root package that doesn't have an owner)
+					set owner = Repository.GetPackageByID(item.PackageID)
+				end if
+			end if
+	'TODO: add other cases such as attributes and operations
+	end select
+	'return owner
+	set getOwner = owner
+end function
