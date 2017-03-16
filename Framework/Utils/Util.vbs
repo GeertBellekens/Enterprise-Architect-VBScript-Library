@@ -522,6 +522,46 @@ function getConnectorsFromQuery(sqlQuery)
 	set getConnectorsFromQuery = connectors
 end function
 
+function getDiagramsFromQuery(sqlQuery)
+	dim xmlResult
+	xmlResult = Repository.SQLQuery(sqlQuery)
+	dim diagramIDs
+	diagramIDs = convertQueryResultToArray(xmlResult)
+	dim diagrams 
+	set diagrams = CreateObject("System.Collections.ArrayList")
+	dim diagramID
+	dim diagram as EA.Diagram
+	for each diagramID in diagramIDs
+		if diagramID > 0 then
+			set diagram = Repository.GetdiagramByID(diagramID)
+			if not diagram is nothing then
+				diagrams.Add(diagram)
+			end if
+		end if
+	next
+	set getDiagramsFromQuery = diagrams
+end function
+
+function getattributesFromQuery(sqlQuery)
+	dim xmlResult
+	xmlResult = Repository.SQLQuery(sqlQuery)
+	dim attributeIDs
+	attributeIDs = convertQueryResultToArray(xmlResult)
+	dim attributes 
+	set attributes = CreateObject("System.Collections.ArrayList")
+	dim attributeID
+	dim attribute as EA.Attribute
+	for each attributeID in attributeIDs
+		if attributeID > 0 then
+			set attribute = Repository.GetAttributeByID(attributeID)
+			if not attribute is nothing then
+				attributes.Add(attribute)
+			end if
+		end if
+	next
+	set getattributesFromQuery = attributes
+end function
+
 'get the description from the given notes 
 'that is the text between <NL> and </NL> or <FR> and </FR>
 function getTagContent(notes, tag)

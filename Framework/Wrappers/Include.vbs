@@ -8,7 +8,8 @@
 !INC Wrappers.SearchResults
 'include the util group
 !INC Utils.Include
-
+'include the messages group
+!INC Messaging.Include
 'Author: Geert Bellekens
 'Date: 2015-12-07
 'EA-Matic
