@@ -1,4 +1,5 @@
-
+'[path=\Projects\Project K\KING Scripts]
+'[group=KING Scripts]
 !INC Local Scripts.EAConstants-VBScript
 
 '
@@ -317,7 +318,7 @@ function transformAttribute(originalAttribute,originalElement, copyAttribute)
 	
 	'not for enum values. Enum Values have a parent of type enumeration and have not "IsLiteral=0" in the styleEx field
 	if NOT(originalElement.Type = "Enumeration" _
-		or instr(originalAttribute.StyleEx, "IsLiteral=1;") > 0
+		or instr(originalAttribute.StyleEx, "IsLiteral=1;") > 0 _
 		or originalElement.Stereotype = "Enumeration") then
 		'name => camelCase
 		copyAttribute.Name = getCamelCase(originalAttribute.Name)
