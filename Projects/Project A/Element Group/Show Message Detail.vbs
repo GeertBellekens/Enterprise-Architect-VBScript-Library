@@ -29,7 +29,7 @@ sub main
 	'tell the user we are starting
 	Repository.WriteOutput outPutName, now() & " Starting Creating Message Detail for '" & selectedElement.Name & "'", selectedElement.ElementID
 	'do the actual work
-	createMessageDetail(selectedElement)
+	showMessageDetail(selectedElement)
 	'tell the user we are finished
 	Repository.WriteOutput outPutName, now() & " Finished Creating Message Detail for '" & selectedElement.Name & "'", selectedElement.ElementID
 	else
@@ -37,10 +37,34 @@ sub main
 	end if
 end sub
 
-function createMessageDetail(selectedElement)
+function showMessageDetail(selectedElement)
 	dim selectedMessage 
 	set selectedMessage = new Message
+	'first load the selected message
 	selectedMessage.loadMessage(selectedElement)
+	'get the headers
+	dim messageHeaders
+	set messageHeaders = selectedMessage.getHeaders()
+	'get the content in the proper output format
+	dim messageOutput
+	set messageOutput = selectedMessage.createOuput()
+	'show the output in the search window
+	'create the output object
+	dim searchOutput
+	set searchOutput = new SearchResults
+	searchOutput.Name = "Message detail"
+	'put the headers in the output
+	searchOutput.Fields = messageHeaders
+	Session.Output "messageHeaders.Count: " & messageHeaders.Count
+	'put the content in the output
+	searchOutput.Results = messageOutput
+	dim row
+	for each row in messageOutput
+		Session.Output "row.Count: " & row.Count
+	next
+	'show the output
+	searchOutput.Show
 end function
+
 
 main

@@ -122,7 +122,7 @@ function synchronizeParameters(wrappedOperation, wrappedOverride)
 		wrappedOverride.Parameters.Refresh
 	elseif wrappedOverride.Parameters.Count > wrappedOperation.Parameters.Count then
 		'remove parameters as required
-		for i = wrappedOverride.Parameters.Count -1 to 0 step -1
+		for i = wrappedOverride.Parameters.Count -1 to wrappedOperation.Parameters.Count step -1
 			wrappedOverride.Parameters.DeleteAt i,false 
 		next
 		wrappedOverride.Parameters.Refresh

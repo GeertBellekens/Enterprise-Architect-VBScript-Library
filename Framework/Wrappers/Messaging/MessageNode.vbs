@@ -30,7 +30,7 @@ Class MessageNode
 		set m_ChildNodes = CreateObject("System.Collections.ArrayList")
 		set m_Attribute = nothing
 		set m_AssociationEnd = nothing
-		set m_Element = nothing
+		set m_SourceElement = nothing
 		set m_ValidationRule = nothing
 	End Sub
 	
@@ -46,15 +46,15 @@ Class MessageNode
 	
 	' TypeElement property.
 	Public Property Get TypeElement
-		TypeElement = m_TypeElement
+		set TypeElement = m_TypeElement
 	End Property
 	Public Property Let TypeElement(value)
-		m_TypeElement = value
+		set m_TypeElement = value
 	End Property
 
 	' ElementID property.
 	Public Property Get ElementID
-		if not me.TypeElement is noting then
+		if not me.TypeElement is nothing then
 			ElementID = me.TypeElement.ElementID
 		else
 			ElementID = 0
@@ -83,15 +83,13 @@ Class MessageNode
 	' Multiplicity property.
 	' only directly used if the source is element, else we use the Attribute or AssociationEnd multiplicity
 	Public Property Get Multiplicity
-		dim connectorEnd as EA.ConnectorEnd
-		connectorEnd.Cardinality
 		dim lower
 		dim upper
 		dim returnedMultiplicity
 		if not me.SourceElement is nothing then
 			returnedMultiplicity = m_Multiplicity
 		elseif not me.sourceAttribute is nothing then
-			returnedMultiplicity determineMultiplicity(me.sourceAttribute.LowerBound,me.sourceAttribute.UpperBound, "1", "1")
+			returnedMultiplicity = determineMultiplicity(me.sourceAttribute.LowerBound,me.sourceAttribute.UpperBound, "1", "1")
 		elseif not me.sourceAssociationEnd is nothing then
 			returnedMultiplicity = sourceAssociationEnd.Cardinality
 		end if
@@ -117,50 +115,50 @@ Class MessageNode
 	end function
 	' ParentNode property.
 	Public Property Get ParentNode
-		ParentNode = m_ParentNode
+		set ParentNode = m_ParentNode
 	End Property
 	Public Property Let ParentNode(value)
-		m_ParentNode = value
+		set m_ParentNode = value
 	End Property
 
 	' ChildNodes property.
 	Public Property Get ChildNodes
-		ChildNodes = m_ChildNodes
+		set ChildNodes = m_ChildNodes
 	End Property
 	Public Property Let ChildNodes(value)
-		m_ChildNodes = value
+		set m_ChildNodes = value
 	End Property
 	
 	' SourceAttribute property.
 	Public Property Get SourceAttribute
-		SourceAttribute = m_SourceAttribute
+		set SourceAttribute = m_SourceAttribute
 	End Property
 	Public Property Let SourceAttribute(value)
-		m_SourceAttribute = value
+		set m_SourceAttribute = value
 	End Property
 
 	' SourceAssociationEnd property.
 	Public Property Get SourceAssociationEnd
-		SourceAssociationEnd = m_SourceAssociationEnd
+		set SourceAssociationEnd = m_SourceAssociationEnd
 	End Property
 	Public Property Let SourceAssociationEnd(value)
-		m_SourceAssociationEnd = value
+		set m_SourceAssociationEnd = value
 	End Property
 	
 	' SourceElement property.
 	Public Property Get SourceElement
-		SourceElement = m_SourceElement
+		set SourceElement = m_SourceElement
 	End Property
 	Public Property Let SourceElement(value)
-		m_SourceElement = value
+		set m_SourceElement = value
 	End Property
 	
 	' ValidationRule property.
 	Public Property Get ValidationRule
-		ValidationRule = m_ValidationRule
+		set ValidationRule = m_ValidationRule
 	End Property
 	Public Property Let ValidationRule(value)
-		m_ValidationRule = value
+		set m_ValidationRule = value
 	End Property	
 	
 	'public functions
@@ -185,12 +183,12 @@ Class MessageNode
 				me.Name = source.Name
 				dim attributeTypeObject
 				set attributeTypeObject = nothing
-				if Repositorysource.ClassifierID > 0 then
-					attributeTypeObject = Repository.GetElementByID(source.ClassifierID)
+				if source.ClassifierID > 0 then
+					set attributeTypeObject = Repository.GetElementByID(source.ClassifierID)
+					me.TypeElement = attributeTypeObject
 				else
 					me.TypeName = source.Type
 				end if
-				me.TypeElement = attributeTypeObject
 			case otConnectorEnd
 				me.SourceAssociationEnd = source
 				if len(source.Role) > 0 then
@@ -224,10 +222,84 @@ Class MessageNode
 		'load associations
 		'load nested classes?
 	end function
+	
+	'gets the maximum depth of this node and add that to the given depth
+	public function getDepth(in_depth)
+		dim childNode
+		dim maxDebth
+		maxDebth = in_depth + 1
+		for each childNode in me.ChildNodes
+			dim currentDepth
+			currentDepth = childNode.getDepth(in_depth +1)
+			if currentDepth > maxDebth then
+				maxDebth = currentDepth
+			end if
+		next
+		getDepth = maxDebth
+	end function
+	
+	'gets the output format for this node and its childnodes
+	public function getOuput(currentPath,messageDepth)
+		'create the output
+		dim nodeOutputList
+		set nodeOutputList = CreateObject("System.Collections.ArrayList")
+		'get the list for this node
+		dim currentNodeList
+		set currentNodeList = getThisNodeOutput(currentPath, messageDepth)
+		'add the list for this node to the output
+		nodeOutputList.Add currentNodeList
+		'add this node to the currentPath
+		dim mycurrentpath
+		set myCurrentPath = CreateObject("System.Collections.ArrayList")
+		myCurrentPath.AddRange(currentPath)
+		myCurrentPath.Add me.Name
+		'get the output for the child nodes
+		dim childNode
+		for each childNode in me.ChildNodes
+			dim childOutPut
+			set childOutPut = childNode.getOuput(myCurrentPath,messageDepth)
+			nodeOutputList.AddRange(childOutPut)
+		next
+		'return list
+		set getOuput = nodeOutputList
+	end function
+	
+	private function getThisNodeOutput(currentPath, messageDepth)
+		'get the list for this node
+		dim currentNodeList
+		set currentNodeList = CreateObject("System.Collections.ArrayList")
+		'add the current Path tot he node list
+		currentNodeList.AddRange(currentPath)
+		'add this name of to the list
+		currentNodeList.Add me.Name
+		'add empty fields until the messageDepth
+		dim i
+		for i = currentNodeList.Count to messageDepth step +1
+			currentNodeList.Add ""
+		next
+		'then add the other fields
+		currentNodeList.Add me.Multiplicity
+		currentNodeList.Add me.TypeName
+		'add the rules section
+		if not me.ValidationRule is nothing then
+			currentNodeList.Add me.ValidationRule.Name
+			currentNodeList.Add me.ValidationRule.RuleId
+			currentNodeList.Add me.ValidationRule.Reason
+		else
+			currentNodeList.Add ""
+			currentNodeList.Add ""
+			currentNodeList.Add ""
+		end if
+		'return output
+		set getThisNodeOutput = currentNodeList
+	end function
+	
 	'returns a list of all generalized elements of this elemnt
 	private function getParents(childElement)
 		dim directParents 
 		dim sqlGetParents
+		dim allParents
+		set allParents = CreateObject("System.Collections.ArrayList")
 		dim childElementID
 		if not childElement is nothing then
 			childElementID = childElement.ElementID
@@ -238,13 +310,15 @@ Class MessageNode
 						" where c.Connector_Type in ('Generalization','Generalisation')	 "  & _
 						" and c.Start_Object_ID =" & childElementID
 		set directParents = getElementsFromQuery(sqlGetParents)
+		'add the direct parent to the list of all parents
+		allParents.AddRange(directParents)
 		'loop the parent and get their parents
 		dim parent
-		for each parent in parents
-			directParents.AddRange(getParents(parent))
+		for each parent in directParents
+			allParents.AddRange(getParents(parent))
 		next
 		'return
-		set getParents = directParents
+		set getParents = allParents
 	end function
 	'loads all Attribute notes both from this eleemnt as from its parents
 	private function loadAllAttributeNodes(parents)
@@ -258,8 +332,9 @@ Class MessageNode
 		next
 	end function
 	private function loadAttributeChildNodes(currentElement)
+		set loadAttributeChildNodes = CreateObject("System.Collections.ArrayList")
 		dim ownerElementID
-		if not childElement is nothing then
+		if not currentElement is nothing then
 			ownerElementID = currentElement.ElementID
 		else
 			ownerElementID = me.ElementID
@@ -281,6 +356,8 @@ Class MessageNode
 			newMessageNode.intitializeWithSource attribute, nothing, "", nothing, me
 			'add to the childnodes list
 			me.ChildNodes.Add newMessageNode
+			'add to the output
+			loadAttributeChildNodes.Add newMessageNode
 		next
 	end function
 	
