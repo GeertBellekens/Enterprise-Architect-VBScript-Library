@@ -224,7 +224,7 @@ function getCurrentPackageTreeIDString()
 	end if 
 end function
 
-'get the package id string of the currently selected package tree
+'get the package id string of the given package tree
 function getPackageTreeIDString(package)
 	'initialize at "0"
 	getPackageTreeIDString = "0"
@@ -447,6 +447,12 @@ function getUserLogin()
 	getUserLogin = userLogin
 end function	
 
+function getArrayFromQuery(sqlQuery)
+	dim xmlResult
+	xmlResult = Repository.SQLQuery(sqlQuery)
+	getArrayFromQuery = convertQueryResultToArray(xmlResult)
+end function
+
 'converts the query results from Repository.SQLQuery from xml format to a two dimensional array of strings
 Public Function convertQueryResultToArray(xmlQueryResult)
     Dim arrayCreated
@@ -454,7 +460,7 @@ Public Function convertQueryResultToArray(xmlQueryResult)
     i = 0
     Dim j 
     j = 0
-    Dim result()
+    Dim result(0)
     Dim xDoc 
     Set xDoc = CreateObject( "MSXML2.DOMDocument" )
     'load the resultset in the xml document
@@ -779,4 +785,65 @@ function getOwner(item)
 	end select
 	'return owner
 	set getOwner = owner
+end function
+
+Function lpad(strInput, length, character)
+  lpad = Right(String(length, character) & strInput, length)
+end function
+
+function makeArrayFromArrayLists(arrayLists)
+	dim returnArray()
+	'get the dimensions
+	dim x
+	dim y
+	x = arrayLists.Count
+	y = arrayLists(0).Count
+	'redim the array to the correct dimensions
+	redim returnArray(x,y)
+	dim i,j
+	i = 0
+	dim row
+	dim field
+	for each row in arrayLists
+		'reset j
+		j = 0
+		for each field in row
+			if IsObject(field) then
+				set returnArray(i,j) = field
+			else
+				returnArray(i,j) = field
+			end if
+			j = j + 1
+		next
+		i = i + 1
+	next
+	'return the array
+	makeArrayFromArrayLists = returnArray
+end function
+
+'EA uses a lot of key=value pairs in different types of fields (such as StyleEx etc.)
+' each of them separated by a ";"
+' this function will search for the value of the key and return the value if it is present in the given search string
+function getValueForkey(searchString, key)
+	dim returnValue
+	returnValue = ""
+	'first split int keyvalue pairs using ";"
+	dim keyValuePairs
+	keyValuePairs = split(searchString,";")
+	'then loop the key value pairs
+	dim keyValuePairString
+	for each keyValuePairString in keyValuePairs
+		'and split them usign "=" as delimiter
+		dim keyValuePair
+		if instr(keyValuePairString,"=") > 0 then
+			keyValuePair = split(keyValuePairString,"=")
+			if UBound(keyValuePair) = 2 then
+				if keyValuePair(1) = key then
+					returnValue = keyValuePair(1)
+				end if
+			end if
+		end if
+	next
+	'return the value
+	getValueForkey = returnValue
 end function

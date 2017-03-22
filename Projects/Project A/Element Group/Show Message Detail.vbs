@@ -55,15 +55,34 @@ function showMessageDetail(selectedElement)
 	searchOutput.Name = "Message detail"
 	'put the headers in the output
 	searchOutput.Fields = messageHeaders
-	Session.Output "messageHeaders.Count: " & messageHeaders.Count
 	'put the content in the output
 	searchOutput.Results = messageOutput
 	dim row
-	for each row in messageOutput
-		Session.Output "row.Count: " & row.Count
-	next
 	'show the output
 	searchOutput.Show
+	'export to excel file
+	saveToExcelFile selectedMessage, messageOutput, messageHeaders
+end function
+
+function saveToExcelFile(message, messageOutput, messageHeaders)
+	'merge headers with output
+	messageOutput.Insert 0, messageHeaders
+	'create a two-dimensional array from the messageOutput
+	dim excelContents
+	excelContents = makeArrayFromArrayLists(messageOutput)
+	'create the excel file
+	dim excelOutput
+	set excelOutput = new ExcelFile
+	'add the output to a sheet in excel
+	excelOutput.createTab message.Prefix & " Msg", excelContents
+	'create tab for datatypes
+	dim messageTypes
+	set messageTypes = message.getMessageTypes()
+	dim messageTypesArray 
+	messageTypesArray = makeArrayFromArrayLists(messageTypes)
+	excelOutput.createTab message.Prefix & " Types", messageTypesArray
+	'save the excel file
+	excelOutput.save
 end function
 
 

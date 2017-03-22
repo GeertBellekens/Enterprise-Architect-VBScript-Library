@@ -2,6 +2,7 @@
 '[group=Utils]
 !INC Utils.BinaryFile
 !INC Utils.DocGenHelpers
+!INC Utils.ExcelFile
 !INC Utils.FileSystem
 !INC Utils.FileSystemFolder
 !INC Utils.ModelInfo

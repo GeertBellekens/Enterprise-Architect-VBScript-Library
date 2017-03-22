@@ -19,6 +19,7 @@ Class MessageNode
 	Private m_SourceAssociationEnd
 	Private m_SourceElement
 	Private m_ValidationRule
+	Private m_IsLeafNode
 
 	'constructor
 	Private Sub Class_Initialize
@@ -28,13 +29,20 @@ Class MessageNode
 		m_Multiplicity = ""
 		set m_ParentNode = nothing
 		set m_ChildNodes = CreateObject("System.Collections.ArrayList")
-		set m_Attribute = nothing
-		set m_AssociationEnd = nothing
+		set m_SourceAttribute = nothing
+		set m_SourceAssociationEnd = nothing
 		set m_SourceElement = nothing
 		set m_ValidationRule = nothing
+		m_IsLeafNode = false
 	End Sub
 	
 	'public properties
+	
+	' IsLeafNode property.
+	Public Property Get IsLeafNode
+		IsLeafNode = m_IsLeafNode
+	End Property
+
 	
 	' Name property.
 	Public Property Get Name
@@ -207,8 +215,12 @@ Class MessageNode
 					end if
 				end if 
 		end select
+		'set the isLeafNode property
+		setIsLeafNode
 		'then load the child nodes
-		loadChildNodes
+		if not me.IsLeafNode then
+			loadChildNodes
+		end if
 	end function
 	
 	'Loads the child nodes for this message (resursively until we have reached all the leaves)
@@ -239,13 +251,15 @@ Class MessageNode
 	end function
 	
 	'gets the output format for this node and its childnodes
-	public function getOuput(currentPath,messageDepth)
+	public function getOuput(current_order,currentPath,messageDepth)
 		'create the output
 		dim nodeOutputList
 		set nodeOutputList = CreateObject("System.Collections.ArrayList")
 		'get the list for this node
 		dim currentNodeList
-		set currentNodeList = getThisNodeOutput(currentPath, messageDepth)
+		set currentNodeList = getThisNodeOutput(current_order,currentPath, messageDepth)
+		'up or the order number
+		current_order = current_order + 1
 		'add the list for this node to the output
 		nodeOutputList.Add currentNodeList
 		'add this node to the currentPath
@@ -257,29 +271,36 @@ Class MessageNode
 		dim childNode
 		for each childNode in me.ChildNodes
 			dim childOutPut
-			set childOutPut = childNode.getOuput(myCurrentPath,messageDepth)
+			set childOutPut = childNode.getOuput(current_order,myCurrentPath,messageDepth)
 			nodeOutputList.AddRange(childOutPut)
 		next
 		'return list
 		set getOuput = nodeOutputList
 	end function
 	
-	private function getThisNodeOutput(currentPath, messageDepth)
+	private function getThisNodeOutput(current_order,currentPath, messageDepth)
 		'get the list for this node
 		dim currentNodeList
 		set currentNodeList = CreateObject("System.Collections.ArrayList")
+		'add the order to the list
+		currentNodeList.Add lpad(current_order,4,"0")
 		'add the current Path tot he node list
 		currentNodeList.AddRange(currentPath)
 		'add this name of to the list
 		currentNodeList.Add me.Name
 		'add empty fields until the messageDepth
 		dim i
-		for i = currentNodeList.Count to messageDepth step +1
+		for i = currentNodeList.Count -1 to messageDepth -1  step +1
 			currentNodeList.Add ""
 		next
 		'then add the other fields
 		currentNodeList.Add me.Multiplicity
-		currentNodeList.Add me.TypeName
+		'only add the name of the type if this is a leaf node
+		if me.IsLeafNode then
+			currentNodeList.Add me.TypeName
+		else
+			currentNodeList.Add ""
+		end if
 		'add the rules section
 		if not me.ValidationRule is nothing then
 			currentNodeList.Add me.ValidationRule.Name
@@ -339,15 +360,18 @@ Class MessageNode
 		else
 			ownerElementID = me.ElementID
 		end if
-		'get attributes in the correct order
+		'get attributes in the correct order (not for enum values
 		dim SQLGetAttributes
-		SQLGetAttributes = 	"select a.ID from t_attribute a " & _
-							" where a.Object_ID = "& ownerElementID & _
-							" order by a.Pos, a.Name		"
+		SQLGetAttributes = 	"select a.ID from (t_attribute a                             " & _
+							" inner join t_object o on a.Object_ID = o.Object_ID)        " & _
+							" where o.Object_Type <> 'Enumeration'                       " & _
+							" and (o.Stereotype is null or o.Stereotype <> 'Enumeration')" & _
+							" and a.Object_ID = " & ownerElementID & "                   " & _
+							" order by a.Pos, a.Name                                     "
 		dim attributes
 		set attributes = getattributesFromQuery(SQLGetAttributes)
 		'loop the attributes
-		dim attribute
+		dim attribute as EA.Attribute
 		for each attribute in attributes
 			'create the next messageNode
 			dim newMessageNode
@@ -359,6 +383,21 @@ Class MessageNode
 			'add to the output
 			loadAttributeChildNodes.Add newMessageNode
 		next
+	end function
+	
+	private function setIsLeafNode()
+		if not me.TypeElement is nothing then
+			if me.TypeElement.Type = "Enumeration"_
+			OR me.TypeElement.Stereotype = "Enumeration" _
+			OR me.TypeElement.Stereotype = "XSDsimpleType" then
+				'enumerations and simple types are always leaf nodes
+				m_IsLeafNode = true
+			else
+				m_IsLeafNode = false
+			end if
+		else
+			m_IsLeafNode = true
+		end if
 	end function
 	
 end Class
