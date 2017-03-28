@@ -31,7 +31,7 @@ Class ExcelFile
 	
 	'public operations
 	'create a tab with the given name. The contents should parameter should be a two dimensional array
-	public Function createTab(tabName, contents)
+	public Function createTab(tabName, contents,formatAsTable, tableStyle)
 		'check if the workbook has been created already
 		if m_WorkBook is nothing then
 			set m_WorkBook = m_ExcelApp.Workbooks.Add()
@@ -42,8 +42,18 @@ Class ExcelFile
 		ws.Name = tabName
 		'fill the contents
 		dim targetRange
-		set targetRange = ws.Range(ws.Cells(1,1), ws.Cells(Ubound(contents,1)+1, Ubound(Contents,2)+1))
+		set targetRange = ws.Range(ws.Cells(1,1), ws.Cells(Ubound(contents,1), Ubound(Contents,2)))
 		targetRange.Value2 = contents
+		'format as table if needed
+		if formatAsTable then
+			formatSheetAsTable ws, targetRange, tableStyle
+		end if
+	end function
+	
+	public function formatSheetAsTable(worksheet, targetRange, tableStyle)
+		dim table
+		Set table = worksheet.ListObjects.Add(1, targetRange, 1, 1)
+		table.TableStyle = tableStyle
 	end function
 	
 	public Function getUserSelectedFileName()

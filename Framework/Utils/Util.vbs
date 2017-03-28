@@ -460,7 +460,7 @@ Public Function convertQueryResultToArray(xmlQueryResult)
     i = 0
     Dim j 
     j = 0
-    Dim result(0)
+    Dim result()
     Dim xDoc 
     Set xDoc = CreateObject( "MSXML2.DOMDocument" )
     'load the resultset in the xml document
@@ -489,6 +489,10 @@ Public Function convertQueryResultToArray(xmlQueryResult)
 			End If
 			i = i + 1
 		Next
+		'make sure the array has a dimension even is we don't have any results
+		if not arrayCreated then
+			ReDim result(0, 0)
+		end if
 	end if
     convertQueryResultToArray = result
 End Function

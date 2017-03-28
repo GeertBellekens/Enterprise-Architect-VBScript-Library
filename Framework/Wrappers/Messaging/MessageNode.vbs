@@ -303,8 +303,8 @@ Class MessageNode
 		end if
 		'add the rules section
 		if not me.ValidationRule is nothing then
-			currentNodeList.Add me.ValidationRule.Name
 			currentNodeList.Add me.ValidationRule.RuleId
+			currentNodeList.Add me.ValidationRule.Name
 			currentNodeList.Add me.ValidationRule.Reason
 		else
 			currentNodeList.Add ""

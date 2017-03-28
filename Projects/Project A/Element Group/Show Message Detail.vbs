@@ -25,13 +25,12 @@ sub main
 	dim selectedElement as EA.Element
 	set selectedElement = Repository.GetContextObject
 	if selectedElement.ObjectType = otElement then
-	
-	'tell the user we are starting
-	Repository.WriteOutput outPutName, now() & " Starting Creating Message Detail for '" & selectedElement.Name & "'", selectedElement.ElementID
-	'do the actual work
-	showMessageDetail(selectedElement)
-	'tell the user we are finished
-	Repository.WriteOutput outPutName, now() & " Finished Creating Message Detail for '" & selectedElement.Name & "'", selectedElement.ElementID
+		'tell the user we are starting
+		Repository.WriteOutput outPutName, now() & " Starting Creating Message Detail for '" & selectedElement.Name & "'", selectedElement.ElementID
+		'do the actual work
+		showMessageDetail(selectedElement)
+		'tell the user we are finished
+		Repository.WriteOutput outPutName, now() & " Finished Creating Message Detail for '" & selectedElement.Name & "'", selectedElement.ElementID
 	else
 		msgbox "This script only works on Elements. Please select an Element before executing this script"
 	end if
@@ -65,22 +64,23 @@ function showMessageDetail(selectedElement)
 end function
 
 function saveToExcelFile(message, messageOutput, messageHeaders)
-	'merge headers with output
-	messageOutput.Insert 0, messageHeaders
-	'create a two-dimensional array from the messageOutput
-	dim excelContents
-	excelContents = makeArrayFromArrayLists(messageOutput)
 	'create the excel file
 	dim excelOutput
 	set excelOutput = new ExcelFile
-	'add the output to a sheet in excel
-	excelOutput.createTab message.Prefix & " Msg", excelContents
 	'create tab for datatypes
 	dim messageTypes
 	set messageTypes = message.getMessageTypes()
 	dim messageTypesArray 
 	messageTypesArray = makeArrayFromArrayLists(messageTypes)
-	excelOutput.createTab message.Prefix & " Types", messageTypesArray
+	excelOutput.createTab message.Prefix & " Types", messageTypesArray, true, "TableStyleMedium13"
+	'create tab for message
+	'merge headers with output
+	messageOutput.Insert 0, messageHeaders
+	'create a two-dimensional array from the messageOutput
+	dim excelContents
+	excelContents = makeArrayFromArrayLists(messageOutput)
+	'add the output to a sheet in excel
+	excelOutput.createTab message.Prefix & " Msg", excelContents, true, "TableStyleMedium13"
 	'save the excel file
 	excelOutput.save
 end function

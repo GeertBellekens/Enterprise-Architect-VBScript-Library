@@ -135,6 +135,16 @@ Class Message
 		set createOuput = outputList
 	end function
 	
+	'create an arraylist of arraylists with the details of this message including he headers
+	public function createFullOutput()
+		dim fullOutput
+		dim headers
+		set fullOutput = me.createOuput()
+		set headers = getHeaders()
+		'insert the headers before the rest of the output
+		fullOutput.Insert 0, headers
+		set createFullOutput = fullOutput
+	end function
 	
 	'gets the maximum depth of this message
 	private function getMessageDepth()
@@ -160,10 +170,10 @@ Class Message
 		headers.Add("Cardinality")
 		'Type
 		headers.Add("Type")
-		'Test Rule
-		headers.Add("Test Rule")
 		'Test Rule ID
 		headers.Add("Test Rule ID")
+		'Test Rule
+		headers.Add("Test Rule")
 		'Error Reason
 		headers.Add("Error Reason")
 		'return the headers
@@ -173,42 +183,38 @@ Class Message
 	private function getTypesHeaders()
 		dim headers
 		set headers = CreateObject("System.Collections.ArrayList")
-		'first order
-		headers.add("Order") '0
 		'Category
-		headers.Add("Category") 'Enumeration or BaseType '1
+		headers.Add("Category") 'Enumeration or BaseType '0
 		'Type
-		headers.Add("Type") '2
+		headers.Add("Type") '1
 		'Code
-		headers.Add("Code") '3
+		headers.Add("Code") '2
 		'Description
-		headers.Add("Description") '4
-		'Derivation
-		headers.Add("Derivation") 'Restriction or List '5
-		'DerivedFrom
-		headers.Add("Derived From") '6
+		headers.Add("Description") '3
+		'Restriction Base
+		headers.Add("Restriction Base") '4
 		'fractionDigits
-		headers.Add("FractionDigits") '7
+		headers.Add("fractionDigits") '5
 		'length
-		headers.Add("Length") '8
+		headers.Add("length") '6
 		'maxExclusive
-		headers.Add("MaxExclusive") '9
+		headers.Add("maxExclusive") '7
 		'maxInclusive
-		headers.Add("MaxInclusive") '10
+		headers.Add("maxInclusive") '8
 		'maxLength
-		headers.Add("MaxLength")'11
+		headers.Add("maxLength")'9
 		'minExclusive
-		headers.Add("MinExclusive") '12
+		headers.Add("minExclusive") '10
 		'minInclusive
-		headers.Add("MinInclusive") '13
+		headers.Add("minInclusive") '11
 		'minLength
-		headers.Add("MinLength") '14
+		headers.Add("minLength") '12
 		'pattern
-		headers.Add("Pattern") '15
+		headers.Add("pattern") '13
 		'totalDigits
-		headers.Add("TotalDigits") '16
+		headers.Add("totalDigits") '14
 		'whiteSpace
-		headers.Add("WhiteSpace") '17
+		headers.Add("whiteSpace") '15
 		'return the headers
 		set getTypesHeaders = headers
 	end function
@@ -230,7 +236,7 @@ Class Message
 			set baseTypeElement = me.BaseTypes.Item(baseTypeName)
 			'first add the properties for the base type itself
 			dim baseTypeProperties
-			set baseTypeProperties = getBaseTypeProperties(baseTypeElement,elementOrder)
+			set baseTypeProperties = getBaseTypeProperties(baseTypeElement)
 			types.add baseTypeProperties
 		next
 		'add enumerations
@@ -239,16 +245,12 @@ Class Message
 		for each enumName in me.Enumerations.Keys
 			elementOrder = elementOrder + 1
 			set enumElement = me.Enumerations.Item(enumName)
-			'first add the properties for the enum itself
-			dim enumProperties
-			set enumProperties = getEnumProperties(enumElement,elementOrder)
-			types.add enumProperties
-			'then add all the literal values
+			'add all the literal values
 			dim enumLiteral as EA.Attribute
 			for each enumLiteral in enumElement.Attributes
 				elementOrder = elementOrder + 1
 				dim enumLiteralProperties
-				set enumLiteralProperties = getEnumLiteralProperties(enumElement,enumLiteral,elementOrder)
+				set enumLiteralProperties = getEnumLiteralProperties(enumElement,enumLiteral)
 				types.add enumLiteralProperties
 			next
 		next
@@ -256,91 +258,66 @@ Class Message
 		set getMessageTypes = types
 	end function
 	
-	Private function getEnumLiteralProperties(enumElement,enumLiteral,elementOrder)
+	Private function getEnumLiteralProperties(enumElement,enumLiteral)
 		dim enumLiteralProperties 
 		set enumLiteralProperties = CreateObject("System.Collections.ArrayList")
 		'first fill the array with empty strings
-		fillArrayList enumLiteralProperties, "", 18
-		'order
-		enumLiteralProperties(0) = elementOrder
+		fillArrayList enumLiteralProperties, "", 16
 		'category
-		enumLiteralProperties(1) = "Enumeration"
+		enumLiteralProperties(0) = "Enumeration"
 		'Type
-		enumLiteralProperties(2) = enumElement.Name
+		enumLiteralProperties(1) = enumElement.Name
 		'Code
-		enumLiteralProperties(3) = enumLiteral.Name
+		enumLiteralProperties(2) = enumLiteral.Name
 		'Description
-		enumLiteralProperties(4) = enumLiteral.Alias
+		enumLiteralProperties(3) = enumLiteral.Alias
 		'return the properties
 		set getEnumLiteralProperties = enumLiteralProperties
 	end function
 	
-	Private function getEnumProperties(enumElement,elementOrder)
-		dim enumProperties 
-		set enumProperties = CreateObject("System.Collections.ArrayList")
-		'first fill the array with empty strings
-		fillArrayList enumProperties, "", 18
-		'order
-		enumProperties(0) = elementOrder
-		'category
-		enumProperties(1) = "Enumeration"
-		'Type
-		enumProperties(2) = enumElement.Name
-		'Code
-		enumProperties(3) = "" 'emtpty for the enum itself
-		'Description
-		enumProperties(4) = "" 'emtpty for the enum itself
-		'return the properties
-		set getEnumProperties = enumProperties
-	end function
-	
-	Private function getBaseTypeProperties(baseType,elementOrder)
+	Private function getBaseTypeProperties(baseType)
 		dim baseTypeProperties 
 		set baseTypeProperties = CreateObject("System.Collections.ArrayList")
 		'first fill the array with empty strings
-		fillArrayList baseTypeProperties, "", 18
-		'order
-		baseTypeProperties(0) = elementOrder
+		fillArrayList baseTypeProperties, "", 16
 		'category
-		baseTypeProperties(1) = "BaseType"
+		baseTypeProperties(0) = "BaseType"
 		'Type
-		baseTypeProperties(2) = baseType.Name
+		baseTypeProperties(1) = baseType.Name
 		'Code
-		baseTypeProperties(3) = "" 'emtpty for the base type
+		baseTypeProperties(2) = "" 'emtpty for the base type
 		'Description
-		baseTypeProperties(4) = "" 'emtpty for the base type
-		'derived from
+		baseTypeProperties(3) = "" 'emtpty for the base type
+		'Restriction Base
 		dim derivedFrom
 		derivedFrom = getDerivedFrom(baseType)
-		baseTypeProperties(6) = derivedFrom
+		baseTypeProperties(4) = derivedFrom
 		'add properties based on the tagged values
 		dim tv as EA.TaggedValue
 		for each tv in baseType.TaggedValues
 			select case tv.Name
-				case "derivation"
-					baseTypeProperties(5) = tv.Value '5
 				case "fractionDigits"
-					baseTypeProperties(7) = tv.Value'7
+					baseTypeProperties(5) = tv.Value'5
 				case "length"
-					baseTypeProperties(8) = tv.Value '8
+					baseTypeProperties(6) = tv.Value '6
 				case "maxExclusive"
-					baseTypeProperties(9) = tv.Value '9
+					baseTypeProperties(7) = tv.Value '7
 				case "maxInclusive"
-					baseTypeProperties(10) = tv.Value '10
+					baseTypeProperties(8) = tv.Value '8
 				case "maxLength"
-					baseTypeProperties(11) = tv.Value '11
+					baseTypeProperties(9) = tv.Value '8
 				case "minExclusive"
-					baseTypeProperties(12) = tv.Value '12
+					baseTypeProperties(10) = tv.Value '10
 				case "minInclusive"
-					baseTypeProperties(13) = tv.Value '13
+					baseTypeProperties(11) = tv.Value '11
 				case "minLength"
-					baseTypeProperties(15) = tv.Value '15
+					baseTypeProperties(12) = tv.Value '12
 				case "pattern"
-					baseTypeProperties(15) = tv.Value '15
+					baseTypeProperties(13) = tv.Value '13
 				case "totalDigits"
-					baseTypeProperties(17) = tv.Value '17
+					baseTypeProperties(14) = tv.Value '14
 				case "whiteSpace"
-					baseTypeProperties(18) = tv.Value'18
+					baseTypeProperties(15) = tv.Value'15
 			end select
 		next
 		'return the base type properties
