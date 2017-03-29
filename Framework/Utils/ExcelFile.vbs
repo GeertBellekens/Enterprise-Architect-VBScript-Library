@@ -28,6 +28,9 @@ Class ExcelFile
 	Public Property Let FileName(value)
 	  m_FileName = value
 	End Property
+	public Property Get worksheets
+		set worksheets = m_WorkBook.Sheets
+	end property
 	
 	'public operations
 	'create a tab with the given name. The contents should parameter should be a two dimensional array
@@ -61,6 +64,23 @@ Class ExcelFile
 		dim project
 		set project = Repository.GetProjectInterface()
 		me.FileName = project.GetFileNameDialog ("", "Excel Files|*.xls;*.xlsx;*.xlsm", 1, 2 ,"", 1) 'save as with overwrite prompt: OFN_OVERWRITEPROMPT
+	end function
+	
+	public Function openUserSelectedFile()
+		dim selectedFileName
+		dim project
+		set project = Repository.GetProjectInterface()
+		me.FileName = project.GetFileNameDialog ("", "Excel Files|*.xls;*.xlsx;*.xlsm", 1, 0 ,"", 0) 'save as with overwrite prompt: OFN_OVERWRITEPROMPT
+		me.Open me.FileName
+	end function
+	
+	public function Open(filePath)
+		me.FileName = filePath
+		set m_WorkBook = m_ExcelApp.Workbooks.Open(me.FileName)
+	end function
+	
+	public function getContents(sheet)
+		getContents = sheet.UsedRange.Value2
 	end function
 	
 	public Function save()

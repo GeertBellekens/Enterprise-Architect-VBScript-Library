@@ -499,11 +499,19 @@ End Function
 
 'let the user select a package
 function selectPackage()
-	dim documentPackageElementID 		
-	documentPackageElementID = Repository.InvokeConstructPicker("IncludedTypes=Package") 
-	if documentPackageElementID > 0 then
+	'start from the selected package in the project browser
+	dim constructpickerString
+	constructpickerString = "IncludedTypes=Package"
+	dim treeselectedPackage as EA.Package
+	set treeselectedPackage = Repository.GetTreeSelectedPackage()
+	if not treeselectedPackage is nothing then
+		constructpickerString = constructpickerString &	";Selection=" & treeselectedPackage.PackageGUID
+	end if
+	dim packageElementID 		
+	packageElementID = Repository.InvokeConstructPicker(constructpickerString) 
+	if packageElementID > 0 then
 		dim packageElement as EA.Element
-		set packageElement = Repository.GetElementByID(documentPackageElementID)
+		set packageElement = Repository.GetElementByID(packageElementID)
 		dim package as EA.Package
 		set package = Repository.GetPackageByGuid(packageElement.ElementGUID)
 	else
