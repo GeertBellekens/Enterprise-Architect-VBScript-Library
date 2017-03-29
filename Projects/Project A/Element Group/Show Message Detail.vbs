@@ -72,7 +72,7 @@ function saveToExcelFile(message, messageOutput, messageHeaders)
 	set messageTypes = message.getMessageTypes()
 	dim messageTypesArray 
 	messageTypesArray = makeArrayFromArrayLists(messageTypes)
-	excelOutput.createTab message.Prefix & " Types", messageTypesArray, true, "TableStyleMedium13"
+	excelOutput.createTab message.Prefix & " Types", messageTypesArray, true, "TableStyleMedium4"
 	'create tab for message
 	'merge headers with output
 	messageOutput.Insert 0, messageHeaders
@@ -80,7 +80,7 @@ function saveToExcelFile(message, messageOutput, messageHeaders)
 	dim excelContents
 	excelContents = makeArrayFromArrayLists(messageOutput)
 	'add the output to a sheet in excel
-	excelOutput.createTab message.Prefix & " Msg", excelContents, true, "TableStyleMedium13"
+	excelOutput.createTab message.Prefix & " Msg", excelContents, true, "TableStyleMedium4"
 	'save the excel file
 	excelOutput.save
 end function

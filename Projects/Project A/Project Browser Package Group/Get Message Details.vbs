@@ -82,14 +82,14 @@ function saveToExcelFile(allMessages)
 		set messageTypesList = message.getMessageTypes()
 		dim messageTypesArray
 		messageTypesArray = makeArrayFromArrayLists(messageTypesList)
-		excelOutput.createTab message.Prefix & " Types", messageTypesArray, true, "TableStyleMedium13"
+		excelOutput.createTab message.Prefix & " Types", messageTypesArray, true, "TableStyleMedium4"
 		'create tab for message contents
 		dim messageOutputList
 		set messageOutputList = message.createFullOutput()
 		dim messageOutputArray
 		messageOutputArray = makeArrayFromArrayLists(messageOutputList)
 		'add the output to a sheet in excel
-		excelOutput.createTab message.Prefix & " Msg", messageOutputArray, true, "TableStyleMedium13"
+		excelOutput.createTab message.Prefix & " Msg", messageOutputArray, true, "TableStyleMedium4"
 	next
 	'only save if there is anything to save
 	if allMessages.Count > 0 then

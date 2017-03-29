@@ -18,7 +18,7 @@ Class MessageNode
 	Private m_SourceAttribute
 	Private m_SourceAssociationEnd
 	Private m_SourceElement
-	Private m_ValidationRule
+	Private m_ValidationRules
 	Private m_IsLeafNode
 
 	'constructor
@@ -32,7 +32,7 @@ Class MessageNode
 		set m_SourceAttribute = nothing
 		set m_SourceAssociationEnd = nothing
 		set m_SourceElement = nothing
-		set m_ValidationRule = nothing
+		set m_ValidationRules = CreateObject("System.Collections.ArrayList")
 		m_IsLeafNode = false
 	End Sub
 	
@@ -161,13 +161,41 @@ Class MessageNode
 		set m_SourceElement = value
 	End Property
 	
-	' ValidationRule property.
-	Public Property Get ValidationRule
-		set ValidationRule = m_ValidationRule
+	' ValidationRules property.
+	Public Property Get ValidationRules
+		set ValidationRules = m_ValidationRules
 	End Property
-	Public Property Let ValidationRule(value)
-		set m_ValidationRule = value
+	Public Property Let ValidationRules(value)
+		set m_ValidationRules = value
 	End Property	
+	
+	Public function linkRuletoNode(validationRule, path)
+		if path.Count > 0 then
+			if path.Count = 1 then
+				'link it to this node
+				m_ValidationRules.Add validationRule
+			else
+				'go deeper
+				dim childNode
+				for each childNode in me.ChildNodes
+					dim newPath
+					set newPath = nothing
+					if path(1) = childNode.Name then
+						if newPath is nothing then
+							set newPath = CreateObject("System.Collections.ArrayList")
+							'create new path removing the first part
+							dim i
+							for i = 1 to path.Count -1 step +1
+								newPath.Add path(i)
+							next
+						end if
+						'go one level deeper
+						childNode.linkRuletoNode validationRule, newPath
+					end if
+				next
+			end if
+		end if
+	end function
 	
 	'public functions
 	public function intitializeWithSource(source,sourceConnector,in_multiplicity,in_validationRule,in_parentNode)
@@ -255,13 +283,24 @@ Class MessageNode
 		'create the output
 		dim nodeOutputList
 		set nodeOutputList = CreateObject("System.Collections.ArrayList")
-		'get the list for this node
 		dim currentNodeList
-		set currentNodeList = getThisNodeOutput(current_order,currentPath, messageDepth)
-		'up or the order number
-		current_order = current_order + 1
-		'add the list for this node to the output
-		nodeOutputList.Add currentNodeList
+		'get the list for this node
+		if me.ValidationRules.Count = 0 then
+			set currentNodeList = getThisNodeOutput(current_order,currentPath, messageDepth,nothing)
+			'up or the order number
+			current_order = current_order + 1
+			'add the list for this node to the output
+			nodeOutputList.Add currentNodeList
+		else
+			dim currentRule
+			for each currentRule in me.ValidationRules
+				set currentNodeList = getThisNodeOutput(current_order,currentPath, messageDepth,currentRule)
+				'up or the order number
+				current_order = current_order + 1
+				'add the list for this node to the output
+				nodeOutputList.Add currentNodeList
+			next
+		end if
 		'add this node to the currentPath
 		dim mycurrentpath
 		set myCurrentPath = CreateObject("System.Collections.ArrayList")
@@ -278,7 +317,9 @@ Class MessageNode
 		set getOuput = nodeOutputList
 	end function
 	
-	private function getThisNodeOutput(current_order,currentPath, messageDepth)
+
+	
+	private function getThisNodeOutput(current_order,currentPath, messageDepth,validationRule)
 		'get the list for this node
 		dim currentNodeList
 		set currentNodeList = CreateObject("System.Collections.ArrayList")
@@ -302,10 +343,10 @@ Class MessageNode
 			currentNodeList.Add ""
 		end if
 		'add the rules section
-		if not me.ValidationRule is nothing then
-			currentNodeList.Add me.ValidationRule.RuleId
-			currentNodeList.Add me.ValidationRule.Name
-			currentNodeList.Add me.ValidationRule.Reason
+		if not validationRule is nothing then
+			currentNodeList.Add validationRule.RuleId
+			currentNodeList.Add validationRule.Name
+			currentNodeList.Add validationRule.Reason
 		else
 			currentNodeList.Add ""
 			currentNodeList.Add ""

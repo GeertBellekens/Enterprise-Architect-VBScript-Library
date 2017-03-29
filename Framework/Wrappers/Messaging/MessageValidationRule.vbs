@@ -10,12 +10,16 @@ Class MessageValidationRule
 	Private m_Name
 	Private m_RuleID
 	private m_Reason
+	private m_TestElement
+	private m_Path
 	
 	'constructor
 	Private Sub Class_Initialize
 		m_Name = ""
 		m_RuleID = ""
 		m_Reason = ""
+		set m_TestElement = nothing
+		set m_Path = CreateObject("System.Collections.ArrayList")
 	End Sub
 	
 	'public properties
@@ -43,4 +47,31 @@ Class MessageValidationRule
 	Public Property Let Reason(value)
 	  m_Reason = value
 	End Property	
+	
+	' Path property.
+	Public Property Get Path
+	  set Path = m_Path
+	End Property
+	Public Property Let Path(value)
+	  set m_Path = value
+	End Property
+
+	
+	'public operations
+	public function initialiseWithTestElement(testElement)
+		set m_testElement = testElement
+		me.Name = m_testElement.Name
+		me.RuleId = m_testElement.Alias
+		me.Reason = Repository.GetFormatFromField("TXT",m_testElement.Notes)
+		'get the value of the path tagged value
+		dim pathString
+		pathString = getTaggedValueValue(m_testElement, "Constraint Path")
+		if len(pathString) > 0 then
+			dim part
+			for each part in Split(pathString,".")
+				m_Path.Add part
+			next
+		end if		
+	end function
+	
 end Class

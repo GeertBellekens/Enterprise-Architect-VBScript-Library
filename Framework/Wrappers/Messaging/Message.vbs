@@ -15,6 +15,7 @@ Class Message
 	Private m_BaseTypes
 	Private m_Enumerations
 	Private m_Prefix
+	private m_ValidationRules
 
 	'constructor
 	Private Sub Class_Initialize
@@ -24,6 +25,7 @@ Class Message
 		set m_BaseTypes = CreateObject("Scripting.Dictionary")
 		set m_Enumerations = CreateObject("Scripting.Dictionary")
 		m_Prefix = ""
+		set m_ValidationRules = CreateObject("System.Collections.ArrayList")
 	End Sub
 	
 	'public properties
@@ -67,6 +69,14 @@ Class Message
 	  Prefix = m_Prefix
 	End Property
 	
+	' ValidationRules property.
+	Public Property Get ValidationRules
+	  set ValidationRules = m_ValidationRules
+	End Property
+	Public Property Let ValidationRules(value)
+	  set m_ValidationRules = value
+	End Property
+	
 	public function loadMessage(eaRootNodeElement)
 		'set the name of the message
 		'the name of the message is equal to the name of the owning package
@@ -79,6 +89,8 @@ Class Message
 		me.RootNode = new MessageNode
 		me.RootNode.intitializeWithSource eaRootNodeElement, nothing, "1..1", nothing, nothing
 		setBaseTypesAndEnumerations(me.RootNode)
+		'link the message validation rules
+		getMessageValidationRules()
 	end function
 	
 	private function getPrefix(ownerPackage)
@@ -91,6 +103,29 @@ Class Message
 			end if
 		next
 	end function
+	
+	private function getMessageValidationRules()
+		dim getRulesElementsSQL
+		getRulesElementsSQL = 	"select r.* from ((t_object o                                     " & _
+								" inner join t_connector c on (c.End_Object_ID = o.Object_ID      " & _
+								" 							and c.Connector_Type = 'Dependency' ))" & _
+								" inner join t_object r on (c.Start_Object_ID = r.Object_ID       " & _
+								" 						and r.Object_Type = 'Test'                " & _
+								" 						and r.Stereotype = 'Message Test Rule'))  " & _
+								" where o.Object_ID = " & me.RootNode.ElementID
+		dim rulesElements
+		set rulesElements = getElementsFromQuery(getRulesElementsSQL)
+		dim rulesElement
+		for each rulesElement in rulesElements
+			dim validationRule
+			set validationRule = new MessageValidationRule
+			validationRule.initialiseWithTestElement(rulesElement)
+			m_ValidationRules.Add validationRule
+			'find the node this rule applies to ad add it to that node
+			me.RootNode.linkRuletoNode validationRule, validationRule.Path
+		next
+	end function
+	
 	
 	private function setBaseTypesAndEnumerations(messageNode)
 		'check if messageNode is leafNode

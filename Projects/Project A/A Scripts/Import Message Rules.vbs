@@ -119,12 +119,14 @@ function getRulesFromExcel(userSelectedPackage)
 						AND len(ruleID) = 0 _
 						AND len(ruleReason) = 0) then
 							'report error (not for all blanks)
-							Repository.WriteOutput outPutName, now() & " ERROR: Could not create Message Rule for row :" & i,0
+							Repository.WriteOutput outPutName, now() & " ERROR: Could not create Message Rule for row :" & i & " in sheet '" & sheet.Name & "'",0
 						end if
 					end if
 				next
 			next
 		next
+		'tell the user we are finished
+		Repository.WriteOutput outPutName, now() & " Finihsed Import message Rules from file'" & sourceExcelFile.FileName & "'",0
 	end if
 end function
 
@@ -142,11 +144,13 @@ Function getIndexesBasedOnHeaders(contents)
 end function
 
 function createMessageRule(path, ruleName, ruleID, ruleReason, ownerPackage)
+	Repository.WriteOutput outPutName, now() & " Adding Rule'" & ruleID & "'",0
 	'create MessageRule
 	dim messageRule as EA.Element
 	set messageRule = ownerPackage.Elements.AddNew(ruleName,"Test")
 	messageRule.StereotypeEx = "Message Test Rule"
 	messageRule.Alias = ruleID
+	messageRule.Notes = ruleReason
 	messageRule.Update
 	'add the tagged value with the concatenated path
 	dim pathTaggedValue as EA.TaggedValue
