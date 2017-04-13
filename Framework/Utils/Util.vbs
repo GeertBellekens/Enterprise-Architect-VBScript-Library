@@ -859,3 +859,130 @@ function getValueForkey(searchString, key)
 	'return the value
 	getValueForkey = returnValue
 end function
+
+function copyDiagram(diagram, targetOwner)
+	if targetOwner.Objecttype = otPackage then
+		'create the new diagram
+		dim copiedDiagram as EA.Diagram
+		set copiedDiagram = targetOwner.Diagrams.AddNew(diagram.Name, diagram.Type)
+		copiedDiagram.Stereotype = diagram.Stereotype
+		copiedDiagram.StyleEx = diagram.StyleEx
+		copiedDiagram.Notes = diagram.Notes
+		copiedDiagram.ExtendedStyle = diagram.ExtendedStyle
+		copiedDiagram.ShowDetails = diagram.ShowDetails
+		copiedDiagram.ShowPackageContents = diagram.ShowPackageContents
+		copiedDiagram.Version = diagram.Version
+		copiedDiagram.Update 'hopefully this is enough
+		'recreate all diagramObjects
+		copyDiagramObjects copiedDiagram, diagram
+		'recreate all diagramLinks
+		copyDiagramLinks copiedDiagram, diagram
+	else
+		msgbox "copy diagram currently only supported for copying to packages"
+	end if
+	'do we need to save the diagram here?
+	'diagram.Update
+	'return diagram
+	set copyDiagram = copiedDiagram
+end function 
+
+function copyDiagramObjects(copiedDiagram, diagram)
+	dim currentElement as EA.Element
+	dim currentDiagramObject as EA.DiagramObject
+	dim targetPackage as EA.Element
+	set targetPackage = Repository.GetPackageByID(copiedDiagram.PackageID)
+	for each currentDiagramObject in diagram.DiagramObjects
+		set currentElement = Repository.GetElementByID(currentDiagramObject.ElementID)
+		'in case of diagram owned objects we need to copy them as well
+		select case currentElement.Type
+			case "Note","Boundary","Text"
+			set currentElement = copyOwnedElement(currentElement,targetPackage)
+		end select
+		'copy the diagram object
+		dim newDiagramObject as EA.DiagramObject
+		set newDiagramObject = copiedDiagram.DiagramObjects.AddNew("","")
+		newDiagramObject.ElementID = currentDiagramObject.ElementID
+		newDiagramObject.top = currentDiagramObject.top
+		newDiagramObject.bottom = currentDiagramObject.bottom
+		newDiagramObject.left = currentDiagramObject.left
+		newDiagramObject.right = currentDiagramObject.right
+		newDiagramObject.fontSize = currentDiagramObject.fontSize
+		newDiagramObject.fontName = currentDiagramObject.fontName
+		newDiagramObject.FontBold = currentDiagramObject.FontBold
+		newDiagramObject.FontColor = currentDiagramObject.FontColor
+		newDiagramObject.FontItalic = currentDiagramObject.FontItalic
+		newDiagramObject.FontUnderline = currentDiagramObject.FontUnderline
+		newDiagramObject.Update
+	next
+end function
+
+function copyDiagramLinks(copiedDiagram, diagram)
+	dim currentDiagramLink as EA.DiagramLink
+	for each currentDiagramLink in diagram.DiagramLinks
+		'copy each diagram link
+		dim newDiagramLink as EA.DiagramLink
+		set newDiagramLink = copiedDiagram.DiagramLinks.AddNew("","")
+		newDiagramLink.ConnectorID = currentDiagramLink.ConnectorID
+		newDiagramLink.Geometry = currentDiagramLink.Geometry
+		newDiagramLink.IsHidden = currentDiagramLink.IsHidden
+		newDiagramLink.LineStyle = currentDiagramLink.LineStyle
+		newDiagramLink.LineColor = currentDiagramLink.LineColor
+		newDiagramLink.LineWidth = currentDiagramLink.LineWidth
+		newDiagramLink.Path = currentDiagramLink.Path
+		newDiagramLink.HiddenLabels = currentDiagramLink.HiddenLabels
+		newDiagramLink.Update
+	next
+end function
+
+function copyOwnedElement(currentElement, targetPackage)
+	dim newOwnedElement as EA.Element
+	set newOwnedElement = targetPackage.Elements.AddNew(currentElement.Name,currentElement.Type)
+	newOwnedElement.Notes = currentElement.Notes
+	newOwnedElement.Subtype = currentElement.Subtype
+	newOwnedElement.StyleEx = currentElement.StyleEx
+	newOwnedElement.Alias = currentElement.Alias
+	newOwnedElement.Update 'hopefully this is enough
+	'return the object
+	set copyOwnedElement = newOwnedElement
+end function
+
+function deletePackage(package)
+	if package.ParentID > 0 then
+		'get parent package
+		dim parentPackage as EA.Package
+		set parentPackage = Repository.GetPackageByID(package.ParentID )
+		dim i
+		'delete the pacakge
+		for i = parentPackage.Packages.Count -1 to 0 step -1
+			dim currentPackage as EA.Package
+			set currentPackage = parentPackage.Packages(i)
+			if currentPackage.PackageID = package.PackageID then
+				parentPackage.Packages.DeleteAt i,false
+				exit for
+			end if
+		next
+	end if
+end function
+
+function getOwner(item)
+	dim owner
+	select case item.ObjectType
+		case otPackage
+			if item.ParentID > 0 then
+				set owner = Repository.GetPackageByID(item.ParentID)
+			end if
+		case otElement,otDiagram
+			'if it has an element as owner then we return the element
+			if item.ParentID > 0 then
+				set owner = Repository.GetElementByID(item.ParentID)
+			else
+				if item.ObjectType <> otPackage then
+					'else we return the package (not for packages because then we have a root package that doesn't have an owner)
+					set owner = Repository.GetPackageByID(item.PackageID)
+				end if
+			end if
+	'TODO: add other cases such as attributes and operations
+	end select
+	'return owner
+	set getOwner = owner
+end function
