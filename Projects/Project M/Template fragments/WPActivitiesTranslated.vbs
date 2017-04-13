@@ -68,7 +68,11 @@ function createRows(xmlDOM, xmlData,packageID, tagname)
 		if tagname = "EN" then
 			xmlActivityName.text = activity.Name
 		else
-			xmlActivityName.text = activity.Alias
+			if len(activity.Alias) > 0 then
+				xmlActivityName.text = activity.Alias
+			else
+				xmlActivityName.text = activity.Name
+			end if
 		end if
 		xmlRow.appendChild xmlActivityName
 		
@@ -81,6 +85,14 @@ function createRows(xmlDOM, xmlData,packageID, tagname)
 		set xmlDescription = xmlDOM.createElement( "Description" )	
 
 		xmlDescription.text = getTagContent(activity.Notes, tagname)
+		'fall back to english if needed
+		if len(xmlDescription.text) = 0 then
+			xmlDescription.text = getTagContent(activity.Notes, "EN")
+		end if 
+		'fall back to full description if needed
+		if len(xmlDescription.text) = 0 then
+			xmlDescription.text = activity.Notes
+		end if 
 		xmlDescription.setAttributeNode(formattedAttr)
 		xmlRow.appendChild xmlDescription
 	next

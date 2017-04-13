@@ -39,9 +39,11 @@ sub createNewBusinessProcessDocument(businessProcessDocumentsPackageGUID, rootBu
 				createBusinessProcessDocument virtualDocumentPackage, rootBusinessProcess, documentLanguage
 			end if
 		end if
+		'Reload completely
+		Repository.RefreshModelView 0
+		'select the virtual document
+		Repository.ShowInProjectView(virtualDocumentPackage)
 	end if
-	'Reload completely
-	Repository.RefreshModelView 0
 	'inform user the document is finished
 	Repository.WriteOutput outPutName,now() & " Finished Create Business Process Document"  , 0
 end sub
@@ -90,15 +92,19 @@ function addE2EProcessToDocument(masterDocument, rootBusinessProcess, language)
 	dim rootDiagram as EA.Diagram
 	set rootDiagram = rootBusinessProcess.CompositeDiagram
 	if not rootDiagram is nothing then
+		dim diagramToUse as EA.Diagram
+		set diagramToUse = rootDiagram
 		' case of NL then we should create the dutch diagram and add a section to the document
 		if language <> "EN" then
 			dim dutchDiagram
 			set dutchDiagram = createDutchDiagram(rootDiagram,masterDocument)
 			if not dutchDiagram is nothing then
-				addModelDocumentForDiagram masterDocument,dutchDiagram, i, "BP_PackageDiagram"
-				i = i + 1
+				set diagramToUse = dutchDiagram
 			end if
 		end if
+		'actually add the diagram
+		addModelDocumentForDiagram masterDocument,diagramToUse, i, "BP_PackageDiagram"
+		i = i + 1
 		'get the Archimate Business Processes shown on the composite diagram
 		dim businessProcesses
 		dim sqlGetBusinessProcesses
@@ -112,7 +118,7 @@ function addE2EProcessToDocument(masterDocument, rootBusinessProcess, language)
 		'loop the business processes and add them to the document
 		dim businessprocess as EA.Element
 		for each businessprocess in businessProcesses
-			i = addBusinessProcessToDocument(masterDocument,businessprocess,i)
+			i = addBusinessProcessToDocument(masterDocument,businessprocess,i, language)
 		next
 	end if
 end function
@@ -124,8 +130,10 @@ function createDutchDiagram(diagram,masterDocument)
 	dim NlDiagramPackage as EA.Package
 	set NlDiagramPackage = getOrCreateDiagramPackage(masterDocument)
 	'add a package for the diagram
+	dim originalDiagramPackage as EA.Package
+	set originalDiagramPackage = Repository.GetPackageByID(diagram.PackageID)
 	dim diagrampackage
-	set diagrampackage = NlDiagramPackage.Packages.AddNew(diagram.Name, "")
+	set diagrampackage = NlDiagramPackage.Packages.AddNew(originalDiagramPackage.Name, "")
 	diagrampackage.Update
 	'add a copy of the diagram with he "use alias if available" enabled
 	'the only way to copy a diagram is to clone the package containing the diagram and then remove everything except for the diagram
@@ -135,12 +143,12 @@ function createDutchDiagram(diagram,masterDocument)
 		Repository.WriteOutput outPutName,now() & " ERROR: Failed to create Dutch diagram for '" & diagram & "'"  , 0
 	else
 		'set the "use alias switch
-		if instr(diagram.ExtendedStyle, "UseAlias=0") > 0 then
-			diagram.ExtendedStyle = replace(diagram.ExtendedStyle,"UseAlias=0","UseAlias=1")
+		if instr(dutchDiagram.ExtendedStyle, "UseAlias=0") > 0 then
+			dutchDiagram.ExtendedStyle = replace(dutchDiagram.ExtendedStyle,"UseAlias=0","UseAlias=1")
 		else
-			diagram.ExtendedStyle = diagram.ExtendedStyle & "UseAlias=1;"
+			dutchDiagram.ExtendedStyle = dutchDiagram.ExtendedStyle & "UseAlias=1;"
 		end if
-		diagram.Update
+		dutchDiagram.Update
 	end if
 	'return
 	set createDutchDiagram = dutchDiagram
@@ -153,6 +161,8 @@ function getOrCreateDiagramPackage(masterDocument)
 	'initialize at nothing
 	set diagramPackage = nothing
 	dim currentPackage as EA.Package
+	'refresh the packages to make sure we don't create duplicates
+	masterDocument.Packages.Refresh
 	for each currentPackage in masterDocument.Packages
 		if currentPackage.Name = "Diagrams_NL" then
 			set diagramPackage = currentPackage
@@ -167,15 +177,27 @@ function getOrCreateDiagramPackage(masterDocument)
 	set getOrCreateDiagramPackage = diagramPackage
 end function
 
-function addBusinessProcessToDocument(masterDocument,businessprocess,i)
+function addBusinessProcessToDocument(masterDocument,businessprocess,i, language)
 	'add the part for the element
-	addModelDocument masterDocument, "BP_Archimate Process_EN", businessprocess.Name & " Element", businessprocess.ElementGUID, i
+	addModelDocument masterDocument, "BP_Archimate Process_" & language, businessprocess.Name & " Element", businessprocess.ElementGUID, i
 	i = i + 1
 	'add the part for the diagram
 	dim compositeDiagram as EA.Diagram
 	set compositeDiagram = businessprocess.CompositeDiagram
+	'Check if the language is Dutch. In that case we have to make a dutch version of the diagram and use that in the document
 	if not compositeDiagram is nothing then
-		addModelDocumentForDiagram masterDocument,compositeDiagram, i, "BP_PackageDiagram"
+		dim diagramToUse as EA.Diagram
+		set diagramToUse = compositeDiagram
+		' case of NL then we should create the dutch diagram and add a section to the document
+		if language <> "EN" then
+			dim dutchDiagram
+			set dutchDiagram = createDutchDiagram(compositeDiagram,masterDocument)
+			if not dutchDiagram is nothing then
+				set diagramToUse = dutchDiagram
+			end if
+		end if
+		'actually add the diagram
+		addModelDocumentForDiagram masterDocument,diagramToUse, i, "BP_PackageDiagram"
 		i = i + 1
 		'then add all the workprocesses on the diagram
 		dim workProcesses
@@ -190,22 +212,31 @@ function addBusinessProcessToDocument(masterDocument,businessprocess,i)
 		'loop the workprocesses and add them to the document
 		dim workProcess
 		for each workProcess in workProcesses
-			i = addWorkProcessToDocument(masterDocument,workProcess,i)
+			i = addWorkProcessToDocument(masterDocument,workProcess,i,language)
 		next
 	end if
 	'return position
 	addBusinessProcessToDocument = i
 end function
 
-function addWorkProcessToDocument(masterDocument,workProcess,i)
+function addWorkProcessToDocument(masterDocument,workProcess,i,language)
 	'add the part for the element
-	addModelDocument masterDocument, "BP_BPMN Process_EN", workProcess.Name & " Element", workProcess.ElementGUID, i
+	addModelDocument masterDocument, "BP_BPMN Process_" & language, workProcess.Name & " Element", workProcess.ElementGUID, i
 	i = i + 1
 	'add the part for the diagram
 	dim compositeDiagram as EA.Diagram
 	set compositeDiagram = workProcess.CompositeDiagram
 	if not compositeDiagram is nothing then
-		addModelDocumentForDiagram masterDocument,compositeDiagram, i, "BP_WP Diagram Details_EN"
+		' case of NL then we should create the dutch diagram and add a section to the document
+		dim diagramToUse as EA.Diagram
+		if language <> "EN" then
+			dim dutchDiagram
+			set dutchDiagram = createDutchDiagram(compositeDiagram,masterDocument)
+			if not dutchDiagram is nothing then
+				set diagramToUse = dutchDiagram
+			end if
+		end if
+		addModelDocumentForDiagram masterDocument,compositeDiagram, i, "BP_WP Diagram Details_" & language
 		i = i + 1
 	end if 
 	addWorkProcessToDocument = i
@@ -214,6 +245,7 @@ end function
 'Delete the previous version if it exists
 function deletePreviousVersion(virtualDocumentPackage, masterDocumentName)
 	dim i
+	virtualDocumentPackage.Packages.Refresh
 	for i = 0 to virtualDocumentPackage.Packages.Count -1
 		dim currentPackage as EA.Package
 		set currentPackage = virtualDocumentPackage.Packages.GetAt(i)
