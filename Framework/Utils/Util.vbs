@@ -986,3 +986,11 @@ function getOwner(item)
 	'return owner
 	set getOwner = owner
 end function
+
+
+'put the given value onto the clipboard
+function putOnClipBoard(stringValue)
+	dim WshShell
+	Set WshShell = CreateObject("WScript.Shell")
+	WshShell.Run "cmd.exe /c echo " & stringValue & " | clip", 0, TRUE
+end function
