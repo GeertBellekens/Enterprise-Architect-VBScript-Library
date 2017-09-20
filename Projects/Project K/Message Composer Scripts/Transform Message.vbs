@@ -32,7 +32,7 @@ sub main
 									" and [ElementID] in                                           " & _
 									" (                                                            " & _
 									"  select a.ID from t_attribute a                              " & _
-									"  inner join t_object o on a.[Object_ID] = o.[Object_ID]      " & _
+									"  inner join t_object o on a.Object_ID = o.Object_ID      " & _
 									"  where o.[Package_ID] in (" & packageIDTreeString & ")       " & _
 									" )                                                            "
 			'execute the update
@@ -43,7 +43,7 @@ sub main
 									" and [ElementID] in                                           " & _
 									" (                                                            " & _
 									"  select c.[Connector_ID] from t_connector c                  " & _
-									"  inner join t_object o on c.[Start_Object_ID] = o.[Object_ID]" & _
+									"  inner join t_object o on c.[Start_Object_ID] = o.Object_ID" & _
 									"  where o.[Package_ID] in (" & packageIDTreeString & ")       " & _
 									" )                                                            "
 			'execute the update

@@ -1,8 +1,7 @@
 '[path=\Projects\Project Bellekens\Bellekens Docgen]
 '[group=Bellekens DocGen]
 !INC Local Scripts.EAConstants-VBScript
-!INC Bellekens DocGen.DocGenHelpers
-!INC Bellekens DocGen.Util
+!INC Wrappers.Include
 '
 
 ' Script Name: UseCaseDocuemnt
@@ -58,21 +57,30 @@ end function
 
 
 function makeUseCaseMasterDocument(currentDiagram)
-	'we should ask the user for a version
 	dim documentTitle
 	dim documentVersion
 	dim documentName
-	dim diagramName
+	dim documentAlias
+	dim masterDocumentName
+	dim documentStatus
 	set makeUseCaseMasterDocument = nothing
-	diagramName = currentDiagram.Name
-	'to make sure document version is filled in
+	'we should ask the user for a version
 	documentVersion = ""
 	documentVersion = InputBox("Please enter the version of this document", "Document version", "x.y.z" )
+	'to make sure document version is filled in
 	if documentVersion <> "" then
 		'OK, we have a version, continue
-		documentName = "UCD - " & diagramName & " v. " & documentVersion
+		documentName = "UCD - " & currentDiagram.Name & " v. " & documentVersion
+		'fill in the master document details
+		documentAlias = currentDiagram.Name
+		documentTitle = documentName
+		documentAlias = documentName
+		masterDocumentName = documentName
+		documentStatus = "Draft"
+		'then actually create the master document
 		dim masterDocument as EA.Package
-		set masterDocument = addMasterDocumentWithDetails(useCaseDocumentsPackageGUID, documentName,documentVersion,diagramName)
+		set masterDocument = addMasterDocumentWithDetailTags (useCaseDocumentsPackageGUID,masterDocumentName,documentAlias,documentName,documentTitle,documentVersion,documentStatus)
+		'set masterDocument = addMasterDocumentWithDetails(useCaseDocumentsPackageGUID, documentName,documentVersion,diagramName)
 		set makeUseCaseMasterDocument = masterDocument
 	end if
 end function

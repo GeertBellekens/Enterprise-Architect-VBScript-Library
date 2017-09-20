@@ -40,7 +40,7 @@ end sub
 function fixEnumerationValues(selectedPackageIDString)
 	dim getEnumerationValues
 	getEnumerationValues =  "select a.[ID],ao.name from (((t_attribute a                                                               " & _
-							" inner join t_object o on o.[Object_ID] = a.[Object_ID])                                                  " & _
+							" inner join t_object o on o.Object_ID = a.Object_ID)                                                  " & _
 							" inner join [t_attributetag] tv on tv.[ElementID] = a.[ID])                                               " & _
 							" inner join [t_attribute] ao on ao.[ea_guid] like tv.VALUE)                                               " & _
 							" where (o.[Object_Type] = 'Enumeration' or (o.[Object_Type] = 'Class' and o.[Stereotype] = 'Enumeration'))" & _
