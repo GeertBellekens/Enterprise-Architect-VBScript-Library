@@ -994,3 +994,20 @@ function putOnClipBoard(stringValue)
 	Set WshShell = CreateObject("WScript.Shell")
 	WshShell.Run "cmd.exe /c echo " & stringValue & " | clip", 0, TRUE
 end function
+
+'merge two array together. First a1, then a2
+Function mergeArrays(a1, a2)
+  ReDim aTmp(Ubound(a1, 1) + Ubound(a2,1) + 1, UBound(a1, 2) )
+  Dim i, j, k
+  For i = 0 To UBound(a1, 1)
+      For j = 0 To UBound(aTmp, 2)
+          aTmp(i, j) = a1(i, j)
+      Next
+  Next
+  For k = 0 To UBound(a2, 1)
+      For j = 0 To UBound(aTmp, 2)
+          aTmp(i + k, j) = a2(k, j)
+      Next
+  Next
+  mergeArrays = aTmp
+End Function
