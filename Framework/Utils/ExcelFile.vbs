@@ -45,7 +45,7 @@ Class ExcelFile
 		ws.Name = tabName
 		'fill the contents
 		dim targetRange
-		set targetRange = ws.Range(ws.Cells(1,1), ws.Cells(Ubound(contents,1), Ubound(Contents,2)))
+		set targetRange = ws.Range(ws.Cells(1,1), ws.Cells(Ubound(contents,1) +1, Ubound(Contents,2) +1))
 		targetRange.Value2 = contents
 		'format as table if needed
 		if formatAsTable then

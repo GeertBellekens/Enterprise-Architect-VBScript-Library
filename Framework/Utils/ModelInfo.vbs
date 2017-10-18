@@ -374,3 +374,28 @@ function getOrCreateTaggedValue(owner,taggedValueName)
 	'if not found create new one
 	set getOrCreateTaggedValue = owner.TaggedValues.addNew(taggedValueName,"")
 end function
+
+function getRootPackage(selectedElement)
+	'initialize
+	set getRootPackage = nothing
+	dim selectedPackage as EA.Package
+	if selectedElement is nothing then
+		set selectedPackage = Repository.GetTreeSelectedPackage
+	else
+		if selectedElement.ObjectType = otElement _
+		  OR selectedElement.ObjectType = otDiagram then
+			set selectedPackage = Repository.GetPackageByID(selectedElement.PackageID)
+		elseif selectedElement.ObjectType = otPackage then
+			set selectedPackage = selectedElement
+		end if
+	end if
+	if not selectedPackage is nothing then
+		if selectedPackage.ParentID = 0 then
+			set getRootPackage = selectedPackage
+		else
+			dim parentPackage
+			set parentPackage = Repository.GetPackageByID(selectedPackage.ParentID)
+			set getRootPackage = getRootPackage(parentPackage)
+		end if 
+	end if
+end function
