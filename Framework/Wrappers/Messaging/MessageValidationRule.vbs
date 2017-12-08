@@ -55,14 +55,22 @@ Class MessageValidationRule
 	Public Property Let Path(value)
 	  set m_Path = value
 	End Property
+	
+	'test element property
+	Public Property Get TestElement
+	  set TestElement = m_TestElement
+	End Property
+	Public Property Let TestElement(value)
+	  initialiseWithTestElement value
+	End Property
 
 	
 	'public operations
 	public function initialiseWithTestElement(testElement)
 		set m_testElement = testElement
-		me.Name = m_testElement.Name
-		me.RuleId = m_testElement.Alias
-		me.Reason = Repository.GetFormatFromField("TXT",m_testElement.Notes)
+		me.Name = Repository.GetFormatFromField("TXT",m_testElement.Notes)
+		me.RuleId = m_testElement.Name
+		me.Reason = getTaggedValueValue(testElement, "Error Reason")
 		'get the value of the path tagged value
 		dim pathString
 		pathString = getTaggedValueValue(m_testElement, "Constraint Path")
@@ -73,5 +81,6 @@ Class MessageValidationRule
 			next
 		end if		
 	end function
+	
 	
 end Class

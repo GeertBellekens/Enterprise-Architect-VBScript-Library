@@ -83,7 +83,7 @@ function Main ()
 			'update log
 			Repository.WriteOutput outPutName, "Finished Create Schema From Package at " & now(), 0
 		end if 
-		writefile "c:\\temp\\schemaContents.xml", slqUpdateSchema
+		'writefile "c:\\temp\\schemaContents.xml", slqUpdateSchema
 		'main = xmlDOM.xml
 	end if
 end function

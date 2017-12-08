@@ -94,6 +94,12 @@ function addRow (xmlData, xmlDOM, element)
 	xmlActivityName.text = element.Name
 	xmlRow.appendChild xmlActivityName
 	
+	'notes
+	dim xmlActivityNotes
+	set xmlActivityNotes = xmlDOM.createElement("Notes")
+	xmlActivityNotes.text = element.Notes
+	XmlRow.appendChild xmlActivityNotes
+	
 	'description
 	dim descriptionfull
 	descriptionfull = getTagContent(element.Notes, "definition")
@@ -133,7 +139,11 @@ function getSubProcesses(diagram)
 	dim subProcess as EA.Element
 	for each diagramObject in sortedDiagramObjects
 		set subProcess = Repository.GetElementByID(diagramObject.ElementID)
-		if subProcess.Stereotype = "ArchiMate_BusinessProcess" OR subProcess.Stereotype = "Activity" then
+		if subProcess.Stereotype = "ArchiMate_BusinessProcess" _
+			OR subProcess.Stereotype = "Activity" _
+			OR (subProcess.Stereotype = "IntermediateEvent" AND len(subProcess.Notes) > 0) _
+			OR (subProcess.Stereotype = "StartEvent" AND len(subProcess.Notes) > 0) _
+			OR (subProcess.Stereotype = "EndEvent" AND len(subProcess.Notes) > 0) then
 			sortedSubProcesses.Add subProcess
 		end if
 	next
@@ -208,4 +218,4 @@ function diagramObjectIsAfterXY(thisElement, nextElement)
 	end if
 end function
 
-'Session.Output MyRtfData(9721)
+'msgbox MyRtfData(213457)

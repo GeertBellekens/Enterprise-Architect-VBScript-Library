@@ -159,23 +159,23 @@ Class Message
 	end function
 	
 	'create an arraylist of arraylists with the details of this message
-	public function createOuput()
+	public function createOuput(includeRules)
 		dim outputList
 		'create empty list for current path
 		dim currentPath
 		set currentPath = CreateObject("System.Collections.ArrayList")
 		'start with the rootnode
-		set outputList = me.RootNode.getOuput(1,currentPath,me.MessageDepth)
+		set outputList = me.RootNode.getOuput(1,currentPath,me.MessageDepth, includeRules)
 		'return outputlist
 		set createOuput = outputList
 	end function
 	
 	'create an arraylist of arraylists with the details of this message including he headers
-	public function createFullOutput()
+	public function createFullOutput(includeRules)
 		dim fullOutput
 		dim headers
-		set fullOutput = me.createOuput()
-		set headers = getHeaders()
+		set fullOutput = me.createOuput(includeRules)
+		set headers = getHeaders(includeRules)
 		'insert the headers before the rest of the output
 		fullOutput.Insert 0, headers
 		set createFullOutput = fullOutput
@@ -189,7 +189,7 @@ Class Message
 		getMessageDepth = message_depth
 	end function
 	
-	public function getHeaders()
+	public function getHeaders(includeRules)
 		dim headers
 		set headers = CreateObject("System.Collections.ArrayList")
 		'first order
@@ -205,12 +205,17 @@ Class Message
 		headers.Add("Cardinality")
 		'Type
 		headers.Add("Type")
-		'Test Rule ID
-		headers.Add("Test Rule ID")
-		'Test Rule
-		headers.Add("Test Rule")
-		'Error Reason
-		headers.Add("Error Reason")
+		
+		'with our without test rules
+		if includeRules then
+			'Test Rule ID
+			headers.Add("Test Rule ID")
+			'Test Rule
+			headers.Add("Test Rule")
+			'Error Reason
+			headers.Add("Error Reason")
+		end if
+		
 		'return the headers
 		set getHeaders = headers
 	end function
@@ -269,10 +274,15 @@ Class Message
 		for each baseTypeName in me.BaseTypes.Keys
 			elementOrder = elementOrder + 1
 			set baseTypeElement = me.BaseTypes.Item(baseTypeName)
-			'first add the properties for the base type itself
-			dim baseTypeProperties
-			set baseTypeProperties = getBaseTypeProperties(baseTypeElement)
-			types.add baseTypeProperties
+			if not IsObject(baseTypeElement) then
+				set baseTypeElement = nothing
+			end if
+			if not baseTypeElement is nothing then
+				'first add the properties for the base type itself
+				dim baseTypeProperties
+				set baseTypeProperties = getBaseTypeProperties(baseTypeElement)
+				types.add baseTypeProperties
+			end if
 		next
 		'add enumerations
 		dim enumName
@@ -376,6 +386,9 @@ Class Message
 		for each derivedFrom in baseType.BaseClasses
 			exit for
 		next
+		if not IsObject(derivedFrom) then
+			set derivedFrom = nothing
+		end if
 		if not derivedFrom is nothing then
 			getDerivedFrom = derivedFrom.Name
 		else

@@ -75,6 +75,19 @@ function saveToExcelFile(allMessages)
 	'create the excel file
 	dim excelOutput
 	set excelOutput = new ExcelFile
+	'with or without test rules
+	dim userinput
+	userinput = MsgBox( "With Test Rules?", vbYesNo + vbQuestion, "Message Overview Diagram")
+	dim includeRules
+	if userinput = vbYes then
+		'with test rules
+		includeRules = true
+	else	
+		'without test rules
+		includeRules = false
+	end if
+	
+	
 	'loop al messages
 	for each message in allMessages
 		'create tab for types
@@ -85,7 +98,7 @@ function saveToExcelFile(allMessages)
 		excelOutput.createTab message.Prefix & " Types", messageTypesArray, true, "TableStyleMedium4"
 		'create tab for message contents
 		dim messageOutputList
-		set messageOutputList = message.createFullOutput()
+		set messageOutputList = message.createFullOutput(includeRules)
 		dim messageOutputArray
 		messageOutputArray = makeArrayFromArrayLists(messageOutputList)
 		'add the output to a sheet in excel

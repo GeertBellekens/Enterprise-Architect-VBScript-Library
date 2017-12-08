@@ -33,7 +33,37 @@ function addMasterDocument (packageGUID, documentName)
 	set addMasterDocument = masterDocumentPackage
 end function
 
-'improved version of the addMasterDocumentWithDetails usign the tagged values
+function removeMasterDocumentDuplicates(packageGUID, masterDocumentName)
+	dim requireUserLock
+	requireUserLock = isRequireUserLockEnabled()
+	dim canDelete
+	canDelete = true
+	dim package AS EA.Package
+	set package = Repository.GetPackageByGuid(packageGUID)
+	'Remove the packages that start with the masterDocumentName
+	dim masterDocument as EA.Package
+	dim i
+	'turn off error handling
+	on error resume next
+	for i = package.Packages.Count -1 to 0 step -1
+		set masterDocument = package.Packages(i)
+		if len(masterDocumentName) <= len(masterDocument.Name) then
+			if requireUserLock then
+				canDelete = masterDocument.ApplyUserLockRecursive(true, true, true)
+			end if
+			'if the first part is equal then delete it
+			if canDelete _
+				and left(masterDocument.Name, len(masterDocumentName)) = masterDocumentName then
+				'delete the package
+				package.Packages.DeleteAt i,false
+			end if
+		end if
+	next
+	'turn error handling back on
+	on error goto 0
+end function
+
+'improved version of the addMasterDocumentWithDetails using the tagged values
 function addMasterDocumentWithDetailTags (packageGUID,masterDocumentName,documentAlias,documentName,documentTitle,documentVersion,documentStatus)
 	dim ownerPackage as EA.Package
 	set ownerPackage = Repository.GetPackageByGuid(packageGUID)

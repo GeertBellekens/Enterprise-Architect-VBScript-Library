@@ -26,9 +26,9 @@ sub main()
 		'set timestamp
 		Repository.WriteOutput outPutName, "Starting Add Data classification " & now(), 0
 		'start processing
-		AddTaggedValuetoOwnedElements selectedPackage, "Data Classification", "NOPII-NONBC"
+		AddTaggedValuetoOwnedElements selectedPackage, "Atrias::Data Classification", "NP-NBC"
 		'set timestamp
-		Repository.WriteOutput outPutName, "Starting Add Data classification " & now(), 0
+		Repository.WriteOutput outPutName, "Finished Add Data classification " & now(), 0
 	end if
 end sub
 
@@ -38,28 +38,30 @@ Function AddTaggedValuetoOwnedElements(package, tvName, tvValue)
     Dim element as EA.Element
     Dim taggedValue
     For Each element In package.Elements
-		Repository.WriteOutput outPutName, "Processing element  " & element.Name, 0
-        'first check if the tagged value already exists
-		set taggedValue = Nothing
-		dim existingTag
-		set existingTag = nothing
-        For Each existingTag In element.TaggedValues
-            If existingTag.name = tvName Then
-				Set taggedValue = existingTag
-				Exit For
+		if element.Type = "Class" then 'only for classes
+			Repository.WriteOutput outPutName, "Processing element  " & element.Name, 0
+			'first check if the tagged value already exists
+			set taggedValue = Nothing
+			dim existingTag
+			set existingTag = nothing
+			For Each existingTag In element.TaggedValues
+				If existingTag.name = tvName Then
+					Set taggedValue = existingTag
+					Exit For
+				end if
+			Next
+			'if it doesn't exist yet then add it
+			If taggedValue Is Nothing Then
+				Set taggedValue = element.TaggedValues.AddNew(tvName, "")
 			end if
-        Next
-        'if it doesn't exist yet then add it
-        If taggedValue Is Nothing Then
-            Set taggedValue = element.TaggedValues.AddNew(tvName, "")
+			'now update the value
+			If not taggedValue Is Nothing Then
+				taggedValue.Value = tvValue
+				taggedValue.Update
+			End If
+			'Do the same for all attributes
+			AddTaggedValuetoOwnedAttributes element, tvName, tvValue
 		end if
-		'now update the value
-		If not taggedValue Is Nothing Then
-            taggedValue.Value = tvValue
-            taggedValue.Update
-        End If
-		'Do the same for all attributes
-		AddTaggedValuetoOwnedAttributes element, tvName, tvValue
     Next
 	'then recursively do all sub-packages
 	dim subPackage

@@ -170,10 +170,13 @@ Class MessageNode
 	End Property	
 	
 	Public function linkRuletoNode(validationRule, path)
+		'initialize false
+		linkRuletoNode = false
 		if path.Count > 0 then
 			if path.Count = 1 then
 				'link it to this node
 				m_ValidationRules.Add validationRule
+				linkRuletoNode = true
 			else
 				'go deeper
 				dim childNode
@@ -187,10 +190,12 @@ Class MessageNode
 							dim i
 							for i = 1 to path.Count -1 step +1
 								newPath.Add path(i)
+								'return true
+								linkRuletoNode = true
 							next
 						end if
 						'go one level deeper
-						childNode.linkRuletoNode validationRule, newPath
+						linkRuletoNode = childNode.linkRuletoNode(validationRule, newPath)
 					end if
 				next
 			end if
@@ -279,14 +284,14 @@ Class MessageNode
 	end function
 	
 	'gets the output format for this node and its childnodes
-	public function getOuput(current_order,currentPath,messageDepth)
+	public function getOuput(current_order,currentPath,messageDepth, includeRules)
 		'create the output
 		dim nodeOutputList
 		set nodeOutputList = CreateObject("System.Collections.ArrayList")
 		dim currentNodeList
 		'get the list for this node
-		if me.ValidationRules.Count = 0 then
-			set currentNodeList = getThisNodeOutput(current_order,currentPath, messageDepth,nothing)
+		if me.ValidationRules.Count = 0 or not includeRules then
+			set currentNodeList = getThisNodeOutput(current_order,currentPath, messageDepth,nothing, includeRules)
 			'up or the order number
 			current_order = current_order + 1
 			'add the list for this node to the output
@@ -294,7 +299,7 @@ Class MessageNode
 		else
 			dim currentRule
 			for each currentRule in me.ValidationRules
-				set currentNodeList = getThisNodeOutput(current_order,currentPath, messageDepth,currentRule)
+				set currentNodeList = getThisNodeOutput(current_order,currentPath, messageDepth,currentRule, includeRules)
 				'up or the order number
 				current_order = current_order + 1
 				'add the list for this node to the output
@@ -310,7 +315,7 @@ Class MessageNode
 		dim childNode
 		for each childNode in me.ChildNodes
 			dim childOutPut
-			set childOutPut = childNode.getOuput(current_order,myCurrentPath,messageDepth)
+			set childOutPut = childNode.getOuput(current_order,myCurrentPath,messageDepth, includeRules)
 			nodeOutputList.AddRange(childOutPut)
 		next
 		'return list
@@ -319,7 +324,7 @@ Class MessageNode
 	
 
 	
-	private function getThisNodeOutput(current_order,currentPath, messageDepth,validationRule)
+	private function getThisNodeOutput(current_order,currentPath, messageDepth,validationRule, includeRules)
 		'get the list for this node
 		dim currentNodeList
 		set currentNodeList = CreateObject("System.Collections.ArrayList")
@@ -343,14 +348,16 @@ Class MessageNode
 			currentNodeList.Add ""
 		end if
 		'add the rules section
-		if not validationRule is nothing then
-			currentNodeList.Add validationRule.RuleId
-			currentNodeList.Add validationRule.Name
-			currentNodeList.Add validationRule.Reason
-		else
-			currentNodeList.Add ""
-			currentNodeList.Add ""
-			currentNodeList.Add ""
+		if includeRules then
+			if not validationRule is nothing then
+				currentNodeList.Add validationRule.RuleId
+				currentNodeList.Add validationRule.Name
+				currentNodeList.Add validationRule.Reason
+			else
+				currentNodeList.Add ""
+				currentNodeList.Add ""
+				currentNodeList.Add ""
+			end if
 		end if
 		'return output
 		set getThisNodeOutput = currentNodeList

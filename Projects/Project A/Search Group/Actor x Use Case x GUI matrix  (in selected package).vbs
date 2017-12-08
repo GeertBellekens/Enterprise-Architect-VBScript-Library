@@ -93,17 +93,19 @@ function addOutputRows(usecase, actors, directIndicator,outputRows)
 	dim row
 	dim actor as EA.Element
 	dim userInterface as EA.Element
-	for each actor in actors
+	for each actor in actors.Keys
 		dim actorType
 		actorType = getActorType(actor)
+		dim actorInheritance
+		actorInheritance = actors.Item(Actor)
 		'add rows for each actor
 		if userInterfaces.Count = 0 then
-			set row = getOutputRow(usecase, actor, actorType, directIndicator, nothing, package0, package1, package2, package3)
+			set row = getOutputRow(usecase, actor, actorType, actorInheritance, directIndicator, nothing, package0, package1, package2, package3)
 			outputRows.Add row
 		end if
 		'add rows for each user interface
 		for each userInterface in userInterfaces
-			set row = getOutputRow(usecase, actor, actorType, directIndicator, userInterface, package0, package1, package2, package3)
+			set row = getOutputRow(usecase, actor, actorType, actorInheritance, directIndicator, userInterface, package0, package1, package2, package3)
 			outputRows.Add row
 		next
 	next
@@ -119,7 +121,7 @@ function getActorType(actor)
 	end if
 end function
 
-function getOutputRow(usecase, actor, actorType, directIndicator, userInterface, package0, package1, package2, package3)
+function getOutputRow(usecase, actor, actorType,actorInheritance, directIndicator, userInterface, package0, package1, package2, package3)
 	'create outputrow
 	dim outputRow
 	set outputRow = CreateObject("System.Collections.ArrayList")
@@ -128,6 +130,7 @@ function getOutputRow(usecase, actor, actorType, directIndicator, userInterface,
 	outputRow.Add useCase.Type
 	outputRow.Add actor.Name
 	outputRow.Add actorType
+	outputRow.Add actorInheritance
 	outputRow.Add useCase.Name
 	if directIndicator then
 		outputRow.Add "Direct"
@@ -172,6 +175,7 @@ function showOutput(outputRows)
 	headers.Add "CLASSTYPE"
 	headers.Add "Actor"
 	headers.Add "Actor Type"
+	headers.Add "Inheritance"
 	headers.Add "Use Case"
 	headers.Add "Use Case Link Type"
 	headers.Add "User Interface"
@@ -221,13 +225,15 @@ function getActors(useCase)
 	dim actors
 	set actors = getElementsFromQuery(getDirectActorsSQL)
 	dim allActors
-	set allActors = CreateObject("System.Collections.ArrayList")
+	set allActors = CreateObject("Scripting.Dictionary")
 	'then get the specialized actors for each actor
 	dim actor as EA.Element
 	for each actor in actors
-		'add the actor itself
-		allActors.Add actor
-		set allActors = getSpecializedActors(actor, allActors)
+		if not allActors.Exists(actor) then
+			'add the actor itself
+			allActors.Add actor, "primary"
+			set allActors = getSpecializedActors(actor, allActors)
+		end if
 	next
 	'return the actors
 	set getActors = allActors
@@ -245,12 +251,14 @@ function getSpecializedActors(actor, allActors)
 						" and act.Object_ID not in (" & allActorsIDString & ")							  "
 	dim childActors
 	set childActors = getElementsFromQuery(getChildActorsSQL)
-	'add the childActors to the list of all actors
-	allActors.AddRange(childActors)
 	'go level deeper
 	dim childActor
 	for each childActor in childActors
-		set allActors = getSpecializedActors(actor, allActors)
+		'add it to the list of all actors
+		if not allActors.Exists(childActor) then
+			allActors.Add childActor, "inherited"
+			set allActors = getSpecializedActors(childActor, allActors)
+		end if
 	next
 	'return the list of actors
 	set getSpecializedActors = allActors

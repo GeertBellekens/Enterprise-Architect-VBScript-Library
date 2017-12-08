@@ -36,12 +36,19 @@ sub main
 end sub
 
 function createMandADocument()
-	'ask user for document name
-	dim documentName
-	documentName = InputBox("Please enter the name for this document", "Document Name", "MIG-DGO-M&A Business Requirements v X.Y")
+	'ask user for document version
+	dim documentVersion
+	documentVersion = InputBox("Please enter the version for this document", "Document Version", "x.y")
+	'get document info
+	dim masterDocumentName,documentAlias,documentName,documentTitle,documentStatus
+	documentAlias = "UMIG DGO" 
+	documentName = "Monitoring and Alerting"
+	documentTitle = "UMIG DGO - BR - XD - 04 - Information Delivery - " & documentName
+	documentStatus = "Voor implementatie / Pour implémentation"
+	masterDocumentName = documentTitle & " v" & documentVersion
 	'first create a master document
 	dim masterDocument as EA.Package
-	set masterDocument = addMasterDocument (documentsPackageGUID, documentName)
+	set masterDocument = addMasterDocumentWithDetailTags (documentsPackageGUID,masterDocumentName,documentAlias,documentName,documentTitle,documentVersion,documentStatus)
 	dim i
 	i = 1
 	
@@ -54,6 +61,14 @@ function createMandADocument()
 		'add domain title
 		addModelDocumentForPackage masterDocument,domainPackage,domainPackage.Name, i, "MA_Domain Title"
 		i = i + 1
+		'get the archimate grouping representing the domain that has M&A specifications
+		dim domainGroupingBamSpec
+		set domainGroupingBamSpec = getDomainGroupingBamSpecification(domainPackage)
+		if not domainGroupingBamSpec is nothing then
+			'add section for the BAM Specification of the domain
+			addModelDocument masterDocument, "MA_DomainSpecifications",domainPackage.Name & "." & domainGroupingBamSpec.Name, domainGroupingBamSpec.ElementGUID, i
+			i = i + 1
+		end if
 		'report processes
 		i = reportOwnedProcesses(masterDocument, domainPackage, i)
 		'get the subProcesses package for this domain
@@ -66,6 +81,22 @@ function createMandADocument()
 	next
 	'reload the package to show the actual order
 	Repository.RefreshModelView masterDocument.PackageID
+end function
+
+function getDomainGroupingBamSpecification(domainPackage)
+	dim sqlGetDomainGrouping
+	sqlGetDomainGrouping =  "select bam.Object_ID from (t_object o " & _
+							" inner join t_object bam on (bam.ParentID = o.Object_ID " & _
+							"			and bam.Stereotype = 'BAM_Specification')) " & _
+							" where o.Stereotype = 'Archimate_Grouping' " & _
+							" and o.name = '" & domainPackage.Name & "' " 
+	dim domainGroupingsBamSpecs
+	set domainGroupingsBamSpecs = getElementsFromQuery(sqlGetDomainGrouping)
+	if domainGroupingsBamSpecs.Count > 0 then
+		set getDomainGroupingBamSpecification = domainGroupingsBamSpecs(0)
+	else
+		set getDomainGroupingBamSpecification = nothing
+	end if
 end function
 
 function reportOwnedProcesses(masterDocument, domainPackage, i)
@@ -105,7 +136,7 @@ function addProcessDocuments(masterDocument, process, i)
 	dim BAMSpecification as EA.Element
 	for each BAMSpecification in BAMSpecifications
 		'add section for the BAM Specification
-		addModelDocument masterDocument, "MA_Specifications",BAMSpecification.Name, BAMSpecification.ElementGUID, i
+		addModelDocument masterDocument, "MA_Specifications", process.Name & "." & BAMSpecification.Name, BAMSpecification.ElementGUID, i
 		i = i + 1
 	next
 	addProcessDocuments = i

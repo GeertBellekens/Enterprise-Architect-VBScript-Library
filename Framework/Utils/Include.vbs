@@ -10,6 +10,7 @@
 !INC Utils.TextFile
 !INC Utils.XML
 !INC Utils.Util
+!INC Utils.EA Enums
 
 'Author: Geert Bellekens
 'Date: 2015-12-07

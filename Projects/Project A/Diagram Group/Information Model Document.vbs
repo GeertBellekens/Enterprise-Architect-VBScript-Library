@@ -4,16 +4,18 @@ option explicit
 
 !INC Local Scripts.EAConstants-VBScript
 !INC Atrias Scripts.DocGenUtil
-
 '
-' Script Name: Process Book
+' Script Name: Information Model Document
 ' Author: Geert Bellekens
-' Purpose: Create the virtual document for a process book based on the selected processes
+' Purpose: Create the virtual document for the Information Models based on the selected Message objects.
+' Use: Continued use for creating Information Model documents for MIG-DGO.
 ' Date: 08/05/2015
 '
 
 dim IMPackageGUID
 IMPackageGUID = "{74E1FDC4-6027-4401-BCDC-2EE41092E0DD}"
+
+
 
 dim DiagramTemplate, MessageTemplate_part1, MessageTemplate_part2
 
@@ -42,7 +44,7 @@ sub test()
 	next
 	'ask user for document name
 	dim documentName
-	documentName = InputBox("Please enter a name for this IM document", "Document Name", "MIG-DGO 6.0 - IM - XX - 05 - BusinessDomain vX.X")
+	documentName = InputBox("Please enter a name for this IM document", "Document Name", "UMIG DGO - IM - [XX] - 05 - [BusinessDomain] v[X.X]")
 	
 	createIMdocument selectedMessages, documentName
 	Msgbox "Finished!"
@@ -85,7 +87,7 @@ sub OnDiagramScript()
 			next
 			'ask user for document name
 			dim documentName
-			documentName = InputBox("Please enter a name for this IM document", "Document Name", "MIG-DGO 6.0 - IM - XX - 05 - BusinessDomain vX.X")
+			documentName = InputBox("Please enter a name for this IM document", "Document Name", "UMIG DGO - IM - [XX] - 05 - [BusinessDomain] v[X.X]")
 			
 			createIMdocument selectedMessages, documentName
 		else

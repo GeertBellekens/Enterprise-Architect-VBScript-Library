@@ -145,7 +145,7 @@ function linkDomainClassesWithUseCases(dictionary,regExp,usecases)
 			dim scenarioStep as EA.ScenarioStep
 			for each scenarioStep in scenario.Steps
 				'first remove any additional terms in the uses field
-				scenarioStep.Uses = removeAddionalUses(dependencies,scenarioStep.Uses, dictionary)
+				'scenarioStep.Uses = removeAddionalUses(dependencies,scenarioStep.Uses, dictionary)
 				dim matches
 				set matches = regExp.Execute(scenarioStep.Name)
 				dim classesToMatch 

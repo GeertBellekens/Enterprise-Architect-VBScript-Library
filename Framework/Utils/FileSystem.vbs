@@ -105,3 +105,13 @@ Function ChooseFile (ByVal initialDir, filter)
 	fso.DeleteFile(powershellOutputFile)
 
 End Function
+
+Function cleanFileName(fileName)
+	Dim regEx
+	Set regEx = CreateObject("VBScript.RegExp")
+
+	regEx.IgnoreCase = True
+	regEx.Global = True
+	regEx.Pattern = "[(?*"",\\<>&#~%{}+@:\/!;]+"
+	cleanFileName = regEx.Replace(fileName, "-")
+end function

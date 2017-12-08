@@ -63,14 +63,15 @@ function createProcessBook(domainGrouping, documentVersion)
 		end if
 	next
 	'get document info
-	dim masterDocumentName,documentAlias,documentName,documentTitle
-	documentAlias = domainGrouping.Name
-	documentName = "UMIG DGO - BR -" & domainGrouping.Alias &	" - " & domainGrouping.Name
-	documentTitle = documentName
-	masterDocumentName = documentName & " v. " & documentVersion
+	dim masterDocumentName,documentAlias,documentName,documentTitle,documentStatus
+	documentAlias = "UMIG DGO" 
+	documentName = domainGrouping.Name
+	documentTitle = "UMIG DGO - BR - " & domainGrouping.Alias & " - 02 - " & domainGrouping.Name
+	documentStatus = "Voor implementatie / Pour implémentation"
+	masterDocumentName = documentTitle & " v" & documentVersion
 	'first create a master document
 	dim masterDocument as EA.Package
-	set masterDocument = addMasterDocumentWithDetailTags (processBooksPackageGUID,masterDocumentName,documentAlias,documentName,documentTitle,documentVersion)
+	set masterDocument = addMasterDocumentWithDetailTags (processBooksPackageGUID,masterDocumentName,documentAlias,documentName,documentTitle,documentVersion,documentStatus)
 	dim i
 	i = 1
 	'sort the business processes

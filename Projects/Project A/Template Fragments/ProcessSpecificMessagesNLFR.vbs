@@ -41,6 +41,10 @@ function MyRtfData (objectID)
 	for each message in messages
 		addRow xmlData, xmlDOM, message
 	next
+	if messages.Count = 0 then
+		'if no messages found then we add N.v.t / S.O as output
+		addNotApplicableRow xmlDOM, xmlData
+	end if
 	MyRtfData = xmlDOM.xml
 end function
 
@@ -117,6 +121,39 @@ function addRow (xmlData, xmlDOM, messageFlow)
 		xmlDescFR.setAttributeNode(formattedAttr)
 		xmlRow.appendChild xmlDescFR
 	end if
+end function
+
+function addNotApplicableRow(xmlDOM, xmlData)
+	dim xmlRow
+	set xmlRow = xmlDOM.createElement( "Row" )
+	xmlData.appendChild xmlRow
+
+	dim xmlFISName
+	set xmlFISName = xmlDOM.createElement( "FISName" )			
+	xmlFISName.text = "n.v.t. - S.O."
+	xmlRow.appendChild xmlFISName
+	
+	dim xmlMessageName
+	set xmlMessageName = xmlDOM.createElement( "MessageName" )	
+	xmlMessageName.text = "n.v.t. - S.O."
+	xmlRow.appendChild xmlMessageName
+
+	dim formattedAttr 
+	
+	'description NL
+
+	dim xmlDescNL
+	set xmlDescNL = xmlDOM.createElement( "DescriptionNL" )	
+	xmlDescNL.text = "n.v.t."
+	xmlRow.appendChild xmlDescNL
+	
+	'description FR
+	
+	dim xmlDescFR
+	set xmlDescFR = xmlDOM.createElement( "DescriptionFR" )			
+	xmlDescFR.text = "S.O."
+	xmlRow.appendChild xmlDescFR
+	
 end function
 
 function getTechnicalMessageFromMessage(messageElement)

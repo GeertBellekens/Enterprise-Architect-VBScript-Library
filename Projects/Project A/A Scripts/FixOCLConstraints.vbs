@@ -98,8 +98,8 @@ function fixOCLConstraints(OCLElement, skippedStrings, messagingPackageIDs)
 		regExp.Pattern = "\b[\w]*_Type\b"
 		dim matches
 		set matches = regExp.Execute(constraintText)
-		'loop the matches and replace the _Type with empty string
 		dim match
+		'loop the matches and replace the _Type with empty string
 		For each match in matches
 			dim matchText
 			matchText = match.Value

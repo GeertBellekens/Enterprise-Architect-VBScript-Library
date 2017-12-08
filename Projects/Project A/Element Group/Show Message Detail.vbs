@@ -43,10 +43,22 @@ function showMessageDetail(selectedElement)
 	selectedMessage.loadMessage(selectedElement)
 	'get the headers
 	dim messageHeaders
-	set messageHeaders = selectedMessage.getHeaders()
+	
+	dim userinput
+	userinput = MsgBox( "With Test Rules?", vbYesNo + vbQuestion, "Message Overview Diagram")
+	dim includeRules
+	if userinput = vbYes then
+		'with test rules
+		includeRules = true
+	else	
+		'without test rules
+		includeRules = false
+	end if
+	set messageHeaders = selectedMessage.getHeaders(includeRules)
+	
 	'get the content in the proper output format
 	dim messageOutput
-	set messageOutput = selectedMessage.createOuput()
+	set messageOutput = selectedMessage.createOuput(includeRules)
 	'show the output in the search window
 	'create the output object
 	dim searchOutput

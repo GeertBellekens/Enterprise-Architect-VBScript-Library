@@ -543,9 +543,3 @@ function getTaggedValueValue(owner, taggedValueName)
 		end if
 	next
 end function
-
-function putOnClipBoard(stringValue)
-	dim WshShell
-	Set WshShell = CreateObject("WScript.Shell")
-	WshShell.Run "cmd.exe /c echo " & stringValue & " | clip", 0, TRUE
-end function

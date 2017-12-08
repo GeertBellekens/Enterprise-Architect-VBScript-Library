@@ -6,6 +6,7 @@
 ' Date: 06/07/2015
 
 !INC Local Scripts.EAConstants-VBScript
+!INC Wrappers.Include
 
 function addMasterDocument (packageGUID, documentName)
 	dim domainName
@@ -35,7 +36,7 @@ function addMasterDocument (packageGUID, documentName)
 end function
 
 'improved version of the addMasterDocumentWithDetails usign the tagged values
-function addMasterDocumentWithDetailTags (packageGUID,masterDocumentName,documentAlias,documentName,documentTitle,documentVersion)
+function addMasterDocumentWithDetailTags (packageGUID,masterDocumentName,documentAlias,documentName,documentTitle,documentVersion,documentStatus)
 	dim ownerPackage as EA.Package
 	set ownerPackage = Repository.GetPackageByGuid(packageGUID)
 	dim masterDocumentPackage as EA.Package
@@ -57,9 +58,11 @@ function addMasterDocumentWithDetailTags (packageGUID,masterDocumentName,documen
 			case "ReportName"
 				templateTag.Value = documentName
 			case "ReportTitle"
-				templateTag.Value = documentName
+				templateTag.Value = documentTitle
 			case "ReportVersion"
 				templateTag.Value = documentVersion
+			case "ReportStatus"
+				templateTag.Value = documentStatus
 		end select
 		'save changed
 		templateTag.Update
@@ -164,5 +167,18 @@ function addModelDocumentWithSearch(masterDocument, template,elementName, elemen
 		set attribute = modelDocElement.Attributes.AddNew(masterDocument.Name, "Package")
 		attribute.ClassifierID = masterDocument.Element.ElementID
 		attribute.Update
+	end if
+end function
+
+function getApplication(selectedElement)
+	getApplication = "CMS" 'default name
+	dim rootPackage as EA.Package
+	set rootPackage = getRootPackage(selectedElement)
+	if not rootPackage is nothing then
+		dim applicationName
+		applicationName = Replace(rootPackage.Name,"Application ","")
+		if len(applicationName) > 0 then
+			getApplication = applicationName
+		end if
 	end if
 end function
