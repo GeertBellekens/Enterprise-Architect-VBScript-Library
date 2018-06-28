@@ -497,6 +497,40 @@ Public Function convertQueryResultToArray(xmlQueryResult)
     convertQueryResultToArray = result
 End Function
 
+function getArrayListFromQuery(sqlQuery)
+	dim xmlResult
+	xmlResult = Repository.SQLQuery(sqlQuery)
+	set getArrayListFromQuery = convertQueryResultToArrayList(xmlResult)
+end function
+
+Function convertQueryResultToArrayList(xmlQueryResult)
+    Dim result
+	set result = CreateObject("System.Collections.ArrayList")
+    Dim xDoc 
+    Set xDoc = CreateObject( "MSXML2.DOMDocument" )
+    'load the resultset in the xml document
+    If xDoc.LoadXML(xmlQueryResult) Then        
+		'select the rows
+		Dim rowList
+		Set rowList = xDoc.SelectNodes("//Row")
+		Dim rowNode 
+		Dim fieldNode
+		'loop rows and find fields
+		For Each rowNode In rowList
+			dim rowArrayList
+			set rowArrayList = CreateObject("System.Collections.ArrayList")
+			'loop the field nodes
+			For Each fieldNode In rowNode.ChildNodes
+				'add the contents
+				rowArrayList.Add fieldNode.Text
+			Next
+			'add the row the the general list
+			result.Add rowArrayList
+		Next
+	end if
+    set convertQueryResultToArrayList = result
+end function
+
 'let the user select a package
 function selectPackage()
 	'start from the selected package in the project browser
@@ -610,7 +644,13 @@ function getTaggedValueValue(owner, taggedValueName)
 	getTaggedValueValue = ""
 	for each taggedValue in owner.TaggedValues
 		if lcase(taggedValueName) = lcase(taggedValue.Name) then
-			getTaggedValueValue = taggedValue.Value
+			if taggedValue.Value = "<memo>" then
+				'memo field, return the notes
+				getTaggedValueValue = taggedValue.Notes
+			else
+				'normal field
+				getTaggedValueValue = taggedValue.Value
+			end if
 			exit for
 		end if
 	next
@@ -811,7 +851,7 @@ function makeArrayFromArrayLists(arrayLists)
 	x = arrayLists.Count
 	y = arrayLists(0).Count
 	'redim the array to the correct dimensions
-	redim returnArray(x,y)
+	redim returnArray(x-1,y-1)
 	dim i,j
 	i = 0
 	dim row
@@ -849,8 +889,8 @@ function getValueForkey(searchString, key)
 		dim keyValuePair
 		if instr(keyValuePairString,"=") > 0 then
 			keyValuePair = split(keyValuePairString,"=")
-			if UBound(keyValuePair) = 2 then
-				if keyValuePair(1) = key then
+			if UBound(keyValuePair) = 1 then
+				if keyValuePair(0) = key then
 					returnValue = keyValuePair(1)
 				end if
 			end if
