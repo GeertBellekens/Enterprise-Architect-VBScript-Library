@@ -8,6 +8,9 @@
 
 !INC Utils.Include
 
+const xlCalculationAutomatic	= -4105	'Excel controls recalculation.
+const xlCalculationManual	= -4135	'Calculation is done when the user requests it.
+
 Class ExcelFile
 	'private variables
 	Private m_ExcelApp
@@ -32,9 +35,7 @@ Class ExcelFile
 		set worksheets = m_WorkBook.Sheets
 	end property
 	
-	'public operations
-	'create a tab with the given name. The contents should parameter should be a two dimensional array
-	public Function createTab(tabName, contents,formatAsTable, tableStyle)
+	private function createNewTab(tabName)
 		'check if the workbook has been created already
 		if m_WorkBook is nothing then
 			set m_WorkBook = m_ExcelApp.Workbooks.Add()
@@ -43,6 +44,48 @@ Class ExcelFile
 		Dim ws
 		Set ws = m_WorkBook.Sheets.Add()
 		ws.Name = tabName
+		set createNewTab = ws
+	end function 
+	
+	'public operations
+	'create a tab with the given name. The contents should parameter should be a two dimensional array
+	'anything int he contents that starts with "=" will be interpreted as a formula
+	public Function createTabWithFormulas(tabName, contents,formatAsTable, tableStyle)
+		'turn off automatic calculation
+		m_ExcelApp.Calculation = xlCalculationManual
+		'create the tab
+		Dim ws
+		set ws = createNewTab(tabName)
+		'fill the contents
+		'loop content
+		dim i
+		dim j
+		for i = 0 to Ubound(contents,1)
+			for j = 0 to Ubound(Contents,2)
+				dim cellValue
+				cellValue = contents(i,j)
+				if left(cellValue,1) = "=" then
+					ws.Cells(i + 1,j + 1).Formula = cellValue
+				else
+					ws.Cells(i + 1,j + 1).Value = cellValue
+				end if
+			next
+		next
+		dim targetRange
+		set targetRange = ws.Range(ws.Cells(1,1), ws.Cells(Ubound(contents,1) +1, Ubound(Contents,2) +1))
+		'format as table if needed
+		if formatAsTable then
+			formatSheetAsTable ws, targetRange, tableStyle
+		end if
+		'turn on automatic calculation
+		m_ExcelApp.Calculation = xlCalculationAutomatic
+	end function
+	'public operations
+	'create a tab with the given name. The contents should parameter should be a two dimensional array
+	public Function createTab(tabName, contents,formatAsTable, tableStyle)
+		'create the tab
+		Dim ws
+		set ws = createNewTab(tabName)
 		'fill the contents
 		dim targetRange
 		set targetRange = ws.Range(ws.Cells(1,1), ws.Cells(Ubound(contents,1) +1, Ubound(Contents,2) +1))
@@ -57,6 +100,8 @@ Class ExcelFile
 		dim table
 		Set table = worksheet.ListObjects.Add(1, targetRange, 1, 1)
 		table.TableStyle = tableStyle
+		'set autofit
+		targetRange.Columns.Autofit
 	end function
 	
 	public Function getUserSelectedFileName()

@@ -43,9 +43,10 @@ function showMessageDetail(selectedElement)
 	selectedMessage.loadMessage(selectedElement)
 	'get the headers
 	dim messageHeaders
-	
 	dim userinput
-	userinput = MsgBox( "With Test Rules?", vbYesNo + vbQuestion, "Message Overview Diagram")
+	if not selectedMessage.CustomOrdering then
+		userinput = MsgBox( "With Test Rules?", vbYesNo + vbQuestion, "Message Overview Diagram")
+	end if
 	dim includeRules
 	if userinput = vbYes then
 		'with test rules

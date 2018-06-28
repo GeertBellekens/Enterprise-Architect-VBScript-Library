@@ -32,11 +32,11 @@ Class Schema
 	 set Context = m_Context
 	End Property
 	Public Property Let Context(value)
-	  set m_Context = value
-	  'add the context as a SchemaElement
-	  if not me.Elements.Exists(me.Context.ElementGUID) then
-		addSchemaElement me.Context, me.Context.Name
-	  end if
+		set m_Context = value
+		'add the context as a SchemaElement
+		dim contextSchemaElement
+		set contextSchemaElement = addSchemaElement(me.Context, me.Context.Name, false)
+		contextSchemaElement.IsRoot = true
 	End Property
 	
 	' Elements property (Dictionary of source element GUID and SchemaElements)
@@ -123,43 +123,207 @@ Class Schema
 		dim ocl
 		on error resume next
 		for each ocl in OCLs
-			dim source
+			dim sourceProperty
+			set sourceProperty = nothing
 			'figure out which association end or attribute we are talking about
-			source = findSource(ocl.LeftHand)
+			dim sourceProperties
+			set sourceProperties = findSource(ocl.LeftHand)
+			if ocl.IsFacet  then
+				'facets are defined on the content, but should result in a tagged value on the attribute that uses the BDT as type.
+				if sourceProperties.Count > 1 then
+					set sourceProperty = sourceProperties(1)
+				end if
+			else
+				'other constraints are actually defined on the actual property
+				if sourceProperties.Count > 0 then
+					set sourceProperty = sourceProperties(0)
+				end if
+			end if
+			'set the constraint (if any) on the source
+			if not sourceProperty is nothing then
+				processConstraint sourceProperty, ocl
+			end if
+			'report any errors
 			if Err.Number <> 0 then
 				Repository.WriteOutput outPutName, now() &  " Error processing OCL statement:'" & ocl.Statement & "' ->" & Err.Description, 0
 				Err.Clear
 			end if
 		next
+		'set error handling back to standard
 		on error goto 0
+		'add the missing attributes
+		addMissingAttributes
+		'remove the properties with maxOccurs = 0
+		deleteNotNeededProperties
+		'merge duplicate refines
+		dim element
+		for each element in me.Elements.Items
+			element.mergeAllRedefines
+		next
+		
 	end function
 	
-	private function addSchemaElement(source, name)
-		dim addElement
-		'add the context as a SchemaElement
-		if not me.Elements.Exists(source.ElementGUID) then
-			addElement = true
+	'add the missing attributes for all «BDT» elements as they should always be part of the schema
+	function addMissingAttributes()
+		dim element
+		for each element in me.Elements.Items
+			if element.Source.Stereotype = "BDT" then 'TODO: check if really only needed for BDT's
+				'loop all attributes and add them.
+				dim attribute as EA.Attribute
+				for each attribute in element.Source.Attributes
+					createCorrespondingProperty attribute.Name, element
+				next
+			end if
+		next
+	end function
+	
+	'delete the properties that have a zero maxOccurs
+	function deleteNotNeededProperties()
+		dim element
+		for each element in me.Elements.Items
+			'then delete the properties that have a maxOccurs of 0
+			dim schemaProperty
+			for each schemaProperty in element.Properties.Items
+				if schemaProperty.maxOccurs = "0" then
+					schemaProperty.Delete
+				end if
+			next
+		next
+	end function
+
+	
+	
+	private function processConstraint(sourceProperty, ocl)
+		if not sourceProperty is nothing _
+			and not ocl is nothing then
+			'check the type of constraint
+			select case ocl.ConstraintType
+				case OCLEqual
+					setEqualValue sourceProperty, ocl.rightHand
+					'process next statement
+					processConstraint sourceProperty, ocl.NextOCLStatement
+				case OCLMultiplicity
+					if trim(lcase(ocl.Operator)) = "->isempty()" then
+						setMultiplicityValue sourceProperty, 0
+					else
+						setMultiplicityValue sourceProperty, ocl.rightHand
+					end if
+				case OCLChoice
+					'report choice
+					if not ocl.NextOCLStatement is nothing then
+						Repository.WriteOutput outPutName, now() &  " Choice constraint found between :'" & ocl.leftHand & "' with GUID " & sourceProperty.GUID &_
+									" with attribute '" & ocl.NextOCLStatement.LeftHand & "'",0
+					else
+						'invalid choice
+						Err.Raise vbObjectError + 13, "processConstraint", " Invalid choice statement in OCL constraint '" & ocl.Statement & "'"
+					end if
+				case else
+					'process facets
+					if ocl.IsFacet then
+						processFacetConstraint sourceProperty, ocl
+					else
+						'unknown constraint, should never happen
+						Err.Raise vbObjectError + 14, "processConstraint", " ConstraintType:'" & ocl.Operator & "' is Unknown in OCL constraint '" & ocl.Statement & "'"
+					end if
+			end select
+		end if
+	end function
+	
+	private function processFacetConstraint(sourceProperty, ocl)
+		'check if a tagged value for the facet already exists. If it does check if the value corresponds. If the value is different hen alert the user
+		'get the taggedValueName for the facet
+		dim facetTag as EA.TaggedValue
+		set facetTag = getExistingOrNewTaggedValue(sourceProperty.Source, ocl.FacetName)
+		'if the value is blank then simply fill it in
+		if facetTag.Value = "" then
+			facetTag.Value = replace(trim(ocl.RightHand), """","") 'we don't need any double quotes
+			facetTag.Update
+		elseif facetTag.Value <> replace(trim(ocl.RightHand), """","")  then
+			Repository.WriteOutput outPutName, now() &  " Duplicate facet found for attribute with with GUID " & sourceProperty.GUID &_
+									" Original facet: " & facetTag.Name & " -> " & facetTag.Value & _
+									" OCL statement = '" & ocl.Statement & "'",0
+		end if
+	end function
+	
+	private function setEqualValue(sourceProperty, rightHandValue)
+		if not sourceProperty.ClassifierSchemaElement is nothing then
+			'remove any parentheses left
+			rightHandValue = replace(rightHandValue, ")", "")
+			'get the name of the property
+			dim rightHandParts
+			dim identifier
+			rightHandParts = split(rightHandValue,"::")
+			'gets the last value of the array
+			identifier = rightHandParts(Ubound(rightHandParts))
+			processIdentifierPart identifier, sourceProperty.ClassifierSchemaElement, true
 		else
-			dim existingElement
-			set existingElement = me.Elements.Item(source.ElementGUID)
-			if existingElement.name = name then
-				addElement = false
-				'return it
-				set addSchemaElement = existingElement
+			Err.Raise vbObjectError + 11, "setEqualValue", "No ClassiferSchemaElement found for Property: '" & sourceProperty.Name & "' with GUID: '" & sourceProperty.GUID & "'"
+		end if
+	end function
+	private function setMultiplicityValue(sourceProperty, rightHandValue)
+		'if the right hand value is empty then it is an ->notEmpty() constraint -> minOccurs = 1
+		if len(rightHandValue) = 0 then
+			sourceProperty.minOccurs = "1"
+		else
+			if rightHandValue = "1" then
+				sourceProperty.minOccurs = "1"
+				sourceProperty.maxOccurs = "1"
+			elseif lcase(trim(rightHandValue)) = "optional" then
+				sourceProperty.minOccurs = "0"
+			elseif len(rightHandValue) >= 3 _
+				and left(rightHandValue,2) = "<=" then
+				'find the actual value
+				sourceProperty.maxOccurs = mid(rightHandValue,3)
+			elseif trim(rightHandValue) = "0" then
+				'set maxOccurs to 0
+				sourceProperty.maxOccurs = "0"
 			else
-				addElement = true
+				Err.Raise vbObjectError + 12, "setMultiplicityValue", "Value '" & rightHandValue & "' not valid as multiplicityValue for Property: '" & sourceProperty.Name & "' with GUID: '" & sourceProperty.GUID & "'" 
 			end if
 		end if
-		if addElement then
+	end function
+	
+	public function removeSchemaElement(element)
+		if me.Elements.Exists(element.GUID) then
+			if element.IsRedefinition then
+				dim parentElement
+				set parentElement = me.Elements.Item(element.GUID)
+				'must be a redefined element
+				parentElement.removeRedefine(element)
+			else
+				if element.Redefines.count = 0 then
+					'do not delete elements that still have redefines
+					me.Elements.Remove element.GUID
+				end if
+			end if
+		end if	
+	end function
+	
+	private function addSchemaElement(source, name, isNew)
+		'add the context as a SchemaElement
+		if not me.Elements.Exists(source.ElementGUID) then
 			'create new schema Element
 			dim schemaElement
 			set schemaElement = new SchemaElement
 			schemaElement.Source = source
 			schemaElement.Name = name
+			schemaElement.Schema = me
 			'add it to the list
 			me.Elements.Add schemaElement.GUID, schemaElement
 			'return it
 			set addSchemaElement = schemaElement
+		else
+			'element exists already
+			dim existingElement
+			set existingElement = me.Elements.Item(source.ElementGUID)
+			dim test as EA.Element
+			if isNew and existingElement.Source.Type = "Enumeration" then
+				'add redefine and return it
+				set addSchemaElement = existingElement.addNewRedefine()
+			else
+				'return it
+				set addSchemaElement = existingElement
+			end if
 		end if
 	end function
 	
@@ -171,27 +335,75 @@ Class Schema
 		dim localContext as EA.Element
 		set localContext = me.Context 'start with he MA as context
 		dim contextSchemaElement
-		set contextSchemaElement = addSchemaElement(localContext, localContext.Name)
+		set contextSchemaElement = addSchemaElement(localContext, localContext.Name, true)
 		dim i
+		dim correspondingProperty
+		dim correspondingProperties
+		set correspondingProperties = CreateObject("System.Collections.ArrayList")
 		'start from the second one as the first one will be "self"
 		for i = 1 to Ubound(identifierParts)
 			identifierPart = identifierParts(i)
-			set localContext = processIdentifierPart(identifierPart, contextSchemaElement)
-			'make sure the local context exists as SchemaElement
-			set contextSchemaElement = addSchemaElement(localContext, localContext.Name)
+			set correspondingProperty = createCorrespondingProperty(identifierPart,contextSchemaElement)
+			'set the context schema element
+			set contextSchemaElement = correspondingProperty.ClassifierSchemaElement
+			'add it to the list
+			correspondingProperties.Add correspondingProperty
 		next
+		'reverse the list to make the last corresponding property the first
+		correspondingProperties.Reverse
+		'return
+		set findSource = correspondingProperties
 	end function
+	function createCorrespondingProperty(identifierPart,contextSchemaElement)
+		dim correspondingProperty
+		dim localContext
+		dim isNew
+		set correspondingProperty = processIdentifierPart(identifierPart, contextSchemaElement, isNew)
+		'set the new local context
+		set localContext = correspondingProperty.Classifier
+		if correspondingProperty.ClassifierSchemaElement is nothing then
+			dim newContext
+			'make sure the local context exists as SchemaElement
+			set newContext = addSchemaElement(localContext, localContext.Name, isNew)
+			'set the classifierSchemaElement on the correspondingProperty
+			correspondingProperty.ClassifierSchemaElement = newContext
+		end if
+		'return property
+		set createCorrespondingProperty = correspondingProperty
+	end function 
 	
-	private function processIdentifierPart(identifierPart, contextSchemaElement)
+	private function processIdentifierPart(identifierPart, contextSchemaElement, byRef isNew)
 		'get the attribute or association starting from the localContext
 		dim correspondingProperty
-		set correspondingProperty = contextSchemaElement.getProperty(identifierPart)
-		'get the new local context
-		if not correspondingProperty is nothing then
-			set processIdentifierPart = correspondingProperty.Classifier
-		else
-			Err.Raise vbObjectError + 10, "processIdentifierPart", "Could not find '" & identifierPart & "' in the context of '" & localContext.Name & "'"
+		set correspondingProperty = contextSchemaElement.getProperty(identifierPart, isNew)
+		'return the corresponding property
+		if correspondingProperty is nothing and identifierPart <> "content" then
+			'check if there is an attribute name "content" and then process the identifierPart on that one
+			dim contentProperty 
+			set contentProperty = nothing 'initialize
+			'turn off error checking
+			on error resume next
+			set contentProperty = createCorrespondingProperty("content",contextSchemaElement)
+			'clear error and turn error checking back on
+			if Err.Number <> 0 then
+				Err.Clear
+			end if
+			on error goto 0
+			'now try this property
+			if not contentProperty is nothing then
+				dim contentSchemaElement 
+				set contentSchemaElement = contentProperty.ClassifierSchemaElement
+				if not contentSchemaElement is nothing then
+					set correspondingProperty = contentSchemaElement.getProperty(identifierPart, isNew)
+				end if
+			end if
+			if correspondingProperty is nothing then
+				'if still not found then raise error
+				Err.Raise vbObjectError + 10, "processIdentifierPart", "Could not find '" & identifierPart & "' in the context of '" & contextSchemaElement.Name & "' with GUID : " & contextSchemaElement.GUID
+			end if
 		end if
+		'return the corresponding property
+		set processIdentifierPart = correspondingProperty
 	end function
 	
 	public function tryGetElement(guid, byRef element)
@@ -203,7 +415,7 @@ Class Schema
 		tryGetElement = exists
 	end function
 	
-	private function getXML()
+	private function getXML()	
 		set xmlDOM = CreateObject( "Microsoft.XMLDOM" )
 		xmlDOM.validateOnParse = false
 		xmlDOM.async = false
@@ -232,8 +444,13 @@ Class Schema
 		'add all the elements to the schema
 		dim element 
 		for each element in me.Elements.Items
-			'add node
-			xmlSchema.appendChild createElementNode(xmlDom, element)
+			'don't add elements that are not used
+			if element.IsRoot _
+				OR element.ReferencingProperties.Count > 0 _
+				OR element.Redefines.Count > 0 then
+				'add node
+				xmlSchema.appendChild createElementNode(xmlDom, element)
+			end if
 		next
 		
 		'return xml string
@@ -330,20 +547,57 @@ Class Schema
 		xmlguidAtttr.nodeValue = element.GUID
 		xmlClass.setAttributeNode(xmlguidAtttr)
 		
-		'add propertiesnode
+		'add the properties
+		addProperties xmlDom, xmlClass, element
+		
+		'add redefines if needed
+		addRedefines xmlDom, xmlClass, element
+		
+		'return node
+		set createElementNode = xmlClass
+	end function
+	
+	function addProperties (xmlDom, xmlClass, element)
+		'create propertiesnode
 		dim xmlProperties
 		set xmlProperties= xmlDOM.createElement("properties")
 		dim schemaProperty
 		for each schemaProperty in element.Properties.Items
 			xmlProperties.appendChild createPropertyNode (xmlDOM, schemaProperty)
 		next
-				
 		'add xmlProperties to class node
 		xmlClass.appendChild xmlProperties
-		
-		'return node
-		set createElementNode = xmlClass
-	end function
+	end function 
+	
+	function addRedefines (xmlDom, xmlClass, element)
+		'only needed if any redefines exist
+		if element.Redefines.Count > 0 then
+			'create the redefines node
+			dim xmlRedefine
+			set xmlRedefine= xmlDOM.createElement("redefines")
+			'loop the redefines
+			dim redefine
+			for each redefine in element.Redefines.Items
+				'create the set node
+				dim xmlSet
+				set xmlSet = xmlDom.createElement("set")
+				'add the attribute typename
+				dim xmlTypeNameAttr
+				set xmlTypeNameAttr = xmlDOM.createAttribute("typename")
+				xmlTypeNameAttr.nodeValue = redefine.Name
+				xmlSet.setAttributeNode(xmlTypeNameAttr)
+				'add the properties for this redefined property
+				dim schemaProperty
+				for each schemaProperty in redefine.Properties.Items
+					xmlSet.appendChild createPropertyNode (xmlDOM, schemaProperty)
+				next
+				'add the set node to the redefines node
+				xmlRedefine.AppendChild xmlSet
+			next
+			'add the redefines node to the xmlClass node
+			xmlClass.AppendChild xmlRedefine
+		end if
+	end function 
 
 	private function createPropertyNode (xmlDOM, schemaProperty)
 		dim xmlProperty
@@ -358,8 +612,47 @@ Class Schema
 		'type attribute
 		dim xmltypeAtttr 
 		set xmltypeAtttr = xmlDOM.createAttribute("type")
-		xmltypeAtttr.nodeValue = schemaProperty.PropertyType
+		xmltypeAtttr.nodeValue = lcase(schemaProperty.PropertyType)
 		xmlProperty.setAttributeNode(xmltypeAtttr)
+		
+		'check if schemaProperty has a restriction
+		if schemaProperty.IsRestricted then
+			'type attribute
+			dim xmlRestrictedAttr 
+			set xmlRestrictedAttr = xmlDOM.createAttribute("restricted")
+			xmlRestrictedAttr.nodeValue = "true"
+			xmlProperty.setAttributeNode(xmlRestrictedAttr)
+			
+			'MinOccurs attribute
+			dim xmlMinOccursAttr 
+			set xmlMinOccursAttr = xmlDOM.createAttribute("minOccurs")
+			xmlMinOccursAttr.nodeValue = schemaProperty.minOccurs
+			xmlProperty.setAttributeNode(xmlMinOccursAttr)
+			
+			'maxOccurs attribute
+			dim xmlMaxOccursAttr 
+			set xmlMaxOccursAttr = xmlDOM.createAttribute("maxOccurs")
+			xmlMaxOccursAttr.nodeValue = schemaProperty.maxOccurs
+			xmlProperty.setAttributeNode(xmlMaxOccursAttr)
+			
+			'reDefines attribute
+			dim xmlRedefinesAttr 
+			set xmlRedefinesAttr = xmlDOM.createAttribute("redefines")
+			xmlRedefinesAttr.nodeValue = schemaProperty.redefines
+			xmlProperty.setAttributeNode(xmlRedefinesAttr)			
+
+			'byRef attribute -> always 0
+			dim xmlByRefAttr 
+			set xmlByRefAttr = xmlDOM.createAttribute("byRef")
+			xmlByRefAttr.nodeValue = "0"
+			xmlProperty.setAttributeNode(xmlByRefAttr)
+			
+			'inline attribute -> always 0
+			dim xmlInlineAttr 
+			set xmlInlineAttr = xmlDOM.createAttribute("inline")
+			xmlInlineAttr.nodeValue = "0"
+			xmlProperty.setAttributeNode(xmlInlineAttr)			
+		end if
 		
 		'return node
 		set createPropertyNode = xmlProperty

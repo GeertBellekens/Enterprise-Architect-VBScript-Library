@@ -7,7 +7,7 @@ option explicit
 
 ' {C2881351-5AA1-44dc-B546-FCD7B87F2761}
 ' Script Name: Convert OCLs To Schema Objects
-' Author: Matthias Van der Elst
+' Author: Matthias Van der Elst, Geert Bellekens
 ' Purpose: Convert the OCL's from the MessageAssemblies in the selected package to Schema Objects
 ' Date: 2017-09-20
 
@@ -50,7 +50,6 @@ function Main()
 			'get the OCL rules from the constraints
 			dim OCLs
 			set OCLs = getOCLs(constraints, ma)
-			
 			dim schema 
 			set schema = new Schema
 			'set the context
@@ -59,7 +58,7 @@ function Main()
 			'process the ocl's
 			schema.processOCLs OCLs, outputName
 			'debug
-			debugPrintSchema schema
+			'debugPrintSchema schema
 			'save the schema
 			schema.save
 		next	
@@ -102,6 +101,7 @@ function getOCLs(constraints, context)
 		i = 0
 		for each statement in statements
 			if len(statement) > 0 then
+				dim newOCL
 				set newOCL = new OCLStatement
 				newOCL.Context = context
 				newOCL.Statement = statement
@@ -141,7 +141,7 @@ function getConstraints(ma)
 			dim Facet, Template
 			Facet = Left(Trim(constraint.Name),5)
 			Template = Left(Trim(constraint.Name),16)
-			if not Facet = "Facet" and not Template = "Template Payload" then
+			if not Template = "Template Payload" then
 				Constraints.Add(constraint)
 			end if
 		end if

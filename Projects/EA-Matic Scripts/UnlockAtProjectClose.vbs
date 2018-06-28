@@ -7,7 +7,7 @@ option explicit
 '
 ' Script Name: UnlockAtProjectClose
 ' Author: Geert Bellekens
-' Purpose: Unlock all locks when closing a project
+' Purpose: Unlock all locks when closing a project (doesn't work yet because of a bug in EA-Matic fixed in version EA Toolpack version 1.0.23 or higher
 ' Date: 2016-08-05
 '
 'EA-Matic

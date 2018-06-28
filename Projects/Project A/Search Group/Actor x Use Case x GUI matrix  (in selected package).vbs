@@ -45,6 +45,9 @@ function getAllIncludesWithExecutionRights(allUseCases,currentPackageIDString)
 	next
 	dim outputRows
 	set outputRows = CreateObject("System.Collections.ArrayList")
+	'get the use case verbs with their CRUD value
+	dim useCaseVerbs
+	set useCaseVerbs = getUseCaseVerbs()
 	'create output format, and arraylist of arraylists that list actor, use case and GUI element
 	for each useCase in includesUseCasesforUseCase.Keys
 		'get the actors for this use case
@@ -52,18 +55,72 @@ function getAllIncludesWithExecutionRights(allUseCases,currentPackageIDString)
 		set actors = getActors(useCase)
 		dim includedUseCase
 		'add rows for this use case
-		addOutputRows usecase, actors, true , outputRows
+		addOutputRows usecase, actors, true , outputRows, useCaseVerbs
 		for each includedUseCase in includesUseCasesforUseCase(useCase)
 			'add rows for included use case
-			addOutputRows includedUseCase, actors, false , outputRows
+			addOutputRows includedUseCase, actors, false , outputRows, useCaseVerbs
 		next
 	next
 	'return output
 	set getAllIncludesWithExecutionRights = outputRows
 end function
 
-function addOutputRows(usecase, actors, directIndicator,outputRows)
+function getUseCaseVerbs()
+	'get the enumeration
+	dim verbsEnum as EA.Element
+	'get the use case verbs element (using it's guid)
+	set verbsEnum = Repository.GetElementByGuid("{4AF9CE03-15E0-4940-9C08-C5D11FEB5B67}")
+	if not verbsEnum is nothing then
+		dim verb as EA.Attribute
+		'make the dictionary
+		dim verbsDictionary
+		set verbsDictionary = CreateObject("Scripting.Dictionary")
+		for each verb in verbsEnum.Attributes
+			verbsDictionary.Add verb.Name, verb.Default
+		next
+	end if
+	'return
+	set getUseCaseVerbs = verbsDictionary
+end function
+
+function getCrudValue(usecase, useCaseVerbs)
+	dim crud
+	'inital invalid
+	crud = "Error - Unknown Verb"
+	'get the first word of the use case name
+	dim regexp
+	Set regexp = CreateObject("VBScript.RegExp")
+	regexp.Global = True   
+	regexp.IgnoreCase = False
+	regexp.Pattern = "(^\w{2} ?- ?\w{2,5} ?- ?\w{2,4} ?- ?(\w{2,4} ?- ?)?)(\w*)"
+	dim matches
+	set matches = regExp.Execute(usecase.Name)
+	dim match
+	dim verb
+	verb = "" 'initialize
+	'check if there is a match
+	if matches.Count = 1 then
+		set match = matches(0)
+		'take the last group. (could be 2 or 3 groups)
+		if match.submatches.Count = 2 then
+			verb = match.submatches(1)
+		elseif match.submatches.Count = 3 then
+			verb = match.submatches(2)
+		end if
+	end if
+	'find the verb
+	if useCaseVerbs.Exists(verb) then
+		crud = useCaseVerbs(verb)
+	end if
+	'return 
+	getCrudValue = crud
+end function
+
+function addOutputRows(usecase, actors, directIndicator, outputRows, useCaseVerbs)
 	Repository.WriteOutput outputTabName, now() & " Creating output for use case: " & usecase.Name , usecase.ElementID
+	'get the CRUD value for this use case
+	dim crud
+	crud = getCrudValue(usecase, useCaseVerbs)
 	'get the user interfaces
 	dim userInterfaces 
 	set userInterfaces = getUserInterfaces(usecase)
@@ -100,12 +157,12 @@ function addOutputRows(usecase, actors, directIndicator,outputRows)
 		actorInheritance = actors.Item(Actor)
 		'add rows for each actor
 		if userInterfaces.Count = 0 then
-			set row = getOutputRow(usecase, actor, actorType, actorInheritance, directIndicator, nothing, package0, package1, package2, package3)
+			set row = getOutputRow(usecase, crud, actor, actorType, actorInheritance, directIndicator, nothing, package0, package1, package2, package3)
 			outputRows.Add row
 		end if
 		'add rows for each user interface
 		for each userInterface in userInterfaces
-			set row = getOutputRow(usecase, actor, actorType, actorInheritance, directIndicator, userInterface, package0, package1, package2, package3)
+			set row = getOutputRow(usecase, crud, actor, actorType, actorInheritance, directIndicator, userInterface, package0, package1, package2, package3)
 			outputRows.Add row
 		next
 	next
@@ -114,14 +171,14 @@ end function
 function getActorType(actor)
 	dim actorPackage as EA.Package
 	set actorPackage = Repository.GetPackageByID(actor.PackageID)
-	if instr(actorPackage.Name, "Human") > 0 then
-		getActorType = "Human"
-	else
+	if instr(lcase(actorPackage.Name), "system") > 0 then
 		getActorType = "System"
+	else
+		getActorType = "Human"
 	end if
 end function
 
-function getOutputRow(usecase, actor, actorType,actorInheritance, directIndicator, userInterface, package0, package1, package2, package3)
+function getOutputRow(usecase,crud, actor, actorType,actorInheritance, directIndicator, userInterface, package0, package1, package2, package3)
 	'create outputrow
 	dim outputRow
 	set outputRow = CreateObject("System.Collections.ArrayList")
@@ -132,6 +189,7 @@ function getOutputRow(usecase, actor, actorType,actorInheritance, directIndicato
 	outputRow.Add actorType
 	outputRow.Add actorInheritance
 	outputRow.Add useCase.Name
+	outputRow.Add crud
 	if directIndicator then
 		outputRow.Add "Direct"
 	else
@@ -177,6 +235,7 @@ function showOutput(outputRows)
 	headers.Add "Actor Type"
 	headers.Add "Inheritance"
 	headers.Add "Use Case"
+	headers.Add "CRUD"
 	headers.Add "Use Case Link Type"
 	headers.Add "User Interface"
 	headers.Add "Package_level1 "

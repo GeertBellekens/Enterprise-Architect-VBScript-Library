@@ -31,9 +31,9 @@ sub main
 				msgbox "Please apply user lock to the selected package",vbOKOnly+vbExclamation,"Selected Package not locked!"
 				exit sub
 			end if
-			'copy enumeration values down for enumerations in the selected package
-			copyEnumValuesDown userSelectedPackage
 		end if
+		'copy enumeration values down for enumerations in the selected package
+		copyEnumValuesDown userSelectedPackage
 	end if
 	'set timestamp for end
 	Repository.WriteOutput outPutName,now() & " Finished Copy enumeration Values Down"  , 0
@@ -85,8 +85,19 @@ function copyValuesFromParent(enumeration, parentEnum, enumvalues)
 			'create the new value
 			dim newValue as EA.Attribute
 			set newValue = enumeration.Attributes.AddNew(parentValue.Name,"")
+			newValue.StereotypeEx = parentValue.StereotypeEx
 			newValue.notes = parentValue.Notes
 			newValue.Update
+			'copy the tagged values
+			dim taggedValue as EA.AttributeTag
+			dim newTaggedValue as EA.AttributeTag
+			for each taggedValue in parentValue.TaggedValues
+				if len(taggedValue.Value) > 0 then
+					set newTaggedValue = getExistingOrNewTaggedValue(newValue, taggedValue.Name)
+					newTaggedValue.Value = taggedValue.Value
+					newTaggedValue.Update
+				end if
+			next
 			'add it to the dictionary
 			enumvalues.Add newValue.Name, newValue
 		end if

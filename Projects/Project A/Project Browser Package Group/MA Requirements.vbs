@@ -141,7 +141,7 @@ function getInterfaces(currentPackageTreeIDString)
 						"on o.Object_ID = con.End_Object_ID) " & _
 						"left join t_object ai " & _
 						"on (con.Start_Object_ID = ai.Object_ID and ai.Stereotype = 'archimate_applicationinterface')) " & _
-						"where ai.Package_ID in (" & currentPackageTreeIDString & ") " & _
+						"where o.Package_ID in (" & currentPackageTreeIDString & ") " & _
 						"and o.Object_Type = 'Requirement'"
 	'Dim TextFile
 	'set TextFile = new TextFile

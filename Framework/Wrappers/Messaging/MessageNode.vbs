@@ -20,6 +20,10 @@ Class MessageNode
 	Private m_SourceElement
 	Private m_ValidationRules
 	Private m_IsLeafNode
+	Private m_CustomOrdering
+	Private m_Order
+	Private m_Facets
+	Private m_MappedBusinessAttributes
 
 	'constructor
 	Private Sub Class_Initialize
@@ -34,6 +38,10 @@ Class MessageNode
 		set m_SourceElement = nothing
 		set m_ValidationRules = CreateObject("System.Collections.ArrayList")
 		m_IsLeafNode = false
+		m_CustomOrdering = false
+		m_order = 0
+		set m_Facets = CreateObject("Scripting.Dictionary")
+		set m_MappedBusinessAttributes = CreateObject("System.Collections.ArrayList")
 	End Sub
 	
 	'public properties
@@ -169,6 +177,38 @@ Class MessageNode
 		set m_ValidationRules = value
 	End Property	
 	
+	'CustomOrdering property
+	Public Property Get CustomOrdering
+	  CustomOrdering = m_CustomOrdering
+	End Property
+	Public Property Let CustomOrdering(value)
+		m_CustomOrdering = value
+	End Property
+	
+	'Order property
+	Public Property Get Order
+	  Order = m_Order
+	End Property
+	Public Property Let Order(value)
+		m_Order = value
+	End Property
+	
+	' Facets property. (Dictionary with key = facet name, value = facet value)
+	Public Property Get Facets
+		set Facets = m_Facets
+	End Property
+	Public Property Let Facets(value)
+		set m_Facets = value
+	End Property
+	
+	' MappedBusinessAttributes property.
+	Public Property Get MappedBusinessAttributes
+		set MappedBusinessAttributes = m_MappedBusinessAttributes
+	End Property
+	Public Property Let MappedBusinessAttributes(value)
+		set m_MappedBusinessAttributes = value
+	End Property
+	
 	Public function linkRuletoNode(validationRule, path)
 		'initialize false
 		linkRuletoNode = false
@@ -215,45 +255,171 @@ Class MessageNode
 		'check if source is Element, Atttribute, or AssociationEnd
 		select case source.ObjectType
 			case otElement
-				me.SourceElement = source
-				me.Name = source.Name
-				me.TypeElement = source
-				me.Multiplicity = in_multiplicity
+				setElementNode source,in_multiplicity
 			case otAttribute
-				me.SourceAttribute = source
-				me.Name = source.Name
-				dim attributeTypeObject
-				set attributeTypeObject = nothing
-				if source.ClassifierID > 0 then
-					set attributeTypeObject = Repository.GetElementByID(source.ClassifierID)
-					me.TypeElement = attributeTypeObject
-				else
-					me.TypeName = source.Type
-				end if
+				setAttributeNode source
 			case otConnectorEnd
-				me.SourceAssociationEnd = source
-				if len(source.Role) > 0 then
-					me.Name = source.Role
-				else
-					dim endObject as EA.Element
-					'get the end object and use that name
-					if source.End = "Supplier" then
-						set endObject = Repository.GetElementByID(sourceConnector.SupplierID)
-					else
-						set endObject = Repository.GetElementByID(sourceConnector.ClientID)
-					end if
-					if not endObject is nothing then
-						me.Name = endObject.Name
-						me.TypeElement = endObject
-					end if
-				end if 
+				setConnectorEndNode source,sourceConnector
 		end select
+		Repository.WriteOutput outPutName, now() & " Processing node '" & me.Name & "'", 0
 		'set the isLeafNode property
 		setIsLeafNode
 		'then load the child nodes
 		if not me.IsLeafNode then
 			loadChildNodes
 		end if
+	end function
+	
+	'set the source node in case the source is an element
+	private function setElementNode(source,in_multiplicity)
+		me.SourceElement = source
+		me.Name = source.Name
+		me.TypeElement = source
+		me.Multiplicity = in_multiplicity
+	end function
+	
+	'set the source in case of an attribute
+	private function setAttributeNode(source)
+		me.SourceAttribute = source
+		'set the order
+		me.Order = getSequencingKey(source)
+		'set the name
+		me.Name = source.Name
+		'get the facets
+		getFacets source
+		'remove any underscores from the name in case of MIG6
+		if me.CustomOrdering then
+			me.Name = Replace(me.Name, "_","")
+		end if
+		'set the type
+		dim attributeTypeObject as EA.Element
+		set attributeTypeObject = nothing
+		if source.ClassifierID > 0 then
+			set attributeTypeObject = Repository.GetElementByID(source.ClassifierID)
+			'if the attributeTypeObject is a «BDT» then we get the attribute with stereotype «CON» and name "content" and use it's type as the typeElement
+			if attributeTypeObject.Stereotype = "BDT" then
+				'get the content attribute
+				dim conAttribute as EA.Attribute
+				set conAttribute = nothing
+				for each conAttribute in attributeTypeObject.Attributes
+					if conAttribute.Stereotype = "CON" _
+					  and conAttribute.Name = "content" then
+						exit for
+					end if
+				next
+				if not conAttribute is nothing then
+					if conAttribute.ClassifierID > 0 then
+						set attributeTypeObject = Repository.GetElementByID(conAttribute.ClassifierID)
+						me.TypeElement = attributeTypeObject
+					else
+						me.TypeName = conAttribute.Type
+					end if
+				else
+					'content attribute not found, set error
+					me.TypeName = "Error: BDT " & attributeTypeObject & " has no content attribute"
+				end if
+			else
+				'regular attribute
+				me.TypeElement = attributeTypeObject
+			end if
+		else
+			me.TypeName = source.Type
+		end if
+		'set the mapped BusinessAttributes
+		if me.CustomOrdering then 'only applicable for custom ordering
+			dim taggedValue as EA.AttributeTag
+			'find the tagged values with name mappedBusinessAttribute
+			for each taggedValue in source.TaggedValues
+				if lcase(taggedValue.Name) = "mappedbusinessattribute" then
+					dim businessAttribute as EA.Attribute
+					set businessAttribute = Repository.GetAttributeByGuid(taggedValue.Value)
+					if not businessAttribute is nothing then
+						MappedBusinessAttributes.Add businessAttribute
+					end if
+				end if
+			next
+		end if
+	end function
+	
+	'gets the facets from an attribute
+	private function getFacets(sourceAttribute)
+		dim tv as EA.TaggedValue
+		'first loop the standard facets
+		for each tv in sourceAttribute.TaggedValues
+			if tv.Name = "enumeration" _
+			  or tv.Name = "fractionDigits" _
+			  or tv.Name = "length" _
+			  or tv.Name = "maxExclusive" _
+			  or tv.Name = "maxInclusive" _
+			  or tv.Name = "maxLength" _
+			  or tv.Name = "minExclusive" _
+			  or tv.Name = "minInclusive" _
+			  or tv.Name = "minLength" _
+			  or tv.Name = "pattern" _
+			  or tv.Name = "totalDigits" _
+			  or tv.Name = "whiteSpace" then
+				me.Facets.Item(tv.Name) = tv.Value
+			end if
+		next
+		'then the overridden facets
+		for each tv in sourceAttribute.TaggedValues
+			if tv.Name = "override_enumeration" _
+			  or tv.Name = "override_fractionDigits" _
+			  or tv.Name = "override_length" _
+			  or tv.Name = "override_maxExclusive" _
+			  or tv.Name = "override_maxInclusive" _
+			  or tv.Name = "override_maxLength" _
+			  or tv.Name = "override_minExclusive" _
+			  or tv.Name = "override_minInclusive" _
+			  or tv.Name = "override_minLength" _
+			  or tv.Name = "override_pattern" _
+			  or tv.Name = "override_totalDigits" _
+			  or tv.Name = "override_whiteSpace" then
+				me.Facets.Item(Replace(tv.Name,"override_","")) = tv.Value
+			end if
+		next
+	end function
+	
+	
+	'set the source in case of a connectorEnd
+	private function setConnectorEndNode(source,sourceConnector)
+		me.SourceAssociationEnd = source
+		'set the order
+		me.Order = getSequencingKey(sourceConnector)
+		dim endObject as EA.Element
+		'get the end object 
+		if source.End = "Supplier" then
+			set endObject = Repository.GetElementByID(sourceConnector.SupplierID)
+		else
+			set endObject = Repository.GetElementByID(sourceConnector.ClientID)
+		end if
+		'set the name = name of role + name of end object + remove underscores
+		if len(source.Role) > 0 then
+			me.Name = source.Role & endObject.Name
+			me.Name = Replace(me.Name, "_","")
+		else
+			'use the end object name as rolename
+			me.Name = endObject.Name
+		end if 
+		'set the type
+		me.TypeElement = endObject
+	end function
+	
+	public function getSequencingKey(sourceItem)
+		'initialize at 0
+		getSequencingKey = 0
+		dim taggedValue as EA.TaggedValue
+		for each taggedValue in sourceItem.TaggedValues
+			if Lcase(taggedValue.Name) = "sequencingkey" then
+				on error resume next
+				getSequencingKey = CInt(taggedValue.Value)
+				if Err.Number <> 0 then
+					err.Clear
+				end if
+				on error goto 0
+				exit for
+			end if
+		next
 	end function
 	
 	'Loads the child nodes for this message (resursively until we have reached all the leaves)
@@ -265,7 +431,34 @@ Class MessageNode
 		'load attributes
 		loadAllAttributeNodes parents 
 		'load associations
+		loadAllAssociationNodes parents
 		'load nested classes?
+		'reorder nodes
+		if me.CustomOrdering then
+			reOrderChildNodes
+		end if
+	end function
+	
+	public function reOrderChildNodes
+		dim childNode
+			dim i
+		dim goAgain
+		goAgain = false
+		dim currentNode
+		dim nextNode
+		for i = 0 to me.ChildNodes.Count -2 step 1
+			set currentNode = me.ChildNodes.Item(i)
+			set nextNode = me.ChildNodes.Item(i +1)
+			if  currentNode.Order > nextNode.Order then
+				me.ChildNodes.RemoveAt(i +1)
+				me.ChildNodes.Insert i, nextNode
+				goAgain = true
+			end if
+		next
+		'if we had to swap an element then we go over the list again
+		if goAgain then
+			reOrderChildNodes
+		end if
 	end function
 	
 	'gets the maximum depth of this node and add that to the given depth
@@ -347,8 +540,38 @@ Class MessageNode
 		else
 			currentNodeList.Add ""
 		end if
+		'add the business attribute mapping and facets
+		if me.CustomOrdering then
+			'add business attribute mapping details
+			dim businessEntityNames
+			businessEntityNames = ""
+			dim businessAttributeNames
+			businessAttributeNames = ""
+			dim businessAttribute as EA.Attribute
+			dim businessEntity as EA.Element
+			for each businessAttribute in me.MappedBusinessAttributes
+				'get the owner of the businessAttribute
+				set businessEntity = Repository.GetElementByID(businessAttribute.ParentID)
+				'set newline if needed
+				if len(businessEntityNames) > 0 then
+					businessEntityNames = businessEntityNames & vbNewLine
+				end if
+				'add businessEntityName
+				businessEntityNames = businessEntityNames & businessEntity.Name
+				'set the business attribute name
+				if len(businessAttributeNames) > 0 then
+					businessAttributeNames = businessAttributeNames & vbNewLine
+				end if
+				'add the businessAttributeName
+				businessAttributeNames = businessAttributeNames & businessAttribute.Name
+			next
+			'add to the node list
+			currentNodeList.Add businessEntityNames
+			currentNodeList.Add businessAttributeNames
+			'add facets
+			currentNodeList.Add getFacetsSpecification()
 		'add the rules section
-		if includeRules then
+		elseif includeRules then
 			if not validationRule is nothing then
 				currentNodeList.Add validationRule.RuleId
 				currentNodeList.Add validationRule.Name
@@ -361,6 +584,18 @@ Class MessageNode
 		end if
 		'return output
 		set getThisNodeOutput = currentNodeList
+	end function
+	
+	private function getFacetsSpecification()
+		'initialize with empty string
+		getFacetsSpecification = ""
+		dim key
+		for each key in me.Facets.Keys
+			if len(getFacetsSpecification) > 0 then
+				getFacetsSpecification = getFacetsSpecification & vbNewLine
+			end if
+			getFacetsSpecification = getFacetsSpecification & key & ": " & me.Facets.Item(key)
+		next
 	end function
 	
 	'returns a list of all generalized elements of this elemnt
@@ -389,7 +624,7 @@ Class MessageNode
 		'return
 		set getParents = allParents
 	end function
-	'loads all Attribute notes both from this eleemnt as from its parents
+	'loads all Attribute notes both from this element as from its parents
 	private function loadAllAttributeNodes(parents)
 		'first load fro this element
 		dim allAttributeNodes
@@ -424,6 +659,7 @@ Class MessageNode
 			'create the next messageNode
 			dim newMessageNode
 			set newMessageNode = new MessageNode
+			newMessageNode.CustomOrdering = me.CustomOrdering
 			'initialize
 			newMessageNode.intitializeWithSource attribute, nothing, "", nothing, me
 			'add to the childnodes list
@@ -433,11 +669,59 @@ Class MessageNode
 		next
 	end function
 	
+	'loads all Association nodes both from this element as from its parents
+	private function loadAllAssociationNodes(parents)
+		'first load for this element
+		dim allAssociationNodes
+		set allAssociationNodes = loadAssociationChildNodes(nothing)
+		'then the ones from the parents
+		dim parent
+		for each parent in parents
+			allAssociationNodes.AddRange loadAssociationChildNodes(parent)
+		next
+	end function
+	
+	private function loadAssociationChildNodes(currentElement)
+		set loadAssociationChildNodes = CreateObject("System.Collections.ArrayList")
+		dim ownerElementID
+		if not currentElement is nothing then
+			ownerElementID = currentElement.ElementID
+		else
+			ownerElementID = me.ElementID
+		end if
+		'get associations
+		dim SQLAssociations
+		SQLAssociations = 	"select c.Connector_ID from (t_connector c " & _
+							" left join t_connectortag tv on (tv.ElementID = c.Connector_ID " & _
+							" 						and tv.Property = 'sequencingKey')) " & _
+							" where c.SourceIsAggregate > 0 " & _
+							" and c.Start_Object_ID = " & ownerElementID & "  " & _         
+							" order by tv.VALUE"
+		dim associations
+		set associations = getConnectorsFromQuery(SQLAssociations)
+		'loop the associations
+		dim association as EA.Connector
+		for each association in associations
+			'create the next messageNode
+			dim newMessageNode
+			set newMessageNode = new MessageNode
+			newMessageNode.CustomOrdering = me.CustomOrdering
+			'initialize
+			newMessageNode.intitializeWithSource association.SupplierEnd, association, "", nothing, me
+			'add to the childnodes list
+			me.ChildNodes.Add newMessageNode
+			'add to the output
+			loadAssociationChildNodes.Add newMessageNode
+		next
+	end function
+	
 	private function setIsLeafNode()
 		if not me.TypeElement is nothing then
 			if me.TypeElement.Type = "Enumeration"_
 			OR me.TypeElement.Stereotype = "Enumeration" _
-			OR me.TypeElement.Stereotype = "XSDsimpleType" then
+			OR me.TypeElement.Stereotype = "XSDsimpleType" _
+			OR me.TypeElement.Stereotype = "BDT" _
+			OR me.TypeElement.Stereotype = "PRIM" then
 				'enumerations and simple types are always leaf nodes
 				m_IsLeafNode = true
 			else

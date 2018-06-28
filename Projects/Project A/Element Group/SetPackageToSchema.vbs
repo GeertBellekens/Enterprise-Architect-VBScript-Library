@@ -1,5 +1,5 @@
-'[path=\Projects\Project A\Temp]
-'[group=Temp]
+'[path=\Projects\Project A\Element Group]
+'[group=Element Group]
 option explicit
 
 !INC Local Scripts.EAConstants-VBScript

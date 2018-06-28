@@ -16,6 +16,7 @@ Class Message
 	Private m_Enumerations
 	Private m_Prefix
 	private m_ValidationRules
+	Private m_CustomOrdering
 
 	'constructor
 	Private Sub Class_Initialize
@@ -26,6 +27,7 @@ Class Message
 		set m_Enumerations = CreateObject("Scripting.Dictionary")
 		m_Prefix = ""
 		set m_ValidationRules = CreateObject("System.Collections.ArrayList")
+		m_CustomOrdering = false
 	End Sub
 	
 	'public properties
@@ -77,7 +79,17 @@ Class Message
 	  set m_ValidationRules = value
 	End Property
 	
+	'CustomOrdering
+	Public Property Get CustomOrdering
+	  CustomOrdering = m_CustomOrdering
+	End Property
+	Public Property Let CustomOrdering(value)
+		m_CustomOrdering = value
+	End Property
+	
+	
 	public function loadMessage(eaRootNodeElement)
+		
 		'set the name of the message
 		'the name of the message is equal to the name of the owning package
 		dim ownerPackage as EA.Package
@@ -85,8 +97,21 @@ Class Message
 		me.Name = ownerPackage.Name
 		'set the prefix
 		m_Prefix = getPrefix(ownerPackage)
+		'set the customOrdering property (check if «MA» is one of the stereotypes
+		dim rootNodeStereotypes
+		dim rootNodeStereotype
+		rootNodeStereotypes = split(eaRootNodeElement.StereotypeEx, ",")
+		for each rootNodeStereotype in rootNodeStereotypes
+			if rootNodeStereotype = "MA" then
+				me.CustomOrdering = true
+				'for message assemblies the name is stored on the element
+				me.Name = eaRootNodeElement.Name
+				exit for
+			end if
+		next
 		'create the root node
 		me.RootNode = new MessageNode
+		me.RootNode.CustomOrdering = me.CustomOrdering
 		me.RootNode.intitializeWithSource eaRootNodeElement, nothing, "1..1", nothing, nothing
 		setBaseTypesAndEnumerations(me.RootNode)
 		'link the message validation rules
@@ -170,6 +195,18 @@ Class Message
 		set createOuput = outputList
 	end function
 	
+	'create an arraylist of arraylists with the details of this message
+	public function createUnifiedOutput(includeRules, depth)
+		dim outputList
+		'create empty list for current path
+		dim currentPath
+		set currentPath = CreateObject("System.Collections.ArrayList")
+		'start with the rootnode
+		set outputList = me.RootNode.getOuput(1,currentPath,depth, includeRules)
+		'return outputlist
+		set createUnifiedOutput = outputList
+	end function
+	
 	'create an arraylist of arraylists with the details of this message including he headers
 	public function createFullOutput(includeRules)
 		dim fullOutput
@@ -190,82 +227,20 @@ Class Message
 	end function
 	
 	public function getHeaders(includeRules)
-		dim headers
-		set headers = CreateObject("System.Collections.ArrayList")
-		'first order
-		headers.add("Order")
-		'then Message
-		headers.Add("Message")
-		'add the levels
-		dim i
-		for i = 1 to me.MessageDepth -1 step +1
-			headers.add("L" & i)
-		next
-		'Cardinality
-		headers.Add("Cardinality")
-		'Type
-		headers.Add("Type")
-		
-		'with our without test rules
-		if includeRules then
-			'Test Rule ID
-			headers.Add("Test Rule ID")
-			'Test Rule
-			headers.Add("Test Rule")
-			'Error Reason
-			headers.Add("Error Reason")
-		end if
-		
-		'return the headers
-		set getHeaders = headers
+		set getHeaders = getMessageHeaders(includeRules, me.MessageDepth, me.CustomOrdering)
 	end function
 	
 	private function getTypesHeaders()
-		dim headers
-		set headers = CreateObject("System.Collections.ArrayList")
-		'Category
-		headers.Add("Category") 'Enumeration or BaseType '0
-		'Type
-		headers.Add("Type") '1
-		'Code
-		headers.Add("Code") '2
-		'Description
-		headers.Add("Description") '3
-		'Restriction Base
-		headers.Add("Restriction Base") '4
-		'fractionDigits
-		headers.Add("fractionDigits") '5
-		'length
-		headers.Add("length") '6
-		'maxExclusive
-		headers.Add("maxExclusive") '7
-		'maxInclusive
-		headers.Add("maxInclusive") '8
-		'maxLength
-		headers.Add("maxLength")'9
-		'minExclusive
-		headers.Add("minExclusive") '10
-		'minInclusive
-		headers.Add("minInclusive") '11
-		'minLength
-		headers.Add("minLength") '12
-		'pattern
-		headers.Add("pattern") '13
-		'totalDigits
-		headers.Add("totalDigits") '14
-		'whiteSpace
-		headers.Add("whiteSpace") '15
-		'return the headers
-		set getTypesHeaders = headers
+		set getTypesHeaders = getMessageTypesHeaders(unified)
+	end function 
+	
+	Public function getUnifiedMessageTypes()
+		set getUnifiedMessageTypes = getMyMessageTypes(true)
 	end function
 	
-	Public function getMessageTypes()
+	private function getMyMessageTypes(unified)
 		dim types
 		set types = CreateObject("System.Collections.ArrayList")
-		'first add the headers
-		dim typeHeaders
-		set typeHeaders = getTypesHeaders()
-		types.add typeHeaders
 		'add base types
 		dim baseTypeName
 		dim baseTypeElement
@@ -281,6 +256,10 @@ Class Message
 				'first add the properties for the base type itself
 				dim baseTypeProperties
 				set baseTypeProperties = getBaseTypeProperties(baseTypeElement)
+				if unified then
+					'add the messageName
+					baseTypeProperties.Insert 0, me.Name
+				end if
 				types.add baseTypeProperties
 			end if
 		next
@@ -296,9 +275,26 @@ Class Message
 				elementOrder = elementOrder + 1
 				dim enumLiteralProperties
 				set enumLiteralProperties = getEnumLiteralProperties(enumElement,enumLiteral)
+				if unified then
+					'add the messageName
+					enumLiteralProperties.Insert 0, me.Name
+				end if
 				types.add enumLiteralProperties
 			next
 		next
+		'return the types
+		set getMyMessageTypes = types
+	end function
+	
+	Public function getMessageTypes()
+		dim types
+		set types = CreateObject("System.Collections.ArrayList")
+		'first add the headers
+		dim typeHeaders
+		set typeHeaders = getTypesHeaders()
+		types.add typeHeaders
+		'get the actual content
+		types.AddRange getMyMessageTypes(false)
 		'return the types
 		set getMessageTypes = types
 	end function
@@ -313,9 +309,17 @@ Class Message
 		'Type
 		enumLiteralProperties(1) = enumElement.Name
 		'Code
-		enumLiteralProperties(2) = enumLiteral.Name
+		enumLiteralProperties(2) = "'" & enumLiteral.Name
 		'Description
 		enumLiteralProperties(3) = enumLiteral.Alias
+		'Get the CodeName tagged value if it exists
+		dim codeNameTv as EA.AttributeTag
+		for each codeNameTv in enumLiteral.TaggedValues
+			if lcase(codeNameTv.Name) = "codename" then
+				enumLiteralProperties(3) = codeNameTv.Value
+				exit for
+			end if
+		next
 		'return the properties
 		set getEnumLiteralProperties = enumLiteralProperties
 	end function
@@ -402,3 +406,85 @@ Class Message
 	end function
 	
 end Class
+
+'"Static" functions
+
+public function getMessageHeaders(includeRules, depth, customOrdering)
+	dim headers
+	set headers = CreateObject("System.Collections.ArrayList")
+	'first order
+	headers.add("Order")
+	'then Message
+	headers.Add("Message")
+	'add the levels
+	dim i
+	for i = 1 to depth -1 step +1
+		headers.add("L" & i)
+	next
+	'Cardinality
+	headers.Add("Cardinality")
+	'Type
+	headers.Add("Type")
+	
+	if customOrdering then
+		'BusinessEntity
+		headers.Add("BusinessEntity")
+		'BusinessAttribute
+		headers.Add("BusinessAttribute")
+		'Facets
+		headers.Add("Facets")
+	elseif includeRules then
+		'with our without test rules
+		'Test Rule ID
+		headers.Add("Test Rule ID")
+		'Test Rule
+		headers.Add("Test Rule")
+		'Error Reason
+		headers.Add("Error Reason")
+	end if
+	'return the headers
+	set getMessageHeaders = headers
+end function
+
+private function getMessageTypesHeaders(unified)
+		dim headers
+		set headers = CreateObject("System.Collections.ArrayList")
+		'Message
+		if unified then
+			headers.Add("Message")
+		end if
+		'Category
+		headers.Add("Category") 'Enumeration or BaseType '0
+		'Type
+		headers.Add("Type") '1
+		'Code
+		headers.Add("Code") '2
+		'Description
+		headers.Add("Description") '3
+		'Restriction Base
+		headers.Add("Restriction Base") '4
+		'fractionDigits
+		headers.Add("fractionDigits") '5
+		'length
+		headers.Add("length") '6
+		'maxExclusive
+		headers.Add("maxExclusive") '7
+		'maxInclusive
+		headers.Add("maxInclusive") '8
+		'maxLength
+		headers.Add("maxLength")'9
+		'minExclusive
+		headers.Add("minExclusive") '10
+		'minInclusive
+		headers.Add("minInclusive") '11
+		'minLength
+		headers.Add("minLength") '12
+		'pattern
+		headers.Add("pattern") '13
+		'totalDigits
+		headers.Add("totalDigits") '14
+		'whiteSpace
+		headers.Add("whiteSpace") '15
+		'return the headers
+		set getMessageTypesHeaders = headers
+	end function

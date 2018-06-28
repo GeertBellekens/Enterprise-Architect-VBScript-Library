@@ -45,6 +45,8 @@ function determineLineStyle(connector)
 			determineLineStyle = lsTreeVerticalTree
 		case "UseCase", "Dependency","NoteLink", "Abstraction"
 			determineLineStyle = lsDirectMode
+		case "Sequence" 
+			exit function
 		case else
 			determineLineStyle = defaultStyle
 	end select
@@ -85,6 +87,9 @@ function EA_OnPostNewConnector(Info)
 			setConnectorStyle diagramLink, connector
 			'save the diagramlink
 			diagramLink.Update
+'			'try to fix bug regarding navigability
+'			connector.Direction = connector.Direction
+'			connector.Update
 			'reload the diagram to show the link style
 			Repository.ReloadDiagram diagram.DiagramID
 		end if
@@ -152,6 +157,9 @@ end function
 
 'actually sets the connector style
 function setConnectorStyle(diagramLink, connector)
+	if diagramLink is nothing then 
+		exit function
+	end if
 	'split the style into its parts
 	dim styleparts
 	dim styleString

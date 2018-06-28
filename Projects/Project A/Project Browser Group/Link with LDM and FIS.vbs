@@ -140,37 +140,26 @@ function linkDomainClassesWithUseCases(dictionary,regExp,usecases)
 		removeAllAutomaticTraces usecase
 		
 		dim scenario as EA.Scenario
+		dim useCaseText
+		'add the notes the text to verify
+		useCaseText = usecase.Notes & vbNewLine
 		'loop scenarios
 		for each scenario in usecase.Scenarios
 			dim scenarioStep as EA.ScenarioStep
 			for each scenarioStep in scenario.Steps
-				'first remove any additional terms in the uses field
-				'scenarioStep.Uses = removeAddionalUses(dependencies,scenarioStep.Uses, dictionary)
-				dim matches
-				set matches = regExp.Execute(scenarioStep.Name)
-				dim classesToMatch 
-				set classesToMatch = getClassesToMatchDictionary(matches, dictionary)
-				dim classToMatch as EA.Element
-				for each classToMatch in classesToMatch.Items
-'					Session.Output "scenarioStep.Uses before " & scenarioStep.Uses
-'					dim prefix
-'					'add the name of the class to the uses column
-'					select case classToMatch.Stereotype
-'						case "Message"
-'							prefix = "FIS"
-'						case else
-'							prefix = "LDM"
-'					end select
-'					'add to the uses field with the correct prefix
-'					addUsesToScenarioStep classToMatch, scenarioStep, prefix
-					'create the dependency between the use case and the Logical Data Model class
-					linkElementsWithAutomaticTrace usecase, classToMatch
-					'Session.Output "adding link between " & usecase.Name & " and " & Prefix & " element " & classToMatch.Name & " because of step " & scenario.Name & "." & scenarioStep.Name
-				next
-				'save scenario step
-				scenarioStep.Update
-				scenario.Update
+				'add the scenario text to the use case text				
+				useCaseText = useCaseText & scenarioStep.Name & vbNewline
 			next
+		next
+		'check for matches
+		dim matches
+		set matches = regExp.Execute(useCaseText)
+		dim classesToMatch 
+		set classesToMatch = getClassesToMatchDictionary(matches, dictionary)
+		dim classToMatch as EA.Element
+		for each classToMatch in classesToMatch.Items
+			'create the dependency between the use case and the Logical Data Model class
+			linkElementsWithAutomaticTrace usecase, classToMatch
 		next
 	next
 end function
