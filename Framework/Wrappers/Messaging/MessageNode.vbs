@@ -24,6 +24,9 @@ Class MessageNode
 	Private m_Order
 	Private m_Facets
 	Private m_MappedBusinessAttributes
+	Private m_IncludeDetails
+	Private m_BaseTypeName
+	Private m_BaseTypeElement
 
 	'constructor
 	Private Sub Class_Initialize
@@ -42,6 +45,9 @@ Class MessageNode
 		m_order = 0
 		set m_Facets = CreateObject("Scripting.Dictionary")
 		set m_MappedBusinessAttributes = CreateObject("System.Collections.ArrayList")
+		m_IncludeDetails = false
+		m_BaseTypeName = ""
+		set m_BaseTypeElement = nothing
 	End Sub
 	
 	'public properties
@@ -50,7 +56,18 @@ Class MessageNode
 	Public Property Get IsLeafNode
 		IsLeafNode = m_IsLeafNode
 	End Property
-
+	
+	' IncludeDetails property.
+	Public Property Get IncludeDetails
+		if not me.ParentNode is nothing then
+			IncludeDetails = me.ParentNode.IncludeDetails
+		else
+			IncludeDetails = m_IncludeDetails
+		end if
+	End Property
+	Public Property Let IncludeDetails(value)
+		m_IncludeDetails = value
+	End Property
 	
 	' Name property.
 	Public Property Get Name
@@ -78,7 +95,6 @@ Class MessageNode
 	End Property
 
 	' TypeName property
-	
 	Public Property Get TypeName
 		if not me.TypeElement is nothing then
 			TypeName = me.TypeElement.Name
@@ -90,11 +106,37 @@ Class MessageNode
 		m_TypeName = value
 		'if the typename if different from the TypeElement name then we remove the type Element
 		if not me.TypeElement is nothing then
-			if value <> me.TypeElement then
+			if value <> me.TypeElement.Name then
 				me.TypeElement = nothing
 			end if
 		end if
 	End Property
+	' BaseTypeElement property.
+	Public Property Get BaseTypeElement
+		set BaseTypeElement = m_BaseTypeElement
+	End Property
+	Public Property Let BaseTypeElement(value)
+		set m_BaseTypeElement = value
+	End Property
+	
+	' BaseTypeName property.
+	Public Property Get BaseTypeName
+		if not me.BaseTypeElement is nothing then
+			BaseTypeName = me.BaseTypeElement.Name
+		else
+			BaseTypeName = m_BaseTypeName
+		end if 
+	End Property
+	Public Property Let BaseTypeName(value)
+		m_BaseTypeName = value
+		'if the typename if different from the TypeElement name then we remove the type Element
+		if not me.BaseTypeElement is nothing then
+			if value <> me.BaseTypeElement.Name then
+				me.BaseTypeElement = nothing
+			end if
+		end if
+	End Property
+
 	
 	' Multiplicity property.
 	' only directly used if the source is element, else we use the Attribute or AssociationEnd multiplicity
@@ -285,8 +327,6 @@ Class MessageNode
 		me.Order = getSequencingKey(source)
 		'set the name
 		me.Name = source.Name
-		'get the facets
-		getFacets source
 		'remove any underscores from the name in case of MIG6
 		if me.CustomOrdering then
 			me.Name = Replace(me.Name, "_","")
@@ -308,11 +348,17 @@ Class MessageNode
 					end if
 				next
 				if not conAttribute is nothing then
+					'get the facets from the conAttribute as well
+					getFacets conAttribute
 					if conAttribute.ClassifierID > 0 then
-						set attributeTypeObject = Repository.GetElementByID(conAttribute.ClassifierID)
+						dim conTypeObject as EA.Element
+						set conTypeObject = Repository.GetElementByID(conAttribute.ClassifierID)
+						'check for directXSD types
+						me.BaseTypeElement = getBaseType(attributeTypeObject, conTypeObject)
 						me.TypeElement = attributeTypeObject
 					else
-						me.TypeName = conAttribute.Type
+						me.TypeElement = attributeTypeObject
+						me.BaseTypeName = conAttribute.Type
 					end if
 				else
 					'content attribute not found, set error
@@ -321,10 +367,21 @@ Class MessageNode
 			else
 				'regular attribute
 				me.TypeElement = attributeTypeObject
+				'find the parent class (not for enumerations)
+				if not (me.TypeElement.Type = "Enumeration" _
+					or lcase(me.TypeElement.Stereotype) = "enumeration") then
+					dim parentClass as EA.Element
+					for each parentClass in attributeTypeObject.BaseClasses
+						me.BaseTypeElement = parentClass
+						exit for 'return immediate
+					next
+				end if
 			end if
 		else
 			me.TypeName = source.Type
 		end if
+		'get the facets
+		getFacets source
 		'set the mapped BusinessAttributes
 		if me.CustomOrdering then 'only applicable for custom ordering
 			dim taggedValue as EA.AttributeTag
@@ -337,6 +394,29 @@ Class MessageNode
 						MappedBusinessAttributes.Add businessAttribute
 					end if
 				end if
+			next
+		end if
+	end function
+	
+	private function getBaseType(attributeTypeObject, conTypeObject)
+		'initialize
+		set getBaseType = conTypeObject
+		'figure out of the attributeTypeObject has tagged value with name "directXSDType" and value "true"
+		dim isDirectXSDType
+		isDirectXSDType = false
+		dim tv as EA.TaggedValue
+		for each tv in attributeTypeObject.TaggedValues
+			if lcase(tv.Name) = "directxsdtype" _
+			and lcase(tv.Value) = "true" then
+				isDirectXSDType = true
+			end if
+		next
+		if isDirectXSDType then
+			'find the parent class
+			dim parentClass as EA.Element
+			for each parentClass in attributeTypeObject.BaseClasses
+				set getBaseType = parentClass
+				exit for 'return immediate
 			next
 		end if
 	end function
@@ -534,40 +614,41 @@ Class MessageNode
 		next
 		'then add the other fields
 		currentNodeList.Add me.Multiplicity
-		'only add the name of the type if this is a leaf node
-		if me.IsLeafNode then
-			currentNodeList.Add me.TypeName
-		else
-			currentNodeList.Add ""
-		end if
+		'Add the name of the type 
+		currentNodeList.Add me.TypeName
+		'Add base type
+		currentNodeList.Add me.BaseTypeName
+		
 		'add the business attribute mapping and facets
 		if me.CustomOrdering then
-			'add business attribute mapping details
-			dim businessEntityNames
-			businessEntityNames = ""
-			dim businessAttributeNames
-			businessAttributeNames = ""
-			dim businessAttribute as EA.Attribute
-			dim businessEntity as EA.Element
-			for each businessAttribute in me.MappedBusinessAttributes
-				'get the owner of the businessAttribute
-				set businessEntity = Repository.GetElementByID(businessAttribute.ParentID)
-				'set newline if needed
-				if len(businessEntityNames) > 0 then
-					businessEntityNames = businessEntityNames & vbNewLine
-				end if
-				'add businessEntityName
-				businessEntityNames = businessEntityNames & businessEntity.Name
-				'set the business attribute name
-				if len(businessAttributeNames) > 0 then
-					businessAttributeNames = businessAttributeNames & vbNewLine
-				end if
-				'add the businessAttributeName
-				businessAttributeNames = businessAttributeNames & businessAttribute.Name
-			next
-			'add to the node list
-			currentNodeList.Add businessEntityNames
-			currentNodeList.Add businessAttributeNames
+			if not me.IncludeDetails then
+				'add business attribute mapping details
+				dim businessEntityNames
+				businessEntityNames = ""
+				dim businessAttributeNames
+				businessAttributeNames = ""
+				dim businessAttribute as EA.Attribute
+				dim businessEntity as EA.Element
+				for each businessAttribute in me.MappedBusinessAttributes
+					'get the owner of the businessAttribute
+					set businessEntity = Repository.GetElementByID(businessAttribute.ParentID)
+					'set newline if needed
+					if len(businessEntityNames) > 0 then
+						businessEntityNames = businessEntityNames & vbNewLine
+					end if
+					'add businessEntityName
+					businessEntityNames = businessEntityNames & businessEntity.Name
+					'set the business attribute name
+					if len(businessAttributeNames) > 0 then
+						businessAttributeNames = businessAttributeNames & vbNewLine
+					end if
+					'add the businessAttributeName
+					businessAttributeNames = businessAttributeNames & businessAttribute.Name
+				next
+				'add to the node list
+				currentNodeList.Add businessEntityNames
+				currentNodeList.Add businessAttributeNames
+			end if
 			'add facets
 			currentNodeList.Add getFacetsSpecification()
 		'add the rules section
@@ -650,6 +731,7 @@ Class MessageNode
 							" where o.Object_Type <> 'Enumeration'                       " & _
 							" and (o.Stereotype is null or o.Stereotype <> 'Enumeration')" & _
 							" and a.Object_ID = " & ownerElementID & "                   " & _
+							" and (a.Stereotype is null or a.Stereotype <> 'CON')        " & _
 							" order by a.Pos, a.Name                                     "
 		dim attributes
 		set attributes = getattributesFromQuery(SQLGetAttributes)
@@ -720,10 +802,18 @@ Class MessageNode
 			if me.TypeElement.Type = "Enumeration"_
 			OR me.TypeElement.Stereotype = "Enumeration" _
 			OR me.TypeElement.Stereotype = "XSDsimpleType" _
-			OR me.TypeElement.Stereotype = "BDT" _
 			OR me.TypeElement.Stereotype = "PRIM" then
 				'enumerations and simple types are always leaf nodes
 				m_IsLeafNode = true
+			' a BDT is only a leafnode if it doesn't have any attributes except for the CON(tent)
+			elseif me.TypeElement.Stereotype = "BDT" then
+				m_IsLeafNode = true
+				dim attribute as EA.Attribute
+				for each attribute in me.TypeElement.Attributes
+					if attribute.Stereotype <> "CON" then
+						m_IsLeafNode = false
+					end if
+				next
 			else
 				m_IsLeafNode = false
 			end if

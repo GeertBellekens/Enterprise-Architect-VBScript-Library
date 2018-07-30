@@ -17,6 +17,7 @@ Class Message
 	Private m_Prefix
 	private m_ValidationRules
 	Private m_CustomOrdering
+	Private m_IncludeDetails
 
 	'constructor
 	Private Sub Class_Initialize
@@ -28,6 +29,7 @@ Class Message
 		m_Prefix = ""
 		set m_ValidationRules = CreateObject("System.Collections.ArrayList")
 		m_CustomOrdering = false
+		m_IncludeDetails = false
 	End Sub
 	
 	'public properties
@@ -87,6 +89,13 @@ Class Message
 		m_CustomOrdering = value
 	End Property
 	
+	' IncludeDetails property.
+	Public Property Get IncludeDetails
+		IncludeDetails = m_IncludeDetails
+	End Property
+	Public Property Let IncludeDetails(value)
+		m_IncludeDetails = value
+	End Property
 	
 	public function loadMessage(eaRootNodeElement)
 		
@@ -112,6 +121,7 @@ Class Message
 		'create the root node
 		me.RootNode = new MessageNode
 		me.RootNode.CustomOrdering = me.CustomOrdering
+		me.RootNode.IncludeDetails = me.IncludeDetails
 		me.RootNode.intitializeWithSource eaRootNodeElement, nothing, "1..1", nothing, nothing
 		setBaseTypesAndEnumerations(me.RootNode)
 		'link the message validation rules
@@ -169,10 +179,11 @@ Class Message
 				end if
 			end if
 			'if we haven't found an enumeration we add the type to the basetypes
-			if not foundEnumeration _
-			AND not me.BaseTypes.Exists(messageNode.TypeName) then
-				'add to BaseTypes list
-				me.BaseTypes.Add messageNode.TypeName, messageNode.TypeElement
+			if not foundEnumeration then
+				if not me.BaseTypes.Exists(messageNode.TypeName) then
+					'add to BaseTypes list
+					me.BaseTypes.Add messageNode.TypeName, messageNode.TypeElement
+				end if
 			end if
 		else
 			'not a leafnode, check the childnodes
@@ -180,6 +191,21 @@ Class Message
 			for each childNode in messageNode.ChildNodes
 				setBaseTypesAndEnumerations childNode 
 			next
+		end if
+		'add the base type to the list of types
+		if not messageNode.BaseTypeElement is nothing then
+			if messageNode.BaseTypeElement.Type = "Enumeration"_
+			OR messageNode.BaseTypeElement.Stereotype = "Enumeration"  then
+				if not me.Enumerations.Exists(messageNode.BaseTypeName) then
+					'add to enumerations list
+					me.Enumerations.Add messageNode.BaseTypeName, messageNode.BaseTypeElement
+				end if
+			else
+				'add as base type
+				if not me.BaseTypes.Exists(messageNode.BaseTypeName) then
+					me.BaseTypes.Add messageNode.BaseTypeName, messageNode.BaseTypeElement
+				end if
+			end if
 		end if
 	end function
 	
@@ -227,11 +253,11 @@ Class Message
 	end function
 	
 	public function getHeaders(includeRules)
-		set getHeaders = getMessageHeaders(includeRules, me.MessageDepth, me.CustomOrdering)
+		set getHeaders = getMessageHeaders(includeRules, me.MessageDepth, me.CustomOrdering, me.IncludeDetails)
 	end function
 	
 	private function getTypesHeaders()
-		set getTypesHeaders = getMessageTypesHeaders(unified)
+		set getTypesHeaders = getMessageTypesHeaders(me.IncludeDetails)
 	end function 
 	
 	Public function getUnifiedMessageTypes()
@@ -253,24 +279,34 @@ Class Message
 				set baseTypeElement = nothing
 			end if
 			if not baseTypeElement is nothing then
-				'first add the properties for the base type itself
-				dim baseTypeProperties
-				set baseTypeProperties = getBaseTypeProperties(baseTypeElement)
-				if unified then
-					'add the messageName
-					baseTypeProperties.Insert 0, me.Name
+				if baseTypeElement.Stereotype <> "BDT" then
+					'first add the properties for the base type itself
+					dim baseTypeProperties
+					set baseTypeProperties = getBaseTypeProperties(baseTypeElement)
+					if unified then
+						'add the messageName
+						baseTypeProperties.Insert 0, me.Name
+					end if
+					'add properties to list
+					types.add baseTypeProperties
 				end if
-				types.add baseTypeProperties
 			end if
 		next
 		'add enumerations
 		dim enumName
-		dim enumElement
+		dim enumElement as EA.Element
 		for each enumName in me.Enumerations.Keys
 			elementOrder = elementOrder + 1
 			set enumElement = me.Enumerations.Item(enumName)
 			'add all the literal values
 			dim enumLiteral as EA.Attribute
+			'if the enum has no values then ALL values are allowed
+			'so we look for the enum this enum was based on
+			if enumElement.Attributes.Count = 0 then
+				'replace enumElement with base enum
+				set enumElement = getBaseEnum(enumElement)
+			end if
+			'loop the enum literals
 			for each enumLiteral in enumElement.Attributes
 				elementOrder = elementOrder + 1
 				dim enumLiteralProperties
@@ -286,12 +322,32 @@ Class Message
 		set getMyMessageTypes = types
 	end function
 	
+	private function getBaseEnum(enumElement)
+		'initialize
+		set getBaseEnum = nothing
+		dim sqlGetBaseEnum
+		sqlGetBaseEnum = "select o.Object_ID from t_object o                             " & _
+						" inner join t_connector c on c.End_Object_ID = o.Object_ID      " & _
+						" 							and c.Connector_Type = 'Abstraction' " & _
+						" 							and c.Stereotype = 'trace'           " & _
+						" where o.Object_Type = 'Enumeration'                            " & _
+						" and c.Start_Object_ID = " & enumElement.ElementID & "          "
+		dim baseEnums
+		dim baseEnum as EA.Element
+		set baseEnums = getElementsFromQuery(sqlGetBaseEnum)
+		for each baseEnum in baseEnums
+			set getBaseEnum = baseEnum
+			exit for 'we only need the first one
+		next
+	end function
+	
 	Public function getMessageTypes()
 		dim types
 		set types = CreateObject("System.Collections.ArrayList")
 		'first add the headers
 		dim typeHeaders
 		set typeHeaders = getTypesHeaders()
+		'Session.Output typeHeaders.Count
 		types.add typeHeaders
 		'get the actual content
 		types.AddRange getMyMessageTypes(false)
@@ -303,7 +359,7 @@ Class Message
 		dim enumLiteralProperties 
 		set enumLiteralProperties = CreateObject("System.Collections.ArrayList")
 		'first fill the array with empty strings
-		fillArrayList enumLiteralProperties, "", 16
+		fillArrayList enumLiteralProperties, "", 6
 		'category
 		enumLiteralProperties(0) = "Enumeration"
 		'Type
@@ -328,7 +384,7 @@ Class Message
 		dim baseTypeProperties 
 		set baseTypeProperties = CreateObject("System.Collections.ArrayList")
 		'first fill the array with empty strings
-		fillArrayList baseTypeProperties, "", 16
+		fillArrayList baseTypeProperties, "", 6
 		'category
 		baseTypeProperties(0) = "BaseType"
 		'Type
@@ -341,36 +397,31 @@ Class Message
 		dim derivedFrom
 		derivedFrom = getDerivedFrom(baseType)
 		baseTypeProperties(4) = derivedFrom
+		'Facets
 		'add properties based on the tagged values
+		dim facetSpecification
+		facetSpecification = "" 'initial value
 		dim tv as EA.TaggedValue
 		for each tv in baseType.TaggedValues
 			select case tv.Name
-				case "fractionDigits"
-					baseTypeProperties(5) = tv.Value'5
-				case "length"
-					baseTypeProperties(6) = tv.Value '6
-				case "maxExclusive"
-					baseTypeProperties(7) = tv.Value '7
-				case "maxInclusive"
-					baseTypeProperties(8) = tv.Value '8
-				case "maxLength"
-					baseTypeProperties(9) = tv.Value '8
-				case "minExclusive"
-					baseTypeProperties(10) = tv.Value '10
-				case "minInclusive"
-					baseTypeProperties(11) = tv.Value '11
-				case "minLength"
-					baseTypeProperties(12) = tv.Value '12
-				case "pattern"
-					baseTypeProperties(13) = tv.Value '13
-				case "totalDigits"
-					baseTypeProperties(14) = tv.Value '14
-				case "whiteSpace"
-					baseTypeProperties(15) = tv.Value'15
+				case "fractionDigits", "length", "maxExclusive", "maxInclusive", "maxLength", "minExclusive","minInclusive","minLength",_
+				"pattern","totalDigits","whiteSpace", "enumeration"
+					facetSpecification = addFacetSpecification(facetSpecification, tv)
 			end select
 		next
+		baseTypeProperties(5) = facetSpecification
 		'return the base type properties
 		set getBaseTypeProperties = baseTypeProperties
+	end function
+	
+	private function addFacetSpecification(facetSpecification, facetTV)
+		addFacetSpecification = facetSpecification 'initial value
+		if len(facetTV.Value) > 0 then
+			if len(facetSpecification) > 0  then
+				addFacetSpecification = addFacetSpecification & vbNewLine
+			end if
+			addFacetSpecification = addFacetSpecification & facetTV.Name & ": " & facetTV.Value
+		end if
 	end function
 	
 	private function fillArrayList(listToFill, fillValue, count)
@@ -393,6 +444,19 @@ Class Message
 		if not IsObject(derivedFrom) then
 			set derivedFrom = nothing
 		end if
+		'Check for CON attribute of BDT element
+		if derivedFrom is nothing _
+		and baseType.Stereotype = "BDT" then
+			'get CON attributre
+			dim attribute as EA.Attribute
+			for each attribute in baseType.Attributes
+				if attribute.Stereotype = "CON" _
+				and attribute.ClassifierID > 0 then
+					set derivedFrom = Repository.GetElementByID(attribute.ClassifierID)
+				end if
+			next
+		end if
+		'set name if derivedFrom element is found
 		if not derivedFrom is nothing then
 			getDerivedFrom = derivedFrom.Name
 		else
@@ -409,7 +473,7 @@ end Class
 
 '"Static" functions
 
-public function getMessageHeaders(includeRules, depth, customOrdering)
+public function getMessageHeaders(includeRules, depth, customOrdering, technical)
 	dim headers
 	set headers = CreateObject("System.Collections.ArrayList")
 	'first order
@@ -425,12 +489,16 @@ public function getMessageHeaders(includeRules, depth, customOrdering)
 	headers.Add("Cardinality")
 	'Type
 	headers.Add("Type")
+	'base type
+	headers.Add("Base Type")
 	
 	if customOrdering then
-		'BusinessEntity
-		headers.Add("BusinessEntity")
-		'BusinessAttribute
-		headers.Add("BusinessAttribute")
+		if not technical then
+			'BusinessEntity
+			headers.Add("BusinessEntity")
+			'BusinessAttribute
+			headers.Add("BusinessAttribute")
+		end if
 		'Facets
 		headers.Add("Facets")
 	elseif includeRules then
@@ -463,28 +531,8 @@ private function getMessageTypesHeaders(unified)
 		headers.Add("Description") '3
 		'Restriction Base
 		headers.Add("Restriction Base") '4
-		'fractionDigits
-		headers.Add("fractionDigits") '5
-		'length
-		headers.Add("length") '6
-		'maxExclusive
-		headers.Add("maxExclusive") '7
-		'maxInclusive
-		headers.Add("maxInclusive") '8
-		'maxLength
-		headers.Add("maxLength")'9
-		'minExclusive
-		headers.Add("minExclusive") '10
-		'minInclusive
-		headers.Add("minInclusive") '11
-		'minLength
-		headers.Add("minLength") '12
-		'pattern
-		headers.Add("pattern") '13
-		'totalDigits
-		headers.Add("totalDigits") '14
-		'whiteSpace
-		headers.Add("whiteSpace") '15
+		'Facets
+		headers.Add("Facets") '5
 		'return the headers
 		set getMessageTypesHeaders = headers
 	end function

@@ -1,6 +1,5 @@
 '[path=\Projects\Project M\Diagram Group]
 '[group=Diagram Group]
-'[group_type=DIAGRAM]
 
 option explicit
 
