@@ -10,17 +10,23 @@
 
 const xlCalculationAutomatic	= -4105	'Excel controls recalculation.
 const xlCalculationManual	= -4135	'Calculation is done when the user requests it.
+const xlCenter = -4108
+const xlLeft = -4131
+const xlBelow = 1
+const xlAbove = 0
 
 Class ExcelFile
 	'private variables
 	Private m_ExcelApp
 	Private m_FileName
 	Private m_WorkBook
+	private m_isExisting
 
 	Private Sub Class_Initialize
 		m_FileName = ""
 		set m_ExcelApp = CreateObject("Excel.Application")
 		set m_WorkBook = nothing
+		m_isExisting = false
 	End Sub
 	
 	
@@ -35,27 +41,53 @@ Class ExcelFile
 		set worksheets = m_WorkBook.Sheets
 	end property
 	
-	private function createNewTab(tabName)
+	public function freezePanes(ws, row, column)
+		'select the worksheet
+		ws.Activate
+		m_ExcelApp.ActiveWindow.SplitRow = row
+		m_ExcelApp.ActiveWindow.SplitColumn = column
+		m_ExcelApp.ActiveWindow.FreezePanes = true
+	end function
+	
+	
+	private function createNewTab(tabName,beforeSheetIndex)
 		'check if the workbook has been created already
 		if m_WorkBook is nothing then
 			set m_WorkBook = m_ExcelApp.Workbooks.Add()
 		end if
-		'create the tab at the end
 		Dim ws
-		Set ws = m_WorkBook.Sheets.Add()
-		ws.Name = tabName
+		set ws = nothing
+		dim currentWs
+		'check if it exists
+		for each currentWs in m_WorkBook.Sheets
+			if currentWs.Name = tabName then
+				set ws = currentWs
+				exit for
+			end if
+		next
+		'if not exist yet then create
+		if ws is nothing then
+			'check the beforeIndex. In -1 then add in the back
+			if beforeSheetIndex > 0 and beforeSheetIndex <= m_Workbook.Sheets.Count then
+				Set ws = m_WorkBook.Sheets.Add(m_Workbook.Sheets(beforeSheetIndex)) 'add before the given sheetIndex
+			else
+				Set ws = m_WorkBook.Sheets.Add(,m_Workbook.Sheets(m_Workbook.Sheets.Count)) 'add after the last one
+			end if
+			ws.Name = tabName
+		end if
+		'return
 		set createNewTab = ws
 	end function 
-	
+		
 	'public operations
 	'create a tab with the given name. The contents should parameter should be a two dimensional array
 	'anything int he contents that starts with "=" will be interpreted as a formula
-	public Function createTabWithFormulas(tabName, contents,formatAsTable, tableStyle)
+	public Function createTabWithFormulas(tabName, contents,formatAsTable, tableStyle, beforeSheetIndex)
 		'turn off automatic calculation
 		m_ExcelApp.Calculation = xlCalculationManual
 		'create the tab
 		Dim ws
-		set ws = createNewTab(tabName)
+		set ws = createNewTab(tabName,beforeSheetIndex)
 		'fill the contents
 		'loop content
 		dim i
@@ -83,9 +115,14 @@ Class ExcelFile
 	'public operations
 	'create a tab with the given name. The contents should parameter should be a two dimensional array
 	public Function createTab(tabName, contents,formatAsTable, tableStyle)
+		'return 
+		set createTab = createTabAtIndex(tabName, contents,formatAsTable, tableStyle, -1)
+	end function
+	
+	public function createTabAtIndex(tabName, contents,formatAsTable, tableStyle, beforeSheetIndex)
 		'create the tab
 		Dim ws
-		set ws = createNewTab(tabName)
+		set ws = createNewTab(tabName,beforeSheetIndex)
 		'fill the contents
 		dim targetRange
 		set targetRange = ws.Range(ws.Cells(1,1), ws.Cells(Ubound(contents,1) +1, Ubound(Contents,2) +1))
@@ -94,14 +131,17 @@ Class ExcelFile
 		if formatAsTable then
 			formatSheetAsTable ws, targetRange, tableStyle
 		end if
+		'set autofit
+		targetRange.Columns.Autofit
+		'return 
+		set createTabAtIndex = ws
 	end function
 	
+		
 	public function formatSheetAsTable(worksheet, targetRange, tableStyle)
 		dim table
 		Set table = worksheet.ListObjects.Add(1, targetRange, 1, 1)
 		table.TableStyle = tableStyle
-		'set autofit
-		targetRange.Columns.Autofit
 	end function
 	
 	public Function getUserSelectedFileName()
@@ -115,13 +155,54 @@ Class ExcelFile
 		dim selectedFileName
 		dim project
 		set project = Repository.GetProjectInterface()
-		me.FileName = project.GetFileNameDialog ("", "Excel Files|*.xls;*.xlsx;*.xlsm", 1, 0 ,"", 0) 'save as with overwrite prompt: OFN_OVERWRITEPROMPT
-		me.Open me.FileName
+		me.FileName = project.GetFileNameDialog ("", "Excel Files|*.xls;*.xlsx;*.xlsm|Excel Templates|*.xlt;*.xltx;*.xltm", 1, 0 ,"", 0) 'save as with overwrite prompt: OFN_OVERWRITEPROMPT
+		Dim fso
+		Set fso = CreateObject("Scripting.FileSystemObject")
+		if fso.FileExists(me.FileName) then
+			'check the extension
+			dim extension
+			extension = lcase(fso.GetExtensionName(me.FileName))
+			select case extension
+				case "xlt","xltx","xltm"
+					me.NewFile me.FileName
+				case else
+					me.Open me.FileName
+					m_isExisting = true
+			end select
+		end if
 	end function
 	
 	public function Open(filePath)
 		me.FileName = filePath
 		set m_WorkBook = m_ExcelApp.Workbooks.Open(me.FileName)
+	end function
+	
+	public function NewFile(filePath)
+		dim fso
+		Set fso = CreateObject("Scripting.FileSystemObject")
+		if fso.FileExists(filePath) then
+			set m_WorkBook = m_ExcelApp.Workbooks.Add(filePath)
+		end if
+		'reset filename
+		me.FileName = ""
+	end function
+	
+	public function formatRange (range, backColor, fontColor, fontName, fontSize, bold, horizontalAlignment)
+		if backColor <> "default" then 
+			range.Interior.Color = backColor 
+		end if
+		if fontColor <> "default" then
+			range.Font.Color = fontColor
+		end if
+		if fontName <> "default" then
+			range.Font.Name = fontName
+		end if
+		if fontSize <> "default" then
+			range.Font.Size = fontSize
+		end if
+		if horizontalAlignment <> "default" then
+			range.HorizontalAlignment = horizontalAlignment
+		end if
 	end function
 	
 	public function getContents(sheet)
@@ -137,14 +218,18 @@ Class ExcelFile
 		if len(me.FileName) = 0 then
 			exit function
 		end if
-		'Delete the existing file if it exists
-		dim fso
-		Set fso = CreateObject("Scripting.FileSystemObject")
-		if fso.FileExists(me.FileName) then
-			fso.DeleteFile me.FileName
+		if m_isExisting then
+			m_WorkBook.Save
+		else
+			'Delete the existing file if it exists
+			dim fso
+			Set fso = CreateObject("Scripting.FileSystemObject")
+			if fso.FileExists(me.FileName) then
+				fso.DeleteFile me.FileName
+			end if
+			'save the workbook at the given filename
+			m_WorkBook.Saveas me.FileName
 		end if
-		'save the workbook at the given filename
-		m_WorkBook.Saveas me.FileName
 		'make excel visible
 		m_ExcelApp.visible = True
 		m_ExcelApp.WindowState = -4137 'xlMaximized

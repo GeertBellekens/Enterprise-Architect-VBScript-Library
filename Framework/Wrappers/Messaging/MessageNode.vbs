@@ -27,6 +27,7 @@ Class MessageNode
 	Private m_IncludeDetails
 	Private m_BaseTypeName
 	Private m_BaseTypeElement
+	Private m_Message
 
 	'constructor
 	Private Sub Class_Initialize
@@ -48,6 +49,7 @@ Class MessageNode
 		m_IncludeDetails = false
 		m_BaseTypeName = ""
 		set m_BaseTypeElement = nothing
+		set m_Message = nothing
 	End Sub
 	
 	'public properties
@@ -136,8 +138,7 @@ Class MessageNode
 			end if
 		end if
 	End Property
-
-	
+		
 	' Multiplicity property.
 	' only directly used if the source is element, else we use the Attribute or AssociationEnd multiplicity
 	Public Property Get Multiplicity
@@ -249,6 +250,14 @@ Class MessageNode
 	End Property
 	Public Property Let MappedBusinessAttributes(value)
 		set m_MappedBusinessAttributes = value
+	End Property
+	
+	' Message property.
+	Public Property Get Message
+		set Message = m_Message
+	End Property
+	Public Property Let Message(value)
+		set m_Message = value
 	End Property
 	
 	Public function linkRuletoNode(validationRule, path)
@@ -424,6 +433,28 @@ Class MessageNode
 	'gets the facets from an attribute
 	private function getFacets(sourceAttribute)
 		dim tv as EA.TaggedValue
+		'first loop the facets of the datatype
+		dim datatype as EA.Element
+		if sourceAttribute.ClassifierID > 0 then
+			set datatype = Repository.GetElementByID(sourceAttribute.ClassifierID)
+			for each tv in datatype.TaggedValues
+				if len(tv.Value) > 0 _
+				  and (tv.Name = "enumeration" _
+				  or tv.Name = "fractionDigits" _
+				  or tv.Name = "length" _
+				  or tv.Name = "maxExclusive" _
+				  or tv.Name = "maxInclusive" _
+				  or tv.Name = "maxLength" _
+				  or tv.Name = "minExclusive" _
+				  or tv.Name = "minInclusive" _
+				  or tv.Name = "minLength" _
+				  or tv.Name = "pattern" _
+				  or tv.Name = "totalDigits" _
+				  or tv.Name = "whiteSpace") then
+					me.Facets.Item(tv.Name) = tv.Value
+				end if
+			next
+		end if
 		'first loop the standard facets
 		for each tv in sourceAttribute.TaggedValues
 			if tv.Name = "enumeration" _
@@ -618,10 +649,14 @@ Class MessageNode
 		currentNodeList.Add me.TypeName
 		'Add base type
 		currentNodeList.Add me.BaseTypeName
-		
+		'add facets
+		currentNodeList.Add getFacetsSpecification()
 		'add the business attribute mapping and facets
 		if me.CustomOrdering then
 			if not me.IncludeDetails then
+				'add empty fields for LDM mapping
+				currentNodeList.Add "" 'Class
+				currentNodeList.Add "" 'Attribute
 				'add business attribute mapping details
 				dim businessEntityNames
 				businessEntityNames = ""
@@ -649,8 +684,6 @@ Class MessageNode
 				currentNodeList.Add businessEntityNames
 				currentNodeList.Add businessAttributeNames
 			end if
-			'add facets
-			currentNodeList.Add getFacetsSpecification()
 		'add the rules section
 		elseif includeRules then
 			if not validationRule is nothing then
@@ -662,6 +695,15 @@ Class MessageNode
 				currentNodeList.Add ""
 				currentNodeList.Add ""
 			end if
+		end if
+		'add the business usage section
+		if me.CustomOrdering _
+		and me.IncludeDetails _
+		and not me.Message is nothing then
+			dim fis as EA.Element
+			for each fis in me.Message.Fisses 
+				currentNodeList.Add ""
+			next
 		end if
 		'return output
 		set getThisNodeOutput = currentNodeList
@@ -677,6 +719,60 @@ Class MessageNode
 			end if
 			getFacetsSpecification = getFacetsSpecification & key & ": " & me.Facets.Item(key)
 		next
+		'for functional format the enum values should be included as well
+		if not me.IncludeDetails  then
+			dim enumType
+			set enumType = getEnumType()
+			if not enumType is nothing then
+				dim enumValuesDescription
+				enumValuesDescription = ""
+				dim test as EA.Element
+				dim enumValue as EA.Attribute
+				for each enumValue in enumType.Attributes
+					if len(enumValuesDescription) > 0 then
+						'add newline
+						enumValuesDescription = enumValuesDescription & vbNewLine
+					end if
+					'add the name
+					enumValuesDescription = enumValuesDescription & enumValue.Name
+					if me.CustomOrdering then
+						'Description is stored in the tagged value CodeName
+						dim tv as EA.AttributeTag
+						for each tv in enumValue.TaggedValues
+							if lcase(tv.Name) = "codename" then
+								'add the description for this code
+								enumValuesDescription = enumValuesDescription & " (" & tv.Value & ")"
+								exit for
+							end if
+						next
+					else
+						'description is stored in the Alias
+						enumValuesDescription = enumValuesDescription & " (" & enumValue.Alias & ")"
+					end if
+				next
+				'add to facetSpecification
+				if len(enumValuesDescription) > 0 then
+					getFacetsSpecification = getFacetsSpecification & "Values allowed:" & VbNewLine & enumValuesDescription
+				end if
+			end if
+		end if
+	end function
+	
+	private function getEnumType()
+		'initialize null
+		set getEnumType = nothing
+		'check if type element is enum
+		if not me.TypeElement is nothing then
+			if me.TypeElement.Type = "Enumeration" then
+				set getEnumType = me.TypeElement
+			end if
+		end if
+		if getEnumType is nothing _ 
+		and not me.BaseTypeElement is nothing then
+			if me.BaseTypeElement.Type = "Enumeration" then
+				set getEnumType = me.BaseTypeElement
+			end if
+		end if
 	end function
 	
 	'returns a list of all generalized elements of this elemnt
@@ -742,6 +838,7 @@ Class MessageNode
 			dim newMessageNode
 			set newMessageNode = new MessageNode
 			newMessageNode.CustomOrdering = me.CustomOrdering
+			newMessageNode.Message = me.Message
 			'initialize
 			newMessageNode.intitializeWithSource attribute, nothing, "", nothing, me
 			'add to the childnodes list
@@ -788,6 +885,7 @@ Class MessageNode
 			dim newMessageNode
 			set newMessageNode = new MessageNode
 			newMessageNode.CustomOrdering = me.CustomOrdering
+			newMessageNode.Message = me.Message
 			'initialize
 			newMessageNode.intitializeWithSource association.SupplierEnd, association, "", nothing, me
 			'add to the childnodes list

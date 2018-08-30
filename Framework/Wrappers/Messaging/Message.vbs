@@ -18,7 +18,8 @@ Class Message
 	private m_ValidationRules
 	Private m_CustomOrdering
 	Private m_IncludeDetails
-
+	Private m_Fisses
+	
 	'constructor
 	Private Sub Class_Initialize
 		m_Name = ""
@@ -30,6 +31,7 @@ Class Message
 		set m_ValidationRules = CreateObject("System.Collections.ArrayList")
 		m_CustomOrdering = false
 		m_IncludeDetails = false
+		set m_Fisses = nothing
 	End Sub
 	
 	'public properties
@@ -97,6 +99,47 @@ Class Message
 		m_IncludeDetails = value
 	End Property
 	
+	' Fisses property.
+	Public Property Get Fisses
+		if m_Fisses is nothing then
+			loadFisses
+		end if
+		set Fisses = m_Fisses
+	End Property
+	Public Property Let Fisses(value)
+		set Fisses = value
+	End Property
+	
+	private function loadFisses()
+		set m_Fisses = CreateObject("System.Collections.ArrayList")
+		'MA(subset) -trace-> MA(messaging Model) -realize-> Message -realize-> FIS
+		dim getFissesSQL
+		getFissesSQL = "select fis.Object_ID from t_object o                                             " & _
+					" inner join t_connector c on c.Start_Object_ID = o.Object_ID                      " & _
+					" 							and c.Connector_Type = 'Abstraction'                   " & _
+					" 							and c.Stereotype = 'trace'                             " & _
+					" inner join t_object om on om.Object_ID = c.End_Object_ID                         " & _
+					" 						and om.Name = o.Name                                       " & _
+					" 						and om.Object_Type = o.Object_Type                         " & _
+					" inner join t_connector omc on omc.Start_Object_ID = om.Object_ID                 " & _
+					" 						 and omc.Connector_Type in ('Realization', 'Realisation')  " & _
+					" inner join t_object msg on msg.object_ID = omc.End_Object_ID                     " & _
+					" 						and msg.Object_Type = 'Class'                              " & _
+					" 						and msg.Stereotype = 'Message'                             " & _
+					" inner join t_connector msgc on msgc.Start_Object_ID = msg.Object_ID              " & _
+					" 						 and msgc.Connector_Type in ('Realization', 'Realisation') " & _
+					" inner join t_object fis on fis.Object_ID = msgc.End_Object_ID                    " & _
+					" 						and fis.Object_Type = 'Class'                              " & _
+					" 						and fis.Stereotype = 'Message'                             " & _
+					" where o.Object_ID = " & me.RootNode.ElementID
+		dim fisses
+		set fisses = getElementsFromQuery(getFissesSQL)
+		dim fis as EA.Element
+		for each fis in fisses
+			m_Fisses.Add fis
+		next
+	end function
+	
 	public function loadMessage(eaRootNodeElement)
 		
 		'set the name of the message
@@ -122,6 +165,7 @@ Class Message
 		me.RootNode = new MessageNode
 		me.RootNode.CustomOrdering = me.CustomOrdering
 		me.RootNode.IncludeDetails = me.IncludeDetails
+		me.RootNode.Message = me
 		me.RootNode.intitializeWithSource eaRootNodeElement, nothing, "1..1", nothing, nothing
 		setBaseTypesAndEnumerations(me.RootNode)
 		'link the message validation rules
@@ -253,7 +297,7 @@ Class Message
 	end function
 	
 	public function getHeaders(includeRules)
-		set getHeaders = getMessageHeaders(includeRules, me.MessageDepth, me.CustomOrdering, me.IncludeDetails)
+		set getHeaders = getMessageHeaders(includeRules, me.MessageDepth, me.CustomOrdering, me.IncludeDetails, me.Fisses)
 	end function
 	
 	private function getTypesHeaders()
@@ -473,7 +517,7 @@ end Class
 
 '"Static" functions
 
-public function getMessageHeaders(includeRules, depth, customOrdering, technical)
+public function getMessageHeaders(includeRules, depth, customOrdering, technical, fisses)
 	dim headers
 	set headers = CreateObject("System.Collections.ArrayList")
 	'first order
@@ -491,16 +535,20 @@ public function getMessageHeaders(includeRules, depth, customOrdering, technical
 	headers.Add("Type")
 	'base type
 	headers.Add("Base Type")
-	
+	'Constraints (facets)
+	headers.Add("Constraints")
 	if customOrdering then
 		if not technical then
+			'LDM mapping
+			'LDM Class
+			headers.Add("LDM Class")
+			'LDM Attribute
+			headers.Add("LDM Attribute")
 			'BusinessEntity
-			headers.Add("BusinessEntity")
+			headers.Add("Business Entity")
 			'BusinessAttribute
-			headers.Add("BusinessAttribute")
+			headers.Add("Business Attribute")
 		end if
-		'Facets
-		headers.Add("Facets")
 	elseif includeRules then
 		'with our without test rules
 		'Test Rule ID
@@ -509,6 +557,15 @@ public function getMessageHeaders(includeRules, depth, customOrdering, technical
 		headers.Add("Test Rule")
 		'Error Reason
 		headers.Add("Error Reason")
+	end if
+	'add business usage
+	if customOrdering _
+	and not technical _
+	and not fisses is nothing then
+		dim fis as EA.Element
+		for each fis in fisses
+			headers.Add fis.Name
+		next
 	end if
 	'return the headers
 	set getMessageHeaders = headers
@@ -535,4 +592,4 @@ private function getMessageTypesHeaders(unified)
 		headers.Add("Facets") '5
 		'return the headers
 		set getMessageTypesHeaders = headers
-	end function
+end function
