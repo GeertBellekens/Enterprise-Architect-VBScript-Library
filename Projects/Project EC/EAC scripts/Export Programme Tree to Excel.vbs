@@ -46,25 +46,25 @@ function exportProgrammeTree(selectedPackage)
 								"select o.Name as Programme, ar.[Name] as Area, ka.Name as KeyAction, ac.Name as Action, at.Name as ActionType, avt.Name as ActivityType		  " & _
 								" ,package.name as PackageName ,package_p1.name as PackageLevel1,package_p2.name as PackageLevel2 ,package_p3.name as PackageLevel3               " & _
 								" from (((((((((((((( t_object o                                                                                                                  " & _
-								" left join t_connector o_ar on (o_ar.[End_Object_ID] = o.[Object_ID]                                                                             " & _
+								" left join t_connector o_ar on (o_ar.[End_Object_ID] = o.Object_ID                                                                             " & _
 								"                               and o_ar.[Connector_Type] in ('Association', 'Aggregation')))                                                     " & _
-								" left join t_object ar on (o_ar.[Start_Object_ID] = ar.[Object_ID]                                                                               " & _
+								" left join t_object ar on (o_ar.[Start_Object_ID] = ar.Object_ID                                                                               " & _
 								"                          and ar.[Stereotype] = 'Area'))                                                                                         " & _
-								" left join t_connector ar_ka on (ar_ka.[End_Object_ID] = ar.[Object_ID]                                                                          " & _
+								" left join t_connector ar_ka on (ar_ka.[End_Object_ID] = ar.Object_ID                                                                          " & _
 								"                               and ar_ka.[Connector_Type] in ('Association', 'Aggregation')))                                                    " & _
-								" left join t_object ka on (ar_ka.[Start_Object_ID] = ka.[Object_ID]                                                                              " & _
+								" left join t_object ka on (ar_ka.[Start_Object_ID] = ka.Object_ID                                                                              " & _
 								"                          and ka.[Stereotype] = 'Key Action'))                                                                                   " & _
-								" left join t_connector ka_ac on (ka_ac.[End_Object_ID] = ka.[Object_ID]                                                                          " & _
+								" left join t_connector ka_ac on (ka_ac.[End_Object_ID] = ka.Object_ID                                                                          " & _
 								"                               and ka_ac.[Connector_Type] in ('Association', 'Aggregation')))                                                    " & _
-								" left join t_object ac on (ka_ac.[Start_Object_ID] = ac.[Object_ID]                                                                              " & _
+								" left join t_object ac on (ka_ac.[Start_Object_ID] = ac.Object_ID                                                                              " & _
 								"                          and ac.[Stereotype] = 'Action'))                                                                                       " & _
-								" left join t_connector ac_at on (ac_at.[End_Object_ID] = ac.[Object_ID]                                                                          " & _
+								" left join t_connector ac_at on (ac_at.[End_Object_ID] = ac.Object_ID                                                                          " & _
 								"                               and ac_at.[Connector_Type] in ('Association', 'Aggregation')))                                                    " & _
-								" left join t_object at on (ac_at.[Start_Object_ID] = at.[Object_ID]                                                                              " & _
+								" left join t_object at on (ac_at.[Start_Object_ID] = at.Object_ID                                                                              " & _
 								"                          and at.[Stereotype] = 'Action Type'))                                                                                  " & _
-								" left join t_connector at_avt on (at_avt.[End_Object_ID] = at.[Object_ID]                                                                        " & _
+								" left join t_connector at_avt on (at_avt.[End_Object_ID] = at.Object_ID                                                                        " & _
 								"                               and at_avt.[Connector_Type] in ('Association', 'Aggregation')))                                                   " & _
-								" left join t_object avt on (at_avt.[Start_Object_ID] = avt.[Object_ID]                                                                           " & _
+								" left join t_object avt on (at_avt.[Start_Object_ID] = avt.Object_ID                                                                           " & _
 								"                          and avt.[Stereotype] = 'Activity Type'))     						                                                  " & _
 								" inner join t_package package on o.package_id = package.package_id)                                                                              " & _
 								" left join t_package package_p1 on package_p1.package_id = package.parent_id)                                                                    " & _
