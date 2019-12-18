@@ -9,11 +9,45 @@
 !INC Utils.Include
 
 const xlCalculationAutomatic	= -4105	'Excel controls recalculation.
-const xlCalculationManual	= -4135	'Calculation is done when the user requests it.
-const xlCenter = -4108
-const xlLeft = -4131
-const xlBelow = 1
-const xlAbove = 0
+const xlCalculationManual		= -4135	'Calculation is done when the user requests it.
+const xlCenter 					= -4108
+const xlLeft 					= -4131
+const xlBelow 					= 1
+const xlAbove 					= 0
+'vertical alignment values
+const xlVAlignBottom 			= -4107	'Bottom
+const xlVAlignCenter	 		= -4108	'Center
+const xlVAlignDistributed 		= -4117	'Distributed
+const xlVAlignJustify 			= -4130	'Justify
+const xlVAlignTop 				= -4160	'Top
+'XlFormatConditionType 
+const xlAboveAverageCondition	= 12 'Above average condition
+const xlBlanksCondition			= 10 'Blanks condition
+const xlCellValue				= 1	 'Cell value
+const xlColorScale				= 3	 'Color scale
+const xlDataBar					= 4	 'DataBar
+const xlErrorsCondition			= 16 'Errors condition
+const xlExpression				= 2	 'Expression
+const xlIconSet					= 6	 'Icon set
+const xlNoBlanksCondition		= 13 'No blanks condition
+const xlNoErrorsCondition		= 17 'No errors condition
+const xlTextString				= 9	 'Text string
+const xlTimePeriod				= 11 'Time period
+const xlTop10					= 5	 'Top 10 values
+const xlUniqueValues			= 8	 'Unique values
+'XlFormatConditionOperator 
+const xlBetween		 = 1	'Between. Can be used only if two formulas are provided.
+const xlEqual		 = 3	'Equal.
+const xlGreater		 = 5	'Greater than.
+const xlGreaterEqual = 7	'Greater than or equal to.
+const xlLess		 = 6	'Less than.
+const xlLessEqual	 = 8	'Less than or equal to.
+const xlNotBetween	 = 2	'Not between. Can be used only if two formulas are provided.
+const xlNotEqual	 = 4	'Not equal.
+'XlWindowState
+const xlMaximized	 = -4137	'Maximized
+const xlMinimized	 = -4140	'Minimized
+const xlNormal		 = -4143	'Normal
 
 Class ExcelFile
 	'private variables
@@ -44,6 +78,7 @@ Class ExcelFile
 	public function freezePanes(ws, row, column)
 		'select the worksheet
 		ws.Activate
+		m_ExcelApp.ActiveWindow.WindowState = xlMaximized
 		m_ExcelApp.ActiveWindow.SplitRow = row
 		m_ExcelApp.ActiveWindow.SplitColumn = column
 		m_ExcelApp.ActiveWindow.FreezePanes = true
@@ -109,6 +144,9 @@ Class ExcelFile
 		if formatAsTable then
 			formatSheetAsTable ws, targetRange, tableStyle
 		end if
+		'set autofit
+		targetRange.Columns.Autofit
+		targetRange.Rows.Autofit
 		'turn on automatic calculation
 		m_ExcelApp.Calculation = xlCalculationAutomatic
 	end function
@@ -133,6 +171,7 @@ Class ExcelFile
 		end if
 		'set autofit
 		targetRange.Columns.Autofit
+		targetRange.Rows.Autofit
 		'return 
 		set createTabAtIndex = ws
 	end function
@@ -205,8 +244,22 @@ Class ExcelFile
 		end if
 	end function
 	
+	public function hideColumn(sheet, columnNumber)
+		sheet.Columns(columnNumber).Hidden = true
+	end function
+	
+	public function setVerticalAlignment(range, verticalAlignment)
+		range.VerticalAlignment = verticalAlignment
+	end function
+	
 	public function getContents(sheet)
 		getContents = sheet.UsedRange.Value2
+	end function
+	
+	public function addConditionalFormatting(range, formattingType, operator , formula1, formula2, backColor)
+		dim formatting
+		set formatting = range.FormatConditions.Add(formattingType, operator , formula1, formula2)
+		formatting.Interior.Color = backColor
 	end function
 	
 	public Function save()

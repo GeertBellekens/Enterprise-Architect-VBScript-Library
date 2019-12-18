@@ -3,7 +3,7 @@
 option explicit
 
 !INC Local Scripts.EAConstants-VBScript
-!INC Atrias Scripts.Util
+!INC Wrappers.Include
 
 '
 ' Script Name: Link with Logical Data Model
@@ -13,17 +13,27 @@ option explicit
 '
 'name of the output tab
 const outPutName = "Link to LDM and FIS"
+const reportingRootGUID = "{DDED9219-D9BB-4a8f-80A2-CDA8405C6FE1}"
 
 sub main
-
-	'reference to the domeain model package
-	dim domainModelPackageGUID 
-	domainModelPackageGUID = "{8A528D7F-D23B-4a85-B89A-15F5B41CE384}"
-'	dim extendedDomainModelPackageGUID 
-'	extendedDomainModelPackageGUID = "{967ED68D-A6D0-45ea-BBDE-F87E2BE34CE0}"
-	dim FISPackageGUID
-	FISPackageGUID = "{A4B198D1-FF9B-4375-8B9B-0015096DE9AD}"
 	
+	'figure out if we are in the reporting model
+	dim selectedPackage
+	set selectedPackage = Repository.GetTreeSelectedPackage
+	dim reporting 
+	reporting = isReporting(selectedPackage)
+	
+	'reference to the domain model package
+	dim domainModelPackageGUID 
+	dim FISPackageGUID
+	if reporting then
+		'the parent package of the LDM DW
+		domainModelPackageGUID = "{B460AE6A-19A2-42ed-BD43-0221BA94B3B9}"
+	else
+		domainModelPackageGUID = "{8A528D7F-D23B-4a85-B89A-15F5B41CE384}"
+		FISPackageGUID = "{A4B198D1-FF9B-4375-8B9B-0015096DE9AD}"
+	end if
+		
 	'create output tab
 	Repository.CreateOutputTab outPutName
 	Repository.ClearOutput outPutName
@@ -41,7 +51,9 @@ sub main
 	'addToClassDictionary extendedDomainModelPackageGUID, dictionary
 	
 	'FISSES
-	addToClassDictionary FISPackageGUID, dictionary
+	if not reporting then
+		addToClassDictionary FISPackageGUID, dictionary
+	end if
 	
 	' and prepare the regex object
 	dim pattern
@@ -71,16 +83,21 @@ sub main
 			'process business rules
 			dim businessRules
 			set businessRules = getBusinessRulesFromEACollection(selectedElements)
-			Session.Output "business rules found: " & businessRules.Count
 			linkDomainClassesWithBusinessRules dictionary,regExp, businessRules
+			'process reporting elements
+			dim reportingElements
+			set reportingElements = getReportingElementsEACollection(selectedElements)
+			linkDomainClassesWithBusinessRules dictionary,regExp, reportingElements
 		case otPackage
 			' Code for when a package is selected
-			dim selectedPackage as EA.Package
-			set selectedpackage = Repository.GetTreeSelectedObject()
+			dim packageIDString 
+			packageIDString = getPackageTreeIDString(selectedPackage)
 			'link use domain classes with use cases under the selected package
-			linkDomainClassesWithUseCasesInPackage dictionary, regExp,selectedPackage
+			linkDomainClassesWithUseCasesInPackage dictionary, regExp, packageIDString
 			'link the domain classes with the business rules under the selected package
-			linkDomainClassesWithBusinessRulesInPackage dictionary, regExp,selectedPackage		
+			linkDomainClassesWithBusinessRulesInPackage dictionary, regExp, packageIDString	
+			'link the reporting elemnets in the selected package
+			linkDomainClassesWithReportingElementsInPackage dictionary, regExp, packageIDString	
 		case else
 			' Error message
 			Repository.WriteOutput outPutName, "Error: wrong type selected. You need to select a package or one or more elements", 0
@@ -88,6 +105,23 @@ sub main
 	end select
 	Repository.WriteOutput outPutName, "Finished link to LDM and FIS at " & now(), 0
 end sub
+
+function isReporting(selectedPackage)
+	'we check if the selected packag is part of the reporting model by going up in package until we reach the top level reporting package.
+	if selectedPackage.PackageGUID = reportingRootGUID then
+		isReporting = true
+	else
+		if selectedPackage.ParentID > 0 then
+			'get the parent package
+			dim parentPackage
+			set parentPackage = Repository.GetPackageByID(selectedPackage.ParentID)
+			'go up
+			isReporting = isReporting(parentPackage)
+		else
+			isReporting = false
+		end if
+	end if
+end function
 
 function getUseCasesFromEACollection(selectedElements)
 	dim usecases 
@@ -113,11 +147,19 @@ function getBusinessRulesFromEACollection(selectedElements)
 	set getBusinessRulesFromEACollection = businessRules
 end function
 
-function linkDomainClassesWithUseCasesInPackage(dictionary,regExp,selectedPackage)
-	dim packageList 
-	set packageList = getPackageTree(selectedPackage)
-	dim packageIDString
-	packageIDString = makePackageIDString(packageList)
+function getReportingElementsEACollection(selectedElements)
+	dim reportingElements 
+	set reportingElements = CreateObject("System.Collections.ArrayList")
+	dim element as EA.Element
+	for each element in selectedElements
+		if element.Stereotype = "BI-REP" or element.Stereotype = "BI-Dataset" then
+			reportingElements.Add element
+		end if
+	next
+	set getReportingElementsEACollection = reportingElements
+end function
+
+function linkDomainClassesWithUseCasesInPackage(dictionary,regExp,packageIDString)
 	dim getElementsSQL
 	getElementsSQL = "select uc.Object_ID from t_object uc where uc.Object_Type = 'UseCase' and uc.Package_ID in (" & packageIDString & ")"
 	dim usecases
@@ -139,11 +181,17 @@ function linkDomainClassesWithUseCases(dictionary,regExp,usecases)
 		'first remove all automatic traces
 		removeAllAutomaticTraces usecase
 		
-		dim scenario as EA.Scenario
 		dim useCaseText
 		'add the notes the text to verify
 		useCaseText = usecase.Notes & vbNewLine
+		'Loop the constraints
+		dim constraint as EA.Constraint
+		for each constraint in usecase.Constraints
+			'add text (name and notes) of the constraint to the useCaseText
+			useCaseText = useCaseText & constraint.Name & vbNewLine & constraint.Notes & vbNewLine
+		next
 		'loop scenarios
+		dim scenario as EA.Scenario
 		for each scenario in usecase.Scenarios
 			dim scenarioStep as EA.ScenarioStep
 			for each scenarioStep in scenario.Steps
@@ -156,10 +204,10 @@ function linkDomainClassesWithUseCases(dictionary,regExp,usecases)
 		set matches = regExp.Execute(useCaseText)
 		dim classesToMatch 
 		set classesToMatch = getClassesToMatchDictionary(matches, dictionary)
-		dim classToMatch as EA.Element
-		for each classToMatch in classesToMatch.Items
+		dim classIDToMatch
+		for each classIDToMatch in classesToMatch.Items
 			'create the dependency between the use case and the Logical Data Model class
-			linkElementsWithAutomaticTrace usecase, classToMatch
+			linkElementsWithAutomaticTrace usecase, classIDToMatch
 		next
 	next
 end function
@@ -208,12 +256,8 @@ function getDependencies(element)
 	set getDependencies = getElementDictionaryFromQuery(getDependencySQL)
 end function
 
-function linkDomainClassesWithBusinessRulesInPackage(dictionary,regExp,selectedPackage)
+function linkDomainClassesWithBusinessRulesInPackage(dictionary,regExp,packageIDString)
 	'get a list of all business rules in the selected package
-	dim packageList 
-	set packageList = getPackageTree(selectedPackage)
-	dim packageIDString
-	packageIDString = makePackageIDString(packageList)
 	dim getElementsSQL
 	getElementsSQL = "select r.Object_ID from t_object r where r.stereotype = 'Business Rule' and r.Package_ID in (" & packageIDString & ")"
 	dim businessRules
@@ -221,13 +265,23 @@ function linkDomainClassesWithBusinessRulesInPackage(dictionary,regExp,selectedP
 	linkDomainClassesWithBusinessRules dictionary,regExp, businessRules
 end function
 
+function linkDomainClassesWithReportingElementsInPackage(dictionary,regExp,packageIDString)
+	'get a list of all reportingElements in the selected package
+	dim getElementsSQL
+	getElementsSQL = "select r.Object_ID from t_object r where r.stereotype in ('BI-REP', 'BI-Dataset') and r.Package_ID in (" & packageIDString & ")"
+	dim reportingElements
+	set reportingElements = getElementsFromQuery(getElementsSQL)
+	linkDomainClassesWithBusinessRules dictionary,regExp, reportingElements
+end function
+
+
 function linkDomainClassesWithBusinessRules(dictionary,regExp, businessRules)
 	Session.Output businessRules.Count &" business rules found"
 	dim businessRule as EA.Element
 	dim connector as EA.Connector
 	dim i
 	for each businessRule in BusinessRules
-		Repository.WriteOutput outPutName, "Processing Business Rule: " & businessRule.Name, 0
+		Repository.WriteOutput outPutName, "Processing Element: " & businessRule.Name, 0
 		'first remove all automatic trace elements
 		removeAllAutomaticTraces(businessRule)
 		dim ruleText
@@ -279,18 +333,18 @@ function linkMatchesWithBusinessRule(matches, businessRule, dictionary)
 	dim classesToMatch
 	'get the classes to match
 	Set classesToMatch = getClassesToMatchDictionary(matches,dictionary)
-	dim classToMatch as EA.Element
+	dim classIDToMatch
 	'actually link the classes
-	for each classToMatch in classesToMatch.Items
-		linkElementsWithAutomaticTrace businessRule, classToMatch
+	for each classIDToMatch in classesToMatch.Items
+		linkElementsWithAutomaticTrace businessRule, classIDToMatch
 	next
 end function
 
-function linkElementsWithAutomaticTrace(sourceElement, TargetElement)
+function linkElementsWithAutomaticTrace(sourceElement, targetID)
 	dim trace as EA.Connector
 	set trace = sourceElement.Connectors.AddNew("","trace")
 	trace.Alias = "automatic"
-	trace.SupplierID = TargetElement.ElementID
+	trace.SupplierID = targetID
 	trace.Update
 end function
 
@@ -303,19 +357,24 @@ function addToClassDictionary(PackageGUID, dictionary)
 end function
 
 function addClassesToDictionary(package, dictionary)
-	dim classElement as EA.Element
-	dim subpackage as EA.Package
+	dim classRow 
+	'search classes using SQL 
+	dim packageIDString
+	packageIDString = getPackageTreeIDString(package)
+	dim sqlGetClasses
+	sqlGetClasses = "select o.Name, o.Object_ID from t_object o where o.Object_Type = 'Class' and o.name is not null and o.Package_ID in (" & packageIDString &")"
+	dim classNames
+	set classNames = getArrayListFromQuery(sqlGetClasses)
 	'process owned elements
-	for each classElement in package.Elements
+	for each classRow in classNames
+		dim className
+		className = classRow(0)
+		dim classID
+		classID = classRow(1)
+		'add to dictionary
 		'this works for FISSES as well because they are classes with stereotype Message
-		if classElement.Type = "Class" AND len(classElement.Name) > 0 AND not dictionary.Exists(classElement.Name) then
-			Repository.WriteOutput outPutName, "Adding element: " & classElement.Name, 0
-			dictionary.Add classElement.Name,  classElement
-		end if	
-	next
-	'process subpackages
-	for each subpackage in package.Packages
-		addClassesToDictionary subpackage, dictionary
+		dictionary(className) = classID
+		Repository.WriteOutput outPutName, "Adding element: " & className, 0	
 	next
 end function
 

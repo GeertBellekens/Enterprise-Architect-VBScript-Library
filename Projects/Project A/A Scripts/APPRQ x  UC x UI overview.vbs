@@ -8,7 +8,7 @@ option explicit
 '
 ' Script Name: APPRQ x UC x UI overview
 ' Author: Geert Bellekens
-' Purpose: Creates an Excel file containing
+' Purpose: Creates an Excel file containing Application Requirements, Use Cases and User Interfaces
 ' Date: 2017-10-17
 '
 sub main

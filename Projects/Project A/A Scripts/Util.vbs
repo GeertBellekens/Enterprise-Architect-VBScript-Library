@@ -155,6 +155,7 @@ function copyTaggedValues(source, target)
 		'set value
 		if not targetTag is nothing then
 			targetTag.Value = sourceTag.Value
+			targetTag.Notes = sourceTag.Notes
 			targetTag.Update
 			target.Update
 		end if

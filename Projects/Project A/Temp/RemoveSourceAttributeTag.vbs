@@ -8,7 +8,7 @@ option explicit
 '
 ' Script Name: 
 ' Author: 
-' Purpose: 
+' Purpose: Remove the tagged value SourceAttribue from elements with steroetype BI-DS_Calculation
 ' Date: 
 '
 

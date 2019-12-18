@@ -17,7 +17,8 @@ option explicit
 'Repository.EnsureOutputVisible outPutName
 dim xmlDOM, xmlRoot, xmlData, xmlDataSet, xmlRow
 
-MyRtfData 5209, ""
+'Debug
+'Session.Output MyRtfData(34599, "")
 
 function MyRtfData(diagramID, tagname)
 	'XML
@@ -151,11 +152,17 @@ function getTriggers(source, transition)
 		xmlTrigger.text = trigger.Name
 		xmlRow.appendChild xmlTrigger
 		
-		if len(specification(1)) > 0 then
-			set xmlSpecification = xmlDOM.createElement( "Specification" )
-			xmlSpecification.text = specification(1)
-			xmlRow.appendChild xmlSpecification
-		else 
+		dim specificationAdded
+		specificationAdded = false
+		if Ubound(specification) > 1 then 
+			if len(specification(1)) > 0 then
+				set xmlSpecification = xmlDOM.createElement( "Specification" )
+				xmlSpecification.text = specification(1)
+				xmlRow.appendChild xmlSpecification
+				specificationAdded = true
+			end if
+		end if
+		if not specificationAdded then
 			set xmlSpecification = xmlDOM.createElement( "Specification" )
 			xmlSpecification.text = ""
 			xmlRow.appendChild xmlSpecification

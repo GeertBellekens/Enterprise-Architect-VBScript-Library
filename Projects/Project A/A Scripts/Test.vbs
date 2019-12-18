@@ -2,60 +2,67 @@
 '[group=Atrias Scripts]
 option explicit
 
+!INC Local Scripts.EAConstants-VBScript
+!INC Wrappers.Include
+
 sub main
-	dim selectedPackage as EA.Package
-	set selectedPackage = Repository.GetTreeSelectedPackage()
-	'create diagram
-	dim diagram as EA.Diagram
-	set diagram = selectedPackage.Diagrams.AddNew("bugdemo","Logical")
-	diagram.Update()
-	'create classes
-	dim class1 as EA.Element
-	dim class2 as EA.Element
-	set class1 = selectedPackage.Elements.AddNew("Class1","Class")
-	set class2 = selectedPackage.Elements.AddNew("Class2","Class")
-	'create associations
-	dim goodAssociation as EA.Connector
-	dim badAssociation as EA.Connector
-	set goodAssociation = class1.Connectors.AddNew("goodAssociation", "Association")
-	set badAssociation = class1.Connectors.AddNew("goodAssociation", "Association")
-	'set the other side
-	goodAssociation.SupplierID = class2.ElementID
-	badAssociation.SupplierID = class2.ElementID
-	'manipulate association ends good order
-	goodAssociation.ClientEnd.Role = "partRole"
-	'composite end last
-	goodAssociation.ClientEnd.Role = "compositeRole"
-	goodAssociation.ClientEnd.Aggregation = 2 'composite
-	'save the association
-	goodAssociation.Update
+	dim package as EA.Package
+	set package = Repository.GetTreeSelectedPackage()
+	dim startTime
+	dim endTime
 	
-	'manipulate association ends reverse order
-	'composite end first
-	badAssociation.ClientEnd.Role = "compositeRole"
-	badAssociation.ClientEnd.Aggregation = 2 'composite
-	'part end last
-	badAssociation.ClientEnd.Role = "partRole"
-	'save the association	
-	badAssociation.Update
+	startTime = Timer()
+	dim slowPackageTreeIDs
+	slowPackageTreeIDs = getPackageTreeIDString(package)
+	endTime = Timer()
+	Session.Output "Slow getPackageTreeIDString: " & FormatNumber(EndTime - StartTime, 3)
 	
-	'add elements to diagram
-	dim class1Do as EA.DiagramObject
-	dim class2Do as EA.DiagramObject
-	set class1Do = diagram.DiagramObjects.AddNew("l=10;r=70;t=10;b=50;","")
-	set class2Do = diagram.DiagramObjects.AddNew("l=100;r=170;t=10;b=50;","")
-	class1Do.ElementID = class1.ElementID
-	class1Do.Update
-	class2Do.ElementID = class2.ElementID
-	class2Do.Update
+	startTime = Timer()
+	dim fastPackageTreeIDs
+	fastPackageTreeIDs = getPackageTreeIDStringFast(package)
+	endTime = Timer()
+	Session.Output "Fast getPackageTreeIDString: " & FormatNumber(EndTime - StartTime, 3)
 	
-	'layout diagram (which will show the diagram as well)
-	dim diagramGUIDXml
-	'The project interface needs GUID's in XML format, so we need to convert first.
-	diagramGUIDXml = Repository.GetProjectInterface().GUIDtoXML(diagram.DiagramGUID)
-	'Then call the layout operation
-	Repository.GetProjectInterface().LayoutDiagramEx diagramGUIDXml, lsDiagramDefault, 4, 20 , 20, false
-	'diagram.Update
+	Session.Output "Slow package IDs: " & slowPackageTreeIDs
+	Session.Output "Fast package IDs: " & fastPackageTreeIDs
 end sub
+
+
+function getPackageTreeIDStringFast(package)
+	dim allPackageTreeIDs 
+	set allPackageTreeIDs = CreateObject("System.Collections.ArrayList")
+	dim parentPackageIDs
+	set parentPackageIDs = CreateObject("System.Collections.ArrayList")
+	parentPackageIDs.Add package.PackageID
+	getPackageTreeIDsFast allPackageTreeIDs, parentPackageIDs
+	'return
+	getPackageTreeIDStringFast = Join(allPackageTreeIDs.ToArray,",")
+end function
+
+function getPackageTreeIDsFast(allPackageTreeIDs, parentPackageIDs)
+	if parentPackageIDs.Count = 0 then
+		if allPackageTreeIDs.Count = 0 then
+			'make sure there is at least a 0 in the allPackageTreeIDs
+			allPackageTreeIDs.Add "0"
+		end if
+		'then exit
+		exit function
+	end if
+	'add the parent package ids
+	allPackageTreeIDs.AddRange(parentPackageIDs)
+	'get the child package IDs
+	dim sqlGetPackageIDs
+	sqlGetPackageIDs = "select p.Package_ID from t_package p where p.Parent_ID in (" & Join(parentPackageIDs.ToArray, ",") & ")"
+	dim queryResult
+	set queryResult = getVerticalArrayListFromQuery(sqlGetPackageIDs)
+	if queryResult.Count > 0 then
+		dim childPackageIDs
+		set childPackageIDs = queryResult(0)
+		'call recursive function with child package id's
+		getPackageTreeIDsFast allPackageTreeIDs, childPackageIDs
+	end if
+end function
+
+
 
 main

@@ -7,7 +7,34 @@
 ' Purpose: A wrapper class for a message node in a messaging structure
 ' Date: 2017-03-14
 
+	'JSON facet constants
+	const tv_minlength = "minlength"
+	const tv_maxlength = "maxlength"
+	const tv_pattern = "pattern" 
+	const tv_format = "format"
+	const tv_enum = "enum"
+	const tv_minimum = "minimum"
+	const tv_exclusiveminimum = "exclusiveminimum"
+	const tv_maximum = "maximum"
+	const tv_exclusivemaximum = "exclusivemaximum"
+	const tv_multipleof = "multipleof"
+	
+	'XML  facet constants
+	const tvxml_pattern = "pattern"
+	const tvxml_enumeration = "enumeration"
+	const tvxml_fractionDigits = "fractionDigits"
+	const tvxml_length = "length"
+	const tvxml_maxExclusive = "maxExclusive"
+	const tvxml_maxInclusive = "maxInclusive"
+	const tvxml_maxLength = "maxLength"
+	const tvxml_minExclusive = "minExclusive"
+	const tvxml_minInclusive = "minInclusive"
+	const tvxml_minLength = "minLength"
+	const tvxml_totalDigits = "totalDigits"
+	const tvxml_whiteSpace = "whiteSpace"
+
 Class MessageNode 
+
 	'private variables
 	Private m_Name
 	Private m_TypeElement
@@ -17,10 +44,11 @@ Class MessageNode
 	Private m_ChildNodes
 	Private m_SourceAttribute
 	Private m_SourceAssociationEnd
+	Private m_SourceAssociation
 	Private m_SourceElement
+	Private m_mappingPath
 	Private m_ValidationRules
 	Private m_IsLeafNode
-	Private m_CustomOrdering
 	Private m_Order
 	Private m_Facets
 	Private m_MappedBusinessAttributes
@@ -28,6 +56,9 @@ Class MessageNode
 	Private m_BaseTypeName
 	Private m_BaseTypeElement
 	Private m_Message
+	Private m_Mappings
+	Private m_Choices
+	Private m_MappingPathString
 
 	'constructor
 	Private Sub Class_Initialize
@@ -37,12 +68,13 @@ Class MessageNode
 		m_Multiplicity = ""
 		set m_ParentNode = nothing
 		set m_ChildNodes = CreateObject("System.Collections.ArrayList")
+		set m_mappingPath = nothing
 		set m_SourceAttribute = nothing
 		set m_SourceAssociationEnd = nothing
+		set m_SourceAssociation = nothing
 		set m_SourceElement = nothing
 		set m_ValidationRules = CreateObject("System.Collections.ArrayList")
 		m_IsLeafNode = false
-		m_CustomOrdering = false
 		m_order = 0
 		set m_Facets = CreateObject("Scripting.Dictionary")
 		set m_MappedBusinessAttributes = CreateObject("System.Collections.ArrayList")
@@ -50,6 +82,9 @@ Class MessageNode
 		m_BaseTypeName = ""
 		set m_BaseTypeElement = nothing
 		set m_Message = nothing
+		set m_Mappings = nothing
+		set m_Choices = nothing
+		m_MappingPathString = ""
 	End Sub
 	
 	'public properties
@@ -77,6 +112,23 @@ Class MessageNode
 	End Property
 	Public Property Let Name(value)
 		m_Name = value
+	End Property
+	
+	' Notes property.
+	Public Property Get Notes
+		if not me.SourceAttribute is nothing then
+			Notes = me.SourceAttribute.Notes
+		elseif not me.SourceAssociationEnd is nothing then
+			if len (me.SourceAssociationEnd.Notes) > 0 then
+				Notes = me.SourceAssociationEnd.Notes
+			else 
+				Notes = me.SourceAssociation.Notes
+			end if
+		elseif not me.SourceElement is nothing then
+			Notes = me.SourceElement.Notes
+		else
+			Notes = ""
+		end if
 	End Property
 	
 	' TypeElement property.
@@ -204,6 +256,14 @@ Class MessageNode
 		set m_SourceAssociationEnd = value
 	End Property
 	
+	' SourceAssociation property.
+	Public Property Get SourceAssociation
+		set SourceAssociation = m_SourceAssociation
+	End Property
+	Public Property Let SourceAssociation(value)
+		set m_SourceAssociation = value
+	End Property
+	
 	' SourceElement property.
 	Public Property Get SourceElement
 		set SourceElement = m_SourceElement
@@ -220,12 +280,9 @@ Class MessageNode
 		set m_ValidationRules = value
 	End Property	
 	
-	'CustomOrdering property
-	Public Property Get CustomOrdering
-	  CustomOrdering = m_CustomOrdering
-	End Property
-	Public Property Let CustomOrdering(value)
-		m_CustomOrdering = value
+	'MessageType property
+	Public Property Get MessageType
+	  MessageType = me.Message.MessageType
 	End Property
 	
 	'Order property
@@ -243,7 +300,7 @@ Class MessageNode
 	Public Property Let Facets(value)
 		set m_Facets = value
 	End Property
-	
+		
 	' MappedBusinessAttributes property.
 	Public Property Get MappedBusinessAttributes
 		set MappedBusinessAttributes = m_MappedBusinessAttributes
@@ -259,6 +316,163 @@ Class MessageNode
 	Public Property Let Message(value)
 		set m_Message = value
 	End Property
+	
+	' MappingPathString property.
+	Public Property Get MappingPathString
+		if len(m_MappingPathString) = 0 then
+			m_MappingPathString = getMappingPathString()
+		end if
+		MappingPathString = m_MappingPathString
+	End Property
+	
+	Public Property Get MappingPath
+		if m_MappingPath is nothing then
+			set m_MappingPath = CreateObject("System.Collections.ArrayList")
+			'add the parents mappingPath
+			if not me.ParentNode is nothing then
+				m_MappingPath.AddRange me.ParentNode.MappingPath
+			end if
+			'add own guid
+			if not me.sourceAssociation is nothing then
+				m_MappingPath.Add me.SourceAssociation.ConnectorGUID
+			elseif not me.sourceAttribute is nothing then
+				m_MappingPath.Add me.SourceAttribute.AttributeGUID
+			elseif not me.sourceElement is nothing then
+				m_MappingPath.Add me.SourceElement.ElementGUID
+			end if
+		end if
+		set MappingPath = m_MappingPath
+	End Property
+	
+	' Mappings property.
+	Public Property Get Mappings
+		if m_Mappings is nothing then
+			loadMappings
+		end if
+		set Mappings = m_Mappings
+	End Property
+	
+	' returns the other choices in the choice group
+	Public Property Get Choices
+		if m_Choices is nothing then
+			set m_Choices = getChoices
+		end if 
+		'return
+		set Choices = m_Choices
+	End Property
+	
+	Private function loadMappings()
+		'create the list if needed
+		if m_Mappings is nothing then
+			set m_Mappings = CreateObject("System.Collections.ArrayList")
+		end if
+		'get the maping tagged values and create mappings for them
+		dim taggedValue as EA.TaggedValue
+		dim taggedValues
+		set taggedValues = getSourcetaggedValues()
+		dim mapping
+		for each taggedValue in taggedValues
+			if lcase(taggedValue.Name) = lcase(linkedAttributeTag) _
+			  or lcase(taggedValue.Name) = lcase(linkedAssociatonTag) _
+			  or lcase(taggedValue.Name) = lcase(linkedElementTag)  then
+				'add the mapping
+				addNewMapping(taggedValue)
+			end if
+		next
+	end function
+	
+	private function addNewMapping(taggedValue)
+		'first check if the taggedValue represents this node
+		dim mapping
+		set mapping = new Mapping
+		mapping.TaggedValue = taggedValue
+		'check if each of the mappingPath guid's is present in the mappingPathString of the mappping
+		dim found
+		found = false
+		dim guid
+		for each guid in me.MappingPath
+			if Instr(mapping.MappingPathString, guid) > 0 then
+				found = true
+			else
+				found = false
+				exit for
+			end if
+		next
+		if found then
+			if not mapping.Target is nothing then
+				Repository.WriteOutput outPutName, now() & " Adding mapping from '" & me.Name & "' to '" & mapping.Target.Name & "'", 0
+				m_Mappings.Add mapping
+			else
+				Repository.WriteOutput outPutName, now() & " ERROR: Mapping target missing on '" & me.Name, 0
+			end if
+		end if
+	end function
+	
+	private function getChoices()
+		dim tags
+		dim tag as EA.TaggedValue
+		set tags = getSourcetaggedValues()
+		dim choices
+		set choices = CreateObject("System.Collections.ArrayList")
+		for each tag in tags
+			if lcase(tag.Name) = "choice" then
+				'split the value
+				dim choiceGUIDs 
+				choiceGUIDs = Split( tag.Value, ",")
+				dim choiceGUID
+				for each choiceGUID in choiceGUIDs
+					dim choiceObject
+					'remove spaces
+					choiceGUID = trim(choiceGUID)
+					'first try attribute
+					set choiceObject = Repository.GetAttributeByGuid(choiceGUID)
+					'then try connector
+					if choiceObject is nothing then	
+						set choiceObject = Repository.GetConnectorByGuid(choiceGUID)
+					end if
+					if not choiceObject is nothing then
+						choices.Add choiceObject
+					end if
+				next
+				exit for
+			end if
+		next
+		'return 
+		set getChoices = choices
+	end function
+	
+	private function getSourcetaggedValues()
+		dim sourceTags
+		set sourceTags = CreateObject("System.Collections.ArrayList")
+		dim item
+		set item = nothing
+		'figure out the real source
+		if not me.SourceAttribute is nothing then
+			set item = me.SourceAttribute
+		elseif not me.SourceAssociation is nothing then
+			set item = me.SourceAssociation
+		elseif not me.SourceElement is nothing then
+			set item = me.SourceElement
+		end if
+		'get the actual tagged values
+		if not item is nothing then
+			set sourceTags = item.TaggedValues
+		end if
+		'return the sourcetags
+		set getSourcetaggedValues = sourceTags
+	end function
+		
+	public function getMappingPathString()
+		dim mappingPathString
+		dim guid 
+		for each guid in me.MappingPath
+			if len(mappingPathString) > 0 then
+				mappingPathString = mappingPathString & "."
+			end if
+			mappingPathString = mappingPathString & guid
+		next
+		getMappingPathString = mappingPathString
+	end function
 	
 	Public function linkRuletoNode(validationRule, path)
 		'initialize false
@@ -337,7 +551,7 @@ Class MessageNode
 		'set the name
 		me.Name = source.Name
 		'remove any underscores from the name in case of MIG6
-		if me.CustomOrdering then
+		if me.MessageType = msgMIG6 then
 			me.Name = Replace(me.Name, "_","")
 		end if
 		'set the type
@@ -392,7 +606,7 @@ Class MessageNode
 		'get the facets
 		getFacets source
 		'set the mapped BusinessAttributes
-		if me.CustomOrdering then 'only applicable for custom ordering
+		if me.MessageType = msgMIG6 then 'only applicable for custom ordering
 			dim taggedValue as EA.AttributeTag
 			'find the tagged values with name mappedBusinessAttribute
 			for each taggedValue in source.TaggedValues
@@ -432,69 +646,116 @@ Class MessageNode
 	
 	'gets the facets from an attribute
 	private function getFacets(sourceAttribute)
+		if me.MessageType = msgJSON then
+			getJSONFacets sourceAttribute
+		else
+			getXMLFacets sourceAttribute
+		end if
+	end function
+	
+	private function getXMLFacets(sourceAttribute)
 		dim tv as EA.TaggedValue
 		'first loop the facets of the datatype
 		dim datatype as EA.Element
 		if sourceAttribute.ClassifierID > 0 then
 			set datatype = Repository.GetElementByID(sourceAttribute.ClassifierID)
 			for each tv in datatype.TaggedValues
-				if len(tv.Value) > 0 _
-				  and (tv.Name = "enumeration" _
-				  or tv.Name = "fractionDigits" _
-				  or tv.Name = "length" _
-				  or tv.Name = "maxExclusive" _
-				  or tv.Name = "maxInclusive" _
-				  or tv.Name = "maxLength" _
-				  or tv.Name = "minExclusive" _
-				  or tv.Name = "minInclusive" _
-				  or tv.Name = "minLength" _
-				  or tv.Name = "pattern" _
-				  or tv.Name = "totalDigits" _
-				  or tv.Name = "whiteSpace") then
-					me.Facets.Item(tv.Name) = tv.Value
+				if len(tv.Value) > 0 then
+					setXMLFacet tv.Name, tv.Value
 				end if
 			next
 		end if
 		'first loop the standard facets
 		for each tv in sourceAttribute.TaggedValues
-			if tv.Name = "enumeration" _
-			  or tv.Name = "fractionDigits" _
-			  or tv.Name = "length" _
-			  or tv.Name = "maxExclusive" _
-			  or tv.Name = "maxInclusive" _
-			  or tv.Name = "maxLength" _
-			  or tv.Name = "minExclusive" _
-			  or tv.Name = "minInclusive" _
-			  or tv.Name = "minLength" _
-			  or tv.Name = "pattern" _
-			  or tv.Name = "totalDigits" _
-			  or tv.Name = "whiteSpace" then
-				me.Facets.Item(tv.Name) = tv.Value
-			end if
+			setXMLFacet tv.Name, tv.Value
 		next
 		'then the overridden facets
 		for each tv in sourceAttribute.TaggedValues
-			if tv.Name = "override_enumeration" _
-			  or tv.Name = "override_fractionDigits" _
-			  or tv.Name = "override_length" _
-			  or tv.Name = "override_maxExclusive" _
-			  or tv.Name = "override_maxInclusive" _
-			  or tv.Name = "override_maxLength" _
-			  or tv.Name = "override_minExclusive" _
-			  or tv.Name = "override_minInclusive" _
-			  or tv.Name = "override_minLength" _
-			  or tv.Name = "override_pattern" _
-			  or tv.Name = "override_totalDigits" _
-			  or tv.Name = "override_whiteSpace" then
-				me.Facets.Item(Replace(tv.Name,"override_","")) = tv.Value
+			if left(tv.Name,len("override_")) = "override_" then
+				setXMLFacet Replace(tv.Name,"override_",""), tv.Value
 			end if
 		next
 	end function
 	
+	private function setXMLFacet(tagName, tagValue)
+		select case tagName
+			case tvxml_pattern, tvxml_enumeration, tvxml_fractionDigits, tvxml_length, tvxml_maxExclusive, tvxml_maxInclusive, _
+			tvxml_maxLength, tvxml_minExclusive, tvxml_minInclusive, tvxml_minLength, tvxml_totalDigits, tvxml_whiteSpace
+				me.Facets.Item(tagName) = tagValue
+		end select
+	end function
+	
+	private function getJSONFacets(sourceAttribute)
+		'check if uniqueItems should true
+		if sourceAttribute.UpperBound <> "1" _
+			and sourceAttribute.AllowDuplicates = false then
+			me.Facets.Item("uniqueItems") = "true"
+		end if
+		dim tv as EA.TaggedValue
+		'first loop the facets of the datatype
+		'TODO facets of the parent datatype?
+		dim datatype as EA.Element
+		if sourceAttribute.ClassifierID > 0 then
+			set datatype = Repository.GetElementByID(sourceAttribute.ClassifierID)
+			processDatatypeFacets datatype
+		end if
+		'then the facets of the attribute
+		processJsonFacetTags sourceAttribute
+		'then the overridden facets
+		'Not implemented for JSON facets
+	end function
+	
+	function processDatatypeFacets(datatype)
+		'first do the base datatypes
+		dim baseDataType as EA.Element
+		for each baseDataType  in dataType.BaseClasses
+			processDatatypeFacets baseDataType
+		next
+		'then process this datatype
+		processJsonFacetTags datatype
+	end function
+	
+	function processJsonFacetTags(item)
+		dim tv as EA.TaggedValue
+		for each tv in item.TaggedValues
+			if len(tv.Value) > 0 then
+				select case lcase(tv.Name)
+					case tv_minlength,tv_maxlength, tv_pattern, tv_format, tv_enum, tv_multipleof
+						'add facet
+						me.Facets.Item(tv.Name) = tv.Value
+					case tv_minimum
+						me.Facets.Item(tv.Name) = tv.Value
+						'remove exclusive minimum
+						if me.Facets.Exists(tv_exclusiveminimum) then
+							me.Facets.Remove tv_exclusiveminimum
+						end if
+					case tv_exclusiveminimum
+						me.Facets.Item(tv.Name) = tv.Value
+						'remove minimum
+						if me.Facets.Exists(tv_minimum) then
+							me.Facets.Remove tv_minimum
+						end if
+					case tv_maximum
+						me.Facets.Item(tv.Name) = tv.Value
+						'remove exclusive maximum
+						if me.Facets.Exists(tv_exclusivemaximum) then
+							me.Facets.Remove tv_exclusivemaximum
+						end if
+					case tv_exclusivemaximum
+						me.Facets.Item(tv.Name) = tv.Value
+						'remove maximum
+						if me.Facets.Exists(tv_maximum) then
+							me.Facets.Remove tv_maximum
+						end if
+				end select
+			end if
+		next
+	end function
 	
 	'set the source in case of a connectorEnd
 	private function setConnectorEndNode(source,sourceConnector)
 		me.SourceAssociationEnd = source
+		me.SourceAssociation = sourceConnector
 		'set the order
 		me.Order = getSequencingKey(sourceConnector)
 		dim endObject as EA.Element
@@ -545,7 +806,7 @@ Class MessageNode
 		loadAllAssociationNodes parents
 		'load nested classes?
 		'reorder nodes
-		if me.CustomOrdering then
+		if me.MessageType = msgMIG6 then
 			reOrderChildNodes
 		end if
 	end function
@@ -649,43 +910,135 @@ Class MessageNode
 		currentNodeList.Add me.TypeName
 		'Add base type
 		currentNodeList.Add me.BaseTypeName
+		'add constraints (choices + facets)
+		dim constraintSpec
+		constraintSpec = getChoiceSpecification()
+		if len(constraintSpec) > 0 then
+			constraintSpec = constraintSpec & VBNewLine
+		end if
 		'add facets
-		currentNodeList.Add getFacetsSpecification()
+		constraintSpec = constraintSpec & getFacetsSpecification()
+		'add the constraints to the list
+		currentNodeList.Add constraintSpec
 		'add the business attribute mapping and facets
-		if me.CustomOrdering then
-			if not me.IncludeDetails then
-				'add empty fields for LDM mapping
-				currentNodeList.Add "" 'Class
-				currentNodeList.Add "" 'Attribute
-				'add business attribute mapping details
-				dim businessEntityNames
-				businessEntityNames = ""
-				dim businessAttributeNames
-				businessAttributeNames = ""
-				dim businessAttribute as EA.Attribute
-				dim businessEntity as EA.Element
-				for each businessAttribute in me.MappedBusinessAttributes
-					'get the owner of the businessAttribute
-					set businessEntity = Repository.GetElementByID(businessAttribute.ParentID)
-					'set newline if needed
-					if len(businessEntityNames) > 0 then
-						businessEntityNames = businessEntityNames & vbNewLine
-					end if
-					'add businessEntityName
-					businessEntityNames = businessEntityNames & businessEntity.Name
-					'set the business attribute name
-					if len(businessAttributeNames) > 0 then
-						businessAttributeNames = businessAttributeNames & vbNewLine
-					end if
-					'add the businessAttributeName
-					businessAttributeNames = businessAttributeNames & businessAttribute.Name
+		if not me.Message is nothing then
+			if me.Message.HasMappings _
+			  and not me.IncludeDetails then
+				'add LDM mapping
+				dim LDMClass
+				LDMClass = ""
+				dim LDMAttribute
+				LDMAttribute = ""
+				dim commentsPerFis
+				set commentsPerFis = CreateObject("Scripting.Dictionary")
+				dim fis
+				'set the default values
+				for each fis in me.message.fisses
+					commentsPerFis(fis.Name) = ""
 				next
-				'add to the node list
-				currentNodeList.Add businessEntityNames
-				currentNodeList.Add businessAttributeNames
+				'loop mappings
+				dim j
+				For j = 0 to me.Mappings.Count -1					
+					dim mapping
+					set mapping = me.Mappings.Item(j)
+					if not mapping.IsEmpty then
+						dim target 
+						set target = mapping.target
+						dim targetType 
+						targetType = target.ObjectType
+						if targetType = otElement then
+							if me.Mappings.Count > 1 then
+								'add newline if needed
+								if len(LDMClass) > 0 then
+									LDMClass = LDMClass & VBNewLine
+								end if
+								'add number
+								LDMClass = LDMClass & j + 1 & ") "
+							end if
+							'add className
+							LDMClass = LDMClass & target.Name
+						elseif targetType = otAttribute then
+							dim owner as EA.Element
+							set owner = mapping.TargetParent
+							if owner is nothing then
+								set owner = Repository.GetElementByID(target.ParentID)
+							end if
+							if me.Mappings.Count > 1 then
+								'add newline if needed
+								if len(LDMClass) > 0 then
+									LDMClass = LDMClass & VBNewLine
+									LDMAttribute = LDMAttribute & VBNewLine
+								end if
+								'add number
+								LDMClass = LDMClass & j + 1 & ") "
+								LDMAttribute = LDMAttribute & j + 1 & ") "
+							end if
+							'add className
+							LDMClass = LDMClass & owner.Name 'Class
+							LDMAttribute = LDMAttribute & target.Name 'Attribute
+						end if
+					end if
+					'process the mapping logics
+					dim fisName
+					for each fisName in commentsPerFis.Keys
+						dim mapped
+						mapped = false
+						'set mapped true if no mapping logics exist
+						if mapping.MappingLogics.Count = 0 then
+							mapped = true
+						end if
+						'add newline if needed
+						if len(commentsPerFis(fisName)) > 0 then
+							commentsPerFis(fisName) = commentsPerFis(fisName) & VBNewLine
+						end if
+						'add mapping number
+						if me.Mappings.Count > 1 then
+							commentsPerFis(fisName) = commentsPerFis(fisName) & j + 1 & ") "							
+						end if
+						'add specific mapping logic
+						dim mappingLogic
+						for each mappingLogic in mapping.MappingLogics
+							dim context
+							set context = mappingLogic.Context
+							if not context is nothing then
+								if context.Name = fisName then
+									mapped = true
+									'add content for this context
+									commentsPerFis(fisName) = commentsPerFis(fisName) & mappingLogic.Description
+								end if
+							else
+								mapped = true
+								'add content to all contexts
+								commentsPerFis(fisName) = commentsPerFis(fisName) & mappingLogic.Description
+							end if
+						next
+						if not mapped then
+							'add "not mapped" for this FIS
+							commentsPerFis(fisName) = commentsPerFis(fisName) & "not mapped"
+						end if
+					next
+				next
+				'add the fields to the output
+				currentNodeList.Add LDMClass
+				currentNodeList.Add LDMAttribute
 			end if
+		end if
+		'add the business usage section
+		if not me.Message is nothing then
+			if not me.IncludeDetails _
+			and me.Message.HasMappings then
+				for each fis in me.Message.Fisses 
+					'add the mapping logic per FIS
+					currentNodeList.Add commentsPerFis(fis.Name)
+				next
+			end if
+		end if
+		'add notes of element or attribute in case of msgJSON
+		if me.MessageType = msgJSON then
+			currentNodeList.Add Repository.GetFormatFromField("TXT", me.Notes)
+		end if
 		'add the rules section
-		elseif includeRules then
+		if includeRules then
 			if not validationRule is nothing then
 				currentNodeList.Add validationRule.RuleId
 				currentNodeList.Add validationRule.Name
@@ -696,17 +1049,45 @@ Class MessageNode
 				currentNodeList.Add ""
 			end if
 		end if
-		'add the business usage section
-		if me.CustomOrdering _
-		and me.IncludeDetails _
-		and not me.Message is nothing then
-			dim fis as EA.Element
-			for each fis in me.Message.Fisses 
-				currentNodeList.Add ""
-			next
-		end if
 		'return output
 		set getThisNodeOutput = currentNodeList
+	end function
+	
+	private function getChoiceSpecification()
+		dim choiceSpec
+		choiceSpec = "" 'initialize empty string
+		dim choiceObject as EA.Connector
+		for each choiceObject in me.Choices
+			if len(choiceSpec) = 0 then
+				choiceSpec = "Choice group with ("
+			else
+				choiceSpec = choiceSpec & ", "
+			end if
+			'get name
+			if choiceObject.ObjectType = otAttribute then
+				choiceSpec = choiceSpec & choiceObject.Name
+			else
+				'connector
+				dim endObject as EA.Element
+				set endObject = Repository.GetElementByID(choiceObject.SupplierID)
+				dim connectorName
+				'set the name = name of role + name of end object + remove underscores
+				if len(choiceObject.SupplierEnd.Role) > 0 then
+					connectorName = choiceObject.SupplierEnd.Role & endObject.Name
+					connectorName= Replace(connectorName, "_","")
+				else
+					'use the end object name as rolename
+					connectorName = endObject.Name
+				end if 
+				choiceSpec = choiceSpec & connectorName
+			end if
+		next
+		'close parentheses if needed
+		if len(choiceSpec) > 0 then
+			choiceSpec = choiceSpec & ")"
+		end if
+		'return
+		getChoiceSpecification = choiceSpec
 	end function
 	
 	private function getFacetsSpecification()
@@ -735,7 +1116,7 @@ Class MessageNode
 					end if
 					'add the name
 					enumValuesDescription = enumValuesDescription & enumValue.Name
-					if me.CustomOrdering then
+					if me.MessageType = msgMIG6 then
 						'Description is stored in the tagged value CodeName
 						dim tv as EA.AttributeTag
 						for each tv in enumValue.TaggedValues
@@ -752,6 +1133,10 @@ Class MessageNode
 				next
 				'add to facetSpecification
 				if len(enumValuesDescription) > 0 then
+					if len(getFacetsSpecification) > 0 then
+						getFacetsSpecification = getFacetsSpecification & vbNewLine
+					end if
+					'add enum values
 					getFacetsSpecification = getFacetsSpecification & "Values allowed:" & VbNewLine & enumValuesDescription
 				end if
 			end if
@@ -837,7 +1222,6 @@ Class MessageNode
 			'create the next messageNode
 			dim newMessageNode
 			set newMessageNode = new MessageNode
-			newMessageNode.CustomOrdering = me.CustomOrdering
 			newMessageNode.Message = me.Message
 			'initialize
 			newMessageNode.intitializeWithSource attribute, nothing, "", nothing, me
@@ -884,7 +1268,6 @@ Class MessageNode
 			'create the next messageNode
 			dim newMessageNode
 			set newMessageNode = new MessageNode
-			newMessageNode.CustomOrdering = me.CustomOrdering
 			newMessageNode.Message = me.Message
 			'initialize
 			newMessageNode.intitializeWithSource association.SupplierEnd, association, "", nothing, me

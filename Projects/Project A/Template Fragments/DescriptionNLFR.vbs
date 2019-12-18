@@ -6,9 +6,9 @@ option explicit
 !INC Atrias Scripts.Util
 
 '
-' Script Name: 
-' Author: 
-' Purpose: 
+' Script Name: DescriptionNLFR
+' Author: Geert Bellekens
+' Purpose: Script fragment to get the translated description from the notes field
 ' Date: 
 '
 function MyPackageRtfData(packageID, tagname)

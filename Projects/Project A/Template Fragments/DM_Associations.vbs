@@ -6,9 +6,9 @@ option explicit
 !INC Atrias Scripts.Util
 
 '
-' Script Name: 
-' Author: 
-' Purpose: 
+' Script Name: DM_Associations
+' Author: Geert Bellekens
+' Purpose: script fragment to report on associations of an element, with the translated description in NL and FR
 ' Date: 
 '
 function MyRtfData (objectID, endpoint)

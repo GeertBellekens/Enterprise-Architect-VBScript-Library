@@ -12,6 +12,7 @@ option explicit
 !INC Wrappers.Include
 
 const outputTabName = "Validate Message Rules"
+const outputName = "Validate Message Rules" 'to avoid errors since both outputTabName as outputName are being used
 dim allRootNodes
 set allRootNodes = CreateObject("Scripting.Dictionary")
 
@@ -93,7 +94,15 @@ function getRelatedRootNodes(testRule)
 	dim sqlGetRelatedRootNodeElements
 	sqlGetRelatedRootNodeElements = "select o.Object_ID from t_object o                         " & _
 									" inner join t_connector c on c.End_Object_ID = o.Object_ID " & _
-									" where o.Stereotype = 'XSDtopLevelElement'                 " & _
+									" inner join t_xref x on x.Client = o.ea_guid              " & _                       
+									" 					and x.Name = 'Stereotypes'             " & _                      
+									" inner join t_package p on p.Package_ID = o.Package_ID    " & _
+									" inner join t_object po on po.ea_guid = p.ea_guid		   " & _		              
+									" where                                                    " & _
+									" (x.Description like '%@STEREO;Name=XSDtopLevelElement;%' " & _
+									" 	or  x.Description like '%@STEREO;Name=MA;%'            " & _
+									" 		and po.Stereotype = 'DOCLibrary'                   " & _
+									" 	or  x.Description like '%@STEREO;Name=JSON_Schema;%')  " & _
 									" and c.Start_Object_ID = " & testRule.TestElement.ElementID         
 	dim relatedRootNodeElements 
 	set relatedRootNodeElements = getElementsFromQuery(sqlGetRelatedRootNodeElements)
@@ -103,9 +112,11 @@ function getRelatedRootNodes(testRule)
 		if allRootNodes.Exists(currentRootNodeElement.ElementID) then
 			relatedRootNodes.Add allRootNodes.Item(currentRootNodeElement.ElementID)
 		else
+			dim currentMessage
+			set currentMessage = new Message
+			currentMessage.loadMessage currentRootNodeElement
 			dim currentRootNode
-			set currentRootNode = new MessageNode
-			currentRootNode.intitializeWithSource currentRootNodeElement,nothing,"1..1",nothing,nothing
+			set currentRootNode = currentMessage.RootNode
 			relatedRootNodes.Add currentRootNode
 			'also add to the list of all root nodes
 			allRootNodes.add currentRootNodeElement.ElementID, currentRootNode

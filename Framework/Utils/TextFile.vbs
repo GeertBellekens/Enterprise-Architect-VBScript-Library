@@ -118,5 +118,30 @@ Class TextFile
 			me.Contents = ts.ReadAll
 		end if
 	end function
+	'appends the given string to the end of the textfile
+	public function append(contentToAppend)
+		dim fso
+		Set fso = CreateObject("Scripting.FileSystemObject")
+		dim fsoFile
+		if not fso.FileExists(me.FullPath) then
+			'create as new file
+			me.Contents = contentToAppend
+			me.save
+		else
+			'then append to the file
+			Set fsoFile = fso.OpenTextFile(me.FullPath, ForAppending,TristateUseDefault)
+			fsoFile.Write contentToAppend
+			fsoFile.Close
+		end if
+	end function
 	
 end class
+
+'Static functions
+function writeFile(filename, contents)
+	dim file
+	set file = New TextFile
+	file.FullPath = filename
+	file.Contents = contents
+	file.Save
+end function

@@ -71,6 +71,8 @@ function createInformationModelDocument(selectedPackage)
 		'create the part for the subdomain
 		i = createDocumentForSubdomain(masterDocument, subDomainPackage, i)
 	next
+	'add FIS message table document
+	addModelDocumentForPackage masterDocument, selectedPackage, "FIS - Message reference", i, "BRIM_FIS Message reference"
 	'finished, refresh model view to make sure the order is reflected in the model.
 	Repository.RefreshModelView(masterDocument.PackageID)
 	'select the masterDocument in the project browser

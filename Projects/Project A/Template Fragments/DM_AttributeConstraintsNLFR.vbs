@@ -6,9 +6,9 @@ option explicit
 !INC Atrias Scripts.Util
 
 '
-' Script Name: 
-' Author: 
-' Purpose: 
+' Script Name: DM_AttributeConstraintsNLFR
+' Author: Geert Bellekens
+' Purpose: Script fragment to get the translated description from the constraints
 ' Date: 
 '
 function MyRtfData (objectID, tagname)

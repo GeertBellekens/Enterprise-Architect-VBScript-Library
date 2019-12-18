@@ -7,13 +7,9 @@ option explicit
 !INC Atrias Scripts.DocGenUtil
 
 '
-' This code has been included from the default Diagram Script template.
-' If you wish to modify this template, it is located in the Config\Script Templates
-' directory of your EA install path.
-'
 ' Script Name: Add dependencies to XSD diagram
 ' Author: Matthias Van der Elst
-' Purpose: 
+' Purpose: Create dependencies between the owner of attributes and the datatype of that atribute 
 ' Date: 05/05/2017
 '
 '

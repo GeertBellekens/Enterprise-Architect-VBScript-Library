@@ -67,7 +67,7 @@ Class FileSystemFolder
 	
 	'SubFolders property
 	public property Get SubFolders
-		Dim fso, result, folders, tempfolder, subfolder, folder
+		Dim fso, result, folders, tempfolder, subfolder
 		set result = CreateObject("System.Collections.ArrayList")
 		Set fso = CreateObject("Scripting.FileSystemObject")
 		Set tempfolder = fso.GetFolder(me.FullPath)

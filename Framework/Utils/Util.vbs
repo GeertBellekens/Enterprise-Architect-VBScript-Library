@@ -2,11 +2,18 @@
 '[path=\Framework\Utils]
 '[group=Utils]
 '
+
+
 ' Script Name: Util
 ' Author: Geert Bellekens
 ' Purpose: serves as library for other scripts
 ' Date: 28/09/2015
 '
+
+'definee the atrias Red color to be used by different scripts
+dim atriasRed
+atriasRed =  RGB(153, 20, 37)
+
 ' Synchronises the names of the selected objects or BPMN Activities with their classifier/called activity ref.
 ' Will also set the composite diagram to that of the classifier/ActivityRef in order to facilitate click-through
 function synchronizeElement (element)
@@ -141,6 +148,36 @@ function copyTaggedValues(source, target)
 		'set value
 		if not targetTag is nothing then
 			targetTag.Value = sourceTag.Value
+			targetTag.Notes = sourceTag.Notes
+			targetTag.Update
+			target.Update
+		end if
+	next
+end function
+
+'copies the tagged values from the source to the target
+function copyAllTaggedValues(source, target)
+	dim sourceTag as EA.TaggedValue
+	dim targetTag as EA.TaggedValue
+	for each sourceTag in source.TaggedValues
+		set targetTag = nothing
+		'first try to find target tag, only use if empty
+		dim tag as EA.TaggedValue
+		for each tag in target.TaggedValues
+			if tag.Name = sourceTag.Name _
+			 AND len(tag.Value) = 0 then
+				set targetTag = tag
+				exit for
+			end if
+		next
+		'if not found then create new
+		if targetTag is nothing then
+			set targetTag = target.TaggedValues.AddNew(sourceTag.Name,"TaggedValue")
+		end if
+		'set value
+		if not targetTag is nothing then
+			targetTag.Value = sourceTag.Value
+			targetTag.Notes = sourceTag.Notes
 			targetTag.Update
 			target.Update
 		end if
@@ -192,6 +229,7 @@ function getElementsFromQuery(sqlQuery)
 	set getElementsFromQuery = result
 end function
 
+
 'returns a dictionary of all elements in the query with their name as key, and the element as value.
 'for elements with the same name only one will be returned
 function getElementDictionaryFromQuery(sqlQuery)
@@ -216,26 +254,46 @@ function getCurrentPackageTreeIDString()
 	dim currentPackage as EA.Package
 	'get selected package
 	set currentPackage = Repository.GetTreeSelectedPackage()
-	if not currentPackage is nothing then
-		'get the whole tree of the selected package
-		set packageTree = getPackageTree(currentPackage)
-		' get the id string of the tree
-		getCurrentPackageTreeIDString = makePackageIDString(packageTree)
-	end if 
+	getCurrentPackageTreeIDString = getPackageTreeIDString(currentPackage)
 end function
 
 'get the package id string of the given package tree
 function getPackageTreeIDString(package)
-	'initialize at "0"
-	getPackageTreeIDString = "0"
-	dim packageTree
-	dim currentPackage as EA.Package
+	dim allPackageTreeIDs 
+	set allPackageTreeIDs = CreateObject("System.Collections.ArrayList")
+	dim parentPackageIDs
+	set parentPackageIDs = CreateObject("System.Collections.ArrayList")
 	if not package is nothing then
-		'get the whole tree of the selected package
-		set packageTree = getPackageTree(package)
-		' get the id string of the tree
-		getPackageTreeIDString = makePackageIDString(packageTree)
-	end if 
+		parentPackageIDs.Add package.PackageID
+	end if
+	'get the actual package ids
+	getPackageTreeIDsFast allPackageTreeIDs, parentPackageIDs
+	'return
+	getPackageTreeIDString = Join(allPackageTreeIDs.ToArray,",")
+end function
+
+function getPackageTreeIDsFast(allPackageTreeIDs, parentPackageIDs)
+	if parentPackageIDs.Count = 0 then
+		if allPackageTreeIDs.Count = 0 then
+			'make sure there is at least a 0 in the allPackageTreeIDs
+			allPackageTreeIDs.Add "0"
+		end if
+		'then exit
+		exit function
+	end if
+	'add the parent package ids
+	allPackageTreeIDs.AddRange(parentPackageIDs)
+	'get the child package IDs
+	dim sqlGetPackageIDs
+	sqlGetPackageIDs = "select p.Package_ID from t_package p where p.Parent_ID in (" & Join(parentPackageIDs.ToArray, ",") & ")"
+	dim queryResult
+	set queryResult = getVerticalArrayListFromQuery(sqlGetPackageIDs)
+	if queryResult.Count > 0 then
+		dim childPackageIDs
+		set childPackageIDs = queryResult(0)
+		'call recursive function with child package id's
+		getPackageTreeIDsFast allPackageTreeIDs, childPackageIDs
+	end if
 end function
 
 'returns an ArrayList of the given package and all its subpackages recursively
@@ -391,7 +449,7 @@ function addElementToDiagram(element, diagram, y, x)
 		case "ActivityPartition"
 			width = 190
 			height = 60
-			'setVPartition = true
+			setVPartition = true
 		case "Package"
 			width = 75
 			height = 90
@@ -531,6 +589,47 @@ Function convertQueryResultToArrayList(xmlQueryResult)
     set convertQueryResultToArrayList = result
 end function
 
+function getVerticalArrayListFromQuery(sqlQuery)
+	dim xmlResult
+	xmlResult = Repository.SQLQuery(sqlQuery)
+	set getVerticalArrayListFromQuery = convertQueryResultToVerticalArrayList(xmlResult)
+end function
+
+Function convertQueryResultToVerticalArrayList(xmlQueryResult)
+    Dim result
+	set result = CreateObject("System.Collections.ArrayList")
+    Dim xDoc 
+    Set xDoc = CreateObject( "MSXML2.DOMDocument" )
+    'load the resultset in the xml document
+    If xDoc.LoadXML(xmlQueryResult) Then        
+		'select the rows
+		Dim rowList
+		Set rowList = xDoc.SelectNodes("//Row")
+		Dim rowNode 
+		Dim fieldNode
+		dim firstRow
+		firstRow = true
+		'loop rows and find fields
+		For Each rowNode In rowList
+			if firstRow then
+				For Each fieldNode In rowNode.ChildNodes
+					'add an arraylist for each column
+					result.Add CreateObject("System.Collections.ArrayList")
+				next
+			end if
+			'loop the field nodes
+			dim i
+			i = 0
+			For Each fieldNode In rowNode.ChildNodes
+				'add the contents to the correct column arraylist
+				result(i).Add fieldNode.Text
+				i = i + 1
+			Next
+		Next
+	end if
+    set convertQueryResultToVerticalArrayList = result
+end function
+
 'let the user select a package
 function selectPackage()
 	'start from the selected package in the project browser
@@ -594,7 +693,7 @@ function getDiagramsFromQuery(sqlQuery)
 	set getDiagramsFromQuery = diagrams
 end function
 
-function getattributesFromQuery(sqlQuery)
+function getAttributesFromQuery(sqlQuery)
 	dim xmlResult
 	xmlResult = Repository.SQLQuery(sqlQuery)
 	dim attributeIDs
@@ -612,6 +711,26 @@ function getattributesFromQuery(sqlQuery)
 		end if
 	next
 	set getattributesFromQuery = attributes
+end function
+
+function getPackagesFromQuery(sqlQuery)
+	dim xmlResult
+	xmlResult = Repository.SQLQuery(sqlQuery)
+	dim packageIDs
+	packageIDs = convertQueryResultToArray(xmlResult)
+	dim packages 
+	set packages = CreateObject("System.Collections.ArrayList")
+	dim packageID
+	dim package as EA.Package
+	for each packageID in packageIDs
+		if packageID > 0 then
+			set package = Repository.GetPackageByID(packageID)
+			if not package is nothing then
+				packages.Add(package)
+			end if
+		end if
+	next
+	set getPackagesFromQuery = packages
 end function
 
 'get the description from the given notes 
@@ -849,12 +968,18 @@ function makeArrayFromArrayLists(arrayLists)
 	dim x
 	dim y
 	x = arrayLists.Count
-	y = arrayLists(0).Count
+	dim row
+	y = 0
+	'get the largest row for y
+	for each row in arrayLists
+		if y < row.Count then
+			y = row.Count
+		end if
+	next
 	'redim the array to the correct dimensions
 	redim returnArray(x-1,y-1)
 	dim i,j
 	i = 0
-	dim row
 	dim field
 	for each row in arrayLists
 		'reset j
@@ -873,15 +998,30 @@ function makeArrayFromArrayLists(arrayLists)
 	makeArrayFromArrayLists = returnArray
 end function
 
-'EA uses a lot of key=value pairs in different types of fields (such as StyleEx etc.)
+' EA uses a lot of key=value pairs in different types of fields (such as StyleEx etc.)
 ' each of them separated by a ";"
 ' this function will search for the value of the key and return the value if it is present in the given search string
 function getValueForkey(searchString, key)
 	dim returnValue
 	returnValue = ""
-	'first split int keyvalue pairs using ";"
+	dim keyValuePairDictionary
+	set keyValuePairDictionary = getKeyValuePairs(searchString)
+	if keyValuePairDictionary.Exists(key) then
+		returnValue = keyValuePairDictionary(key)
+	end if
+	'return the value
+	getValueForkey = returnValue
+end function
+
+' EA uses a lot of key=value pairs in different types of fields (such as StyleEx etc.)
+' each of them separated by a ";"
+' returns a dictionary witht the key value pairs
+function getKeyValuePairs(keyValueString)
+	dim keyValuePairDictionary
+	Set keyValuePairDictionary = CreateObject("Scripting.Dictionary")
 	dim keyValuePairs
-	keyValuePairs = split(searchString,";")
+	'first split in keyvalue pairs using ";"
+	keyValuePairs = split(keyValueString,";")
 	'then loop the key value pairs
 	dim keyValuePairString
 	for each keyValuePairString in keyValuePairs
@@ -890,153 +1030,13 @@ function getValueForkey(searchString, key)
 		if instr(keyValuePairString,"=") > 0 then
 			keyValuePair = split(keyValuePairString,"=")
 			if UBound(keyValuePair) = 1 then
-				if keyValuePair(0) = key then
-					returnValue = keyValuePair(1)
-				end if
+				'set the value, don't care about duplicate keys
+				keyValuePairDictionary(keyValuePair(0)) = keyValuePair(1)
 			end if
 		end if
 	next
-	'return the value
-	getValueForkey = returnValue
-end function
-
-function copyDiagram(diagram, targetOwner)
-	dim copiedDiagram as EA.Diagram
-	if targetOwner.Objecttype = otPackage then
-		'create the new diagram
-		set copiedDiagram = targetOwner.Diagrams.AddNew(diagram.Name, diagram.Type)
-		copiedDiagram.Stereotype = diagram.Stereotype
-		copiedDiagram.StyleEx = diagram.StyleEx
-		copiedDiagram.Notes = diagram.Notes
-		copiedDiagram.ExtendedStyle = diagram.ExtendedStyle
-		copiedDiagram.ShowDetails = diagram.ShowDetails
-		copiedDiagram.ShowPackageContents = diagram.ShowPackageContents
-		copiedDiagram.Version = diagram.Version
-		copiedDiagram.Update 'hopefully this is enough
-		'recreate all diagramObjects
-		copyDiagramObjects copiedDiagram, diagram
-		'recreate all diagramLinks
-		copyDiagramLinks copiedDiagram, diagram
-	else
-		dim parentPackage
-		set parentPackage = Repository.GetPackageByID(targetOwner.PackageID)
-		set copiedDiagram = copyDiagram(diagram, parentPackage)
-		copiedDiagram.ParentID = targetOwner.ElementID
-		copieddiagram.Update
-	end if
-	'do we need to save the diagram here?
-	'diagram.Update
-	'return diagram
-	set copyDiagram = copiedDiagram
-end function 
-
-function copyDiagramObjects(copiedDiagram, diagram)
-	dim currentElement as EA.Element
-	dim currentDiagramObject as EA.DiagramObject
-	dim targetPackage as EA.Element
-	set targetPackage = Repository.GetPackageByID(copiedDiagram.PackageID)
-	for each currentDiagramObject in diagram.DiagramObjects
-		set currentElement = Repository.GetElementByID(currentDiagramObject.ElementID)
-		'in case of diagram owned objects we need to copy them as well
-		select case currentElement.Type
-			case "Note","Boundary","Text"
-			set currentElement = copyOwnedElement(currentElement,targetPackage)
-		end select
-		'copy the diagram object
-		dim newDiagramObject as EA.DiagramObject
-		set newDiagramObject = copiedDiagram.DiagramObjects.AddNew("","")
-		newDiagramObject.ElementID = currentDiagramObject.ElementID
-		newDiagramObject.top = currentDiagramObject.top
-		newDiagramObject.bottom = currentDiagramObject.bottom
-		newDiagramObject.left = currentDiagramObject.left
-		newDiagramObject.right = currentDiagramObject.right
-		newDiagramObject.fontSize = currentDiagramObject.fontSize
-		newDiagramObject.fontName = currentDiagramObject.fontName
-		newDiagramObject.FontBold = currentDiagramObject.FontBold
-		newDiagramObject.FontColor = currentDiagramObject.FontColor
-		newDiagramObject.FontItalic = currentDiagramObject.FontItalic
-		newDiagramObject.FontUnderline = currentDiagramObject.FontUnderline
-		newDiagramObject.Update
-	next
-end function
-
-function copyDiagramLinks(copiedDiagram, diagram)
-	dim currentDiagramLink as EA.DiagramLink
-	for each currentDiagramLink in diagram.DiagramLinks
-		'copy each diagram link
-		dim newDiagramLink as EA.DiagramLink
-		set newDiagramLink = copiedDiagram.DiagramLinks.AddNew("","")
-		newDiagramLink.ConnectorID = currentDiagramLink.ConnectorID
-		newDiagramLink.Geometry = currentDiagramLink.Geometry
-		newDiagramLink.IsHidden = currentDiagramLink.IsHidden
-		newDiagramLink.LineStyle = currentDiagramLink.LineStyle
-		newDiagramLink.LineColor = currentDiagramLink.LineColor
-		newDiagramLink.LineWidth = currentDiagramLink.LineWidth
-		newDiagramLink.Path = currentDiagramLink.Path
-		newDiagramLink.HiddenLabels = currentDiagramLink.HiddenLabels
-		newDiagramLink.Update
-	next
-end function
-
-function copyOwnedElement(currentElement, targetPackage)
-	dim newOwnedElement as EA.Element
-	set newOwnedElement = targetPackage.Elements.AddNew(currentElement.Name,currentElement.Type)
-	newOwnedElement.Notes = currentElement.Notes
-	newOwnedElement.Subtype = currentElement.Subtype
-	newOwnedElement.StyleEx = currentElement.StyleEx
-	newOwnedElement.Alias = currentElement.Alias
-	newOwnedElement.Update 'hopefully this is enough
-	'return the object
-	set copyOwnedElement = newOwnedElement
-end function
-
-function deletePackage(package)
-	if package.ParentID > 0 then
-		'get parent package
-		dim parentPackage as EA.Package
-		set parentPackage = Repository.GetPackageByID(package.ParentID )
-		dim i
-		'delete the pacakge
-		for i = parentPackage.Packages.Count -1 to 0 step -1
-			dim currentPackage as EA.Package
-			set currentPackage = parentPackage.Packages(i)
-			if currentPackage.PackageID = package.PackageID then
-				parentPackage.Packages.DeleteAt i,false
-				exit for
-			end if
-		next
-	end if
-end function
-
-function getOwner(item)
-	dim owner
-	select case item.ObjectType
-		case otPackage
-			if item.ParentID > 0 then
-				set owner = Repository.GetPackageByID(item.ParentID)
-			end if
-		case otElement,otDiagram
-			'if it has an element as owner then we return the element
-			if item.ParentID > 0 then
-				set owner = Repository.GetElementByID(item.ParentID)
-			else
-				if item.ObjectType <> otPackage then
-					'else we return the package (not for packages because then we have a root package that doesn't have an owner)
-					set owner = Repository.GetPackageByID(item.PackageID)
-				end if
-			end if
-	'TODO: add other cases such as attributes and operations
-	end select
-	'return owner
-	set getOwner = owner
-end function
-
-
-'put the given value onto the clipboard
-function putOnClipBoard(stringValue)
-	dim WshShell
-	Set WshShell = CreateObject("WScript.Shell")
-	WshShell.Run "cmd.exe /c echo " & stringValue & " | clip", 0, TRUE
+	'return
+	set getKeyValuePairs = keyValuePairDictionary
 end function
 
 'merge two array together. First a1, then a2
@@ -1055,3 +1055,53 @@ Function mergeArrays(a1, a2)
   Next
   mergeArrays = aTmp
 End Function
+
+'returns a new dictionary that is sorted using it's key
+function getSortedDictionary(dictionary)
+	dim sortedDictionary
+	set sortedDictionary = CreateObject("Scripting.Dictionary")
+	'get a list of key and sort the keys
+	dim sortedKeys
+	set sortedKeys = CreateObject("System.Collections.ArrayList")
+	dim key
+	for each key in dictionary.Keys
+		sortedKeys.Add key
+	next
+	'sort the keys
+	sortedKeys.Sort
+	'fill the dictionary with the values of the original dictionary using the sorted keys
+	for each key in sortedKeys
+		sortedDictionary.Add key, dictionary(key)
+	next
+	'return
+	set getSortedDictionary = sortedDictionary
+end function
+
+'returns the version control ID's used in this model
+function getVersionControlIDs()
+	set getVersionControlIDs = getVersionControlIDsForPackages("")
+end function
+
+'returns the version control ID's used in by the packages in the package id list (comma separated)
+function getVersionControlIDsForPackages(packageIDs)
+	dim sqlGetVersionControlIDs
+	sqlGetVersionControlIDs = "select distinct substring(p.PackageFlags,charindex('VCCFG=',p.PackageFlags) + len('VCCFG=')                                               " & _
+						" ,charindex(';', p.PackageFlags,charindex('VCCFG=',p.PackageFlags)) - (charindex('VCCFG=',p.PackageFlags) + len('VCCFG='))) as TFSConfig  " & _
+						" from t_package p where p.PackageFlags like '%VCCFG=%'                                                                                    "
+	if len(packageIDs) > 0 then
+		sqlGetVersionControlIDs = sqlGetVersionControlIDs & " and p.Package_ID in (" & packageIDs & ")" 
+	end if
+	'add order by
+	sqlGetVersionControlIDs = sqlGetVersionControlIDs & " order by 1 "
+	dim tempResult
+	set tempResult = getVerticalArrayListFromQuery(sqlGetVersionControlIDs)
+	dim versionControlIDs 
+	if tempResult.Count > 0 then
+		'get the first "column" arraylist
+		set versionControlIDs = tempResult(0)
+	else
+		set versionControlIDs = CreateObject("System.Collections.ArrayList")
+	end if
+	'return
+	set getVersionControlIDsForPackages = versionControlIDs
+end function
