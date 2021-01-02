@@ -59,7 +59,7 @@ sub createMasterDocument(selectedElement)
 		documentAlias = selectedElement.Name
 		documentName = selectedElement.Name
 		documentTitle = "Report - " & documentName
-		documentStatus = "Voor implementatie / Pour implémentation"
+		documentStatus = "Voor implementatie / Pour implÃ©mentation"
 		masterDocumentName = documentTitle & " v" & documentVersion
 		
 		'Remove older version of the master document

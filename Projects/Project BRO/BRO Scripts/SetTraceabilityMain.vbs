@@ -483,9 +483,9 @@ function translateStereotype(copyItem)
 		'inform user
 		if copyItem.ObjectType = otConnectorEnd then
 			'connector roles do not support fully qualified stereotypes
-			Repository.WriteOutput outputTabName, now() & " Translating stereotype «" & copyItem.Stereotype & "» to «" & stereotypeTranslations.Item(lcase(copyItem.Stereotype)) & "» on item " & copyItem.Role, 0
+			Repository.WriteOutput outputTabName, now() & " Translating stereotype Â«" & copyItem.Stereotype & "Â» to Â«" & stereotypeTranslations.Item(lcase(copyItem.Stereotype)) & "Â» on item " & copyItem.Role, 0
 		else
-			Repository.WriteOutput outputTabName, now() & " Translating stereotype «" & copyItem.Stereotype & "» to «" & stereotypeTranslations.Item(lcase(copyItem.Stereotype)) & "» on item " & copyItem.Name, 0
+			Repository.WriteOutput outputTabName, now() & " Translating stereotype Â«" & copyItem.Stereotype & "Â» to Â«" & stereotypeTranslations.Item(lcase(copyItem.Stereotype)) & "Â» on item " & copyItem.Name, 0
 		end if
 		'delete all tagged values
 		deleteAllTaggedValues copyItem
@@ -496,9 +496,9 @@ function translateStereotype(copyItem)
 	else
 		if len(copyItem.Stereotype) > 0 then
 			if copyItem.ObjectType = otConnectorEnd then
-				Repository.WriteOutput outputTabName, now() & " ERROR: No translation found for stereotype «" & copyItem.Stereotype & "» on item " & copyItem.Role, 0
+				Repository.WriteOutput outputTabName, now() & " ERROR: No translation found for stereotype Â«" & copyItem.Stereotype & "Â» on item " & copyItem.Role, 0
 			else
-				Repository.WriteOutput outputTabName, now() & " ERROR: No translation found for stereotype «" & copyItem.Stereotype & "» on item " & copyItem.Name, 0
+				Repository.WriteOutput outputTabName, now() & " ERROR: No translation found for stereotype Â«" & copyItem.Stereotype & "Â» on item " & copyItem.Name, 0
 			end if
 		end if
 	end if
@@ -573,9 +573,9 @@ function createTranslationsDictionary()
 	stereotypeTranslations.Add "project"					,"Project"
 	stereotypeTranslations.Add "prullenbak"					,"Recycle bin"
 	stereotypeTranslations.Add "formele historie"			,"Formal history"
-	stereotypeTranslations.Add "materiële historie"			,"Material history"
+	stereotypeTranslations.Add "materiÃ«le historie"			,"Material history"
 	stereotypeTranslations.Add "formele levensduur"			,"Formal lifecycle"
-	stereotypeTranslations.Add "materiële levensduur"		,"Material lifecycle"
+	stereotypeTranslations.Add "materiÃ«le levensduur"		,"Material lifecycle"
 	stereotypeTranslations.Add "identificatie"				,"Identification"
 	stereotypeTranslations.Add "voidable"					,"Voidable"
 	'also add each translated term as a translation of itself

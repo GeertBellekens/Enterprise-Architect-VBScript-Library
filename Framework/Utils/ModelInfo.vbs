@@ -285,6 +285,67 @@ function getSubPackageByName(package, packageName)
 end function
 
 
+'returns an ArrayList with the elements accordin tot he ObjectID's in the given query
+'function getElementsFromQuery(sqlQuery)
+'	dim elements 
+'	set elements = Repository.GetElementSet(sqlQuery,2)
+'	dim result
+'	set result = CreateObject("System.Collections.ArrayList")
+'	dim element
+'	for each element in elements
+'		result.Add Element
+'	next
+'	set getElementsFromQuery = result
+'end function
+'
+''returns a comma separated string with the package id's the given package and all subpackages recusively
+'function getPackageTreeIDString(package)
+'	dim packageTree
+'	set packageTree = getPackageTree(package)
+'	getPackageTreeIDString = makePackageIDString(packageTree)
+'end function
+'
+''returns an ArrayList of the given package and all its subpackages recursively
+'function getPackageTree(package)
+'	dim packageList
+'	set packageList = CreateObject("System.Collections.ArrayList")
+'	addPackagesToList package, packageList
+'	set getPackageTree = packageList
+'end function
+'
+''add the given package and all subPackges to the list (recursively
+'function addPackagesToList(package, packageList)
+'	dim subPackage as EA.Package
+'	'add the package itself
+'	packageList.Add package
+'	'add subpackages
+'	for each subPackage in package.Packages
+'		addPackagesToList subPackage, packageList
+'	next
+'end function
+'
+''make an id string out of the package ID of the given packages
+'function makePackageIDString(packages)
+'	dim package as EA.Package
+'	dim idString
+'	idString = ""
+'	dim addComma 
+'	addComma = false
+'	for each package in packages
+'		if addComma then
+'			idString = idString & ","
+'		else
+'			addComma = true
+'		end if
+'		idString = idString & package.PackageID
+'	next 
+'	'if there are no packages then we return "0"
+'	if packages.Count = 0 then
+'		idString = "0"
+'	end if
+'	'return idString
+'	makePackageIDString = idString
+'end function
 
 'Returns the value of the tagged value with the given name (case insensitive)
 'If there is no tagged value with the given name, an empty string is returned

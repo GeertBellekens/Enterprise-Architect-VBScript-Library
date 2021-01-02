@@ -67,7 +67,7 @@ function createProcessBook(domainGrouping, documentVersion)
 	documentAlias = "UMIG DGO" 
 	documentName = domainGrouping.Name
 	documentTitle = "UMIG DGO - BR - " & domainGrouping.Alias & " - 02 - " & domainGrouping.Name
-	documentStatus = "Voor implementatie / Pour implémentation"
+	documentStatus = "Voor implementatie / Pour implÃ©mentation"
 	masterDocumentName = documentTitle & " v" & documentVersion
 	'first create a master document
 	dim masterDocument as EA.Package

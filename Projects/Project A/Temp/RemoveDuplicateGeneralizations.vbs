@@ -8,7 +8,7 @@ option explicit
 '
 ' Script Name: 
 ' Author: 
-' Purpose: Remove the duplicate generalizations
+' Purpose: 
 ' Date: 
 '
 sub main

@@ -63,19 +63,19 @@ function getDynaTraceValue(containerID)
 	if not container is nothing then
 		'get the Dynatrace elements
 		dim sqlGetDynaTrace
-		sqlGetDynaTrace = 	"select dt.[Object_ID]                                                          " & _
+		sqlGetDynaTrace = 	"select dt.Object_ID                                                          " & _
 							" from (((((([t_object] cnt                                                     " & _
-							" inner join [t_diagramobjects] cntdo on cntdo.[Object_ID] = cnt.[Object_ID])   " & _
-							" inner join t_connector c on c.[Start_Object_ID] = cnt.[Object_ID])            " & _
-							" inner join [t_object] srv on (c.[End_Object_ID] = srv.[Object_ID]             " & _
+							" inner join [t_diagramobjects] cntdo on cntdo.Object_ID = cnt.Object_ID)   " & _
+							" inner join t_connector c on c.[Start_Object_ID] = cnt.Object_ID)            " & _
+							" inner join [t_object] srv on (c.[End_Object_ID] = srv.Object_ID             " & _
 							"                              and srv.[Stereotype] = 'ArchiMate_Node'))        " & _
-							" inner join [t_diagramobjects] srvdo on srvdo.[Object_ID] = srv.[Object_ID])   " & _
+							" inner join [t_diagramobjects] srvdo on srvdo.Object_ID = srv.Object_ID)   " & _
 							" inner join [t_diagramobjects] dtdo on dtdo.[Diagram_ID] = srvdo.[Diagram_ID]) " & _
-							" inner join [t_object] dt on (dt.[Object_ID] = dtdo.[Object_ID]                " & _
+							" inner join [t_object] dt on (dt.Object_ID = dtdo.Object_ID                " & _
 							"                             and dt.[Object_Type] = 'Action'))                 " & _
-							" inner join [t_object] dto on (dt.[Classifier] =  dto.[Object_ID]              " & _
+							" inner join [t_object] dto on (dt.[Classifier] =  dto.Object_ID              " & _
 							"                              and dto.[Name] = 'Dynatrace')                    " & _
-							" where cnt.[Object_ID] = "& containerID &"                                     " & _
+							" where cnt.Object_ID = "& containerID &"                                     " & _
 							" and srvdo.[Diagram_ID] = cntdo.[Diagram_ID]                                   " & _
 							" and dtdo.[RectTop] <= srvdo.[RectTop]                                         " & _
 							" and dtdo.[RectLeft] >= srvdo.[RectLeft]                                       " & _

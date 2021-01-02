@@ -6,14 +6,14 @@ option explicit
 !INC Atrias Scripts.Util
 
 '
-' Script Name: DM_AttributeConstraintsNLFR
-' Author: Geert Bellekens
-' Purpose: Script fragment to get the translated description from the constraints
+' Script Name: 
+' Author: 
+' Purpose: 
 ' Date: 
 '
 function MyRtfData (objectID, tagname)
 	'msgbox "starting MyRTFdata fo element" & objectID
-	'MyRtfData = "<?xml version=""1.0""?><EADATA><Dataset_0><Data><Row><ConstraintName>constraint 1</ConstraintName><DescriptionNL formatted=""1"">Hier staat de nederlandse bescrijving van deze constraint in &lt;b&gt;RichText&lt;/b&gt; (1)</DescriptionNL><DescriptionFR formatted=""1"">ici le franÁais avec È‡Ë characters &lt;b&gt;dÙme&lt;/b&gt;</DescriptionFR></Row><Row><ConstraintName>constraint 2</ConstraintName><DescriptionNL formatted=""1"">Hier staat de nederlandse bescrijving van deze constraint in &lt;b&gt;RichText (2)&lt;/b&gt;</DescriptionNL><DescriptionFR formatted=""1"">ici le franÁais avec È‡Ë characters &lt;b&gt;dÙme (2)&lt;/b&gt;</DescriptionFR></Row></Data></Dataset_0></EADATA>"
+	'MyRtfData = "<?xml version=""1.0""?><EADATA><Dataset_0><Data><Row><ConstraintName>constraint 1</ConstraintName><DescriptionNL formatted=""1"">Hier staat de nederlandse bescrijving van deze constraint in &lt;b&gt;RichText&lt;/b&gt; (1)</DescriptionNL><DescriptionFR formatted=""1"">ici le fran√ßais avec √©√†√® characters &lt;b&gt;d√¥me&lt;/b&gt;</DescriptionFR></Row><Row><ConstraintName>constraint 2</ConstraintName><DescriptionNL formatted=""1"">Hier staat de nederlandse bescrijving van deze constraint in &lt;b&gt;RichText (2)&lt;/b&gt;</DescriptionNL><DescriptionFR formatted=""1"">ici le fran√ßais avec √©√†√® characters &lt;b&gt;d√¥me (2)&lt;/b&gt;</DescriptionFR></Row></Data></Dataset_0></EADATA>"
 	dim xmlDOM 
 	set  xmlDOM = CreateObject( "Microsoft.XMLDOM" )
 	'set  xmlDOM = CreateObject( "MSXML2.DOMDocument.4.0" )

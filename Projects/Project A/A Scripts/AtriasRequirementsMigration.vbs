@@ -14,8 +14,8 @@ sub main
 	dim sql
 	slq = " update nl set nl.value = o.name                                       "&_
 			" from ((t_object o                                                     "&_
-			" inner join t_objectproperties nl on nl.[Object_ID] = o.[Object_ID] )  "&_
-			" inner join t_objectproperties fr on fr.[Object_ID] = o.[Object_ID] )  "&_
+			" inner join t_objectproperties nl on nl.Object_ID = o.Object_ID )  "&_
+			" inner join t_objectproperties fr on fr.Object_ID = o.Object_ID )  "&_
 			" where o.stereotype = 'AtriasRequirement'	                            "&_
 			" and nl.[Property] = 'Name NL'	                                        "&_
 			" and fr.[Property] = 'Name FR'                                         "&_
@@ -23,8 +23,8 @@ sub main
 			"                                                                       "&_
 			" update fr set fr.value = o.ALIAS                                      "&_
 			" from ((t_object o                                                     "&_
-			" inner join t_objectproperties nl on nl.[Object_ID] = o.[Object_ID] )  "&_
-			" inner join t_objectproperties fr on fr.[Object_ID] = o.[Object_ID] )  "&_
+			" inner join t_objectproperties nl on nl.Object_ID = o.Object_ID )  "&_
+			" inner join t_objectproperties fr on fr.Object_ID = o.Object_ID )  "&_
 			" where o.stereotype = 'AtriasRequirement'                            "&_
 			" and nl.[Property] = 'Name NL'	                                        "&_
 			" and fr.[Property] = 'Name FR'                                         "&_
@@ -32,8 +32,8 @@ sub main
 			"                                                                       "&_
 			" update o set o.[Name] = o.pdata5                                      "&_
 			" from ((t_object o                                                     "&_
-			" inner join t_objectproperties nl on nl.[Object_ID] = o.[Object_ID] )  "&_
-			" inner join t_objectproperties fr on fr.[Object_ID] = o.[Object_ID] )  "&_
+			" inner join t_objectproperties nl on nl.Object_ID = o.Object_ID )  "&_
+			" inner join t_objectproperties fr on fr.Object_ID = o.Object_ID )  "&_
 			" where o.stereotype = 'AtriasRequirement'	                            "&_
 			" and nl.[Property] = 'Name NL'	                                        "&_
 			" and fr.[Property] = 'Name FR'                                         "&_
@@ -46,7 +46,7 @@ sub test
 	dim requirements as EA.Collection
 	dim requirement as EA.Element
 	dim sqlString
-	sqlString = "select o.[Object_ID] from t_object o where o.stereotype = 'AtriasRequirement'"
+	sqlString = "select o.Object_ID from t_object o where o.stereotype = 'AtriasRequirement'"
 	
 	set requirements = Repository.GetElementSet(sqlString,2)
 	for each requirement in Requirements
@@ -95,7 +95,7 @@ sub test
 					" where tv.[Property] = 'Name NL'                                            "&_
 					" and exists (select tv2.[PropertyID] from t_objectProperties tv2 where      "&_
 					"            tv2.[Property] = 'Title NL'                                     "&_
-					"            and tv2.[Object_ID] = tv.Object_ID                              "&_
+					"            and tv2.Object_ID = tv.Object_ID                              "&_
 					"            and tv2.VALUE is not null)                                      "
 	Repository.Execute sqldelete
 	
@@ -104,7 +104,7 @@ sub test
 					" where tv.[Property] = 'Name FR'                                            "&_
 					" and exists (select tv2.[PropertyID] from t_objectProperties tv2 where      "&_
 					"            tv2.[Property] = 'Title FR'                                     "&_
-					"            and tv2.[Object_ID] = tv.Object_ID                              "&_
+					"            and tv2.Object_ID = tv.Object_ID                              "&_
 					"            and tv2.VALUE is not null)                                      "
 	Repository.Execute sqldelete
 
@@ -116,7 +116,7 @@ end sub
 sub correctImportance
 	dim sqlNonEssential
 	sqlNonEssential = " update tv set tv.VALUE = 'Non-essential' from t_objectproperties tv          "&_
-				" inner join t_object o on tv.[Object_ID] = o.[Object_ID]                      "&_
+				" inner join t_object o on tv.Object_ID = o.Object_ID                      "&_
 				" where tv.[Property] = 'Importance'                                           "&_
 				" and o.[Stereotype] = 'Solution Requirement'                                  "&_
 				" and (tv.VALUE <> 'Must' or tv.VALUE is null)                                 "
@@ -124,7 +124,7 @@ sub correctImportance
 	
 	dim sqlEssential
 	sqlEssential = " update tv set tv.VALUE = 'Essential' from t_objectproperties tv              "&_
-				" inner join t_object o on tv.[Object_ID] = o.[Object_ID]                      "&_
+				" inner join t_object o on tv.Object_ID = o.Object_ID                      "&_
 				" where tv.[Property] = 'Importance'                                           "&_
 				" and o.[Stereotype] = 'Solution Requirement'                                  "&_
 				" and tv.VALUE = 'Must'                                                        "

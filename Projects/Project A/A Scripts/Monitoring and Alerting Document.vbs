@@ -44,7 +44,7 @@ function createMandADocument()
 	documentAlias = "UMIG DGO" 
 	documentName = "Monitoring and Alerting"
 	documentTitle = "UMIG DGO - BR - XD - 04 - Information Delivery - " & documentName
-	documentStatus = "Voor implementatie / Pour implémentation"
+	documentStatus = "Voor implementatie / Pour implÃ©mentation"
 	masterDocumentName = documentTitle & " v" & documentVersion
 	'first create a master document
 	dim masterDocument as EA.Package

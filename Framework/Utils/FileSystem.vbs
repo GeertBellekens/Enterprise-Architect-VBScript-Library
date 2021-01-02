@@ -46,7 +46,7 @@ end function
 
 Function ChooseFile (ByVal initialDir, filter)
 
-	dim shel, fso, tempdir, tempfile, powershellfile, powershellOutputFile,psScript, textFile
+	dim shell, fso, tempdir, tempfile, powershellfile, powershellOutputFile,psScript, textFile
 	Set shell = CreateObject("WScript.Shell")
 
 	Set fso = CreateObject("Scripting.FileSystemObject")

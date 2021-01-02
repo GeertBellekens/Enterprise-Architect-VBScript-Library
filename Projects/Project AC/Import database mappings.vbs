@@ -21,7 +21,7 @@ sub main
 	set logicalPackage = selectPackage()
 	'select source database
 	dim physicalPackage as EA.Package
-	msgbox "select the database package (example: «database» GBDOAA01)"
+	msgbox "select the database package (example: Â«databaseÂ» GBDOAA01)"
 	set physicalPackage = selectPackage()
 	'first select the mapping file
 	if mappingFile.UserSelect("C:\Temp\","CSV Files (*.csv)|*.csv") _

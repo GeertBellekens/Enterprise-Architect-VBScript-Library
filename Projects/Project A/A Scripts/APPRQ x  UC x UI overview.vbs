@@ -8,7 +8,7 @@ option explicit
 '
 ' Script Name: APPRQ x UC x UI overview
 ' Author: Geert Bellekens
-' Purpose: Creates an Excel file containing Application Requirements, Use Cases and User Interfaces
+' Purpose: Creates an Excel file containing
 ' Date: 2017-10-17
 '
 sub main
@@ -63,7 +63,7 @@ function getOutPut()
 					" 							and uc.Object_Type = 'UseCase'                                            " & _ 
 					" inner join t_diagramobjects dob on dob.Object_ID = uc.Object_ID                                     " & _ 
 					" inner join t_diagramObjects dobb on dobb.[Diagram_ID] = dob.[Diagram_ID]                            " & _ 
-					" inner join t_object boundary on boundary.[Object_ID] = dobb.[Object_ID]                             " & _ 
+					" inner join t_object boundary on boundary.Object_ID = dobb.Object_ID                             " & _ 
 					"                           and boundary.[Object_Type] = 'Boundary'                                   " & _ 
 					" inner join t_diagram d on dob.Diagram_ID = d.Diagram_ID                                             " & _ 
 					" where                                                                                               " & _ 
@@ -111,7 +111,7 @@ function getOutPut()
 					" 							and uc.Object_Type = 'UseCase'                                            " & _ 
 					" inner join t_diagramobjects dob on dob.Object_ID = uc.Object_ID                                     " & _ 
 					" inner join t_diagramObjects dobb on dobb.[Diagram_ID] = dob.[Diagram_ID]                            " & _ 
-					" inner join t_object boundary on boundary.[Object_ID] = dobb.[Object_ID]                             " & _ 
+					" inner join t_object boundary on boundary.Object_ID = dobb.Object_ID                             " & _ 
 					"                           and boundary.[Object_Type] = 'Boundary'                                   " & _ 
 					" inner join t_diagram d on dob.Diagram_ID = d.Diagram_ID                                             " & _ 
 					" inner join t_object act on act.ParentID = uc.Object_ID                                              " & _ 
@@ -162,7 +162,7 @@ function getOutPut()
 					" 								and uc.Object_Type = 'UseCase'                                        " & _ 
 					"	 inner join t_diagramobjects dob on dob.Object_ID = uc.Object_ID                                  " & _ 
 					"	 inner join t_diagramObjects dobb on dobb.[Diagram_ID] = dob.[Diagram_ID]                         " & _ 
-					"	 inner join t_object boundary on boundary.[Object_ID] = dobb.[Object_ID]                          " & _ 
+					"	 inner join t_object boundary on boundary.Object_ID = dobb.Object_ID                          " & _ 
 					"							   and boundary.[Object_Type] = 'Boundary'                                " & _ 
 					"	 inner join t_diagram d on dob.Diagram_ID = d.Diagram_ID                                          " & _ 
 					"	 where apprq2.Stereotype = 'application requirement'                                              " & _ 

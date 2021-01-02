@@ -43,13 +43,7 @@ function determineLineStyle(connector)
 			determineLineStyle = lsOrthogonalRoundedTree
 		case "Generalization", "Realization", "Realisation"
 			determineLineStyle = lsTreeVerticalTree
-		case "Dependency"
-			if left(connector.Stereotype, 9) = "ArchiMate" then
-				determineLineStyle = defaultStyle
-			else
-				determineLineStyle = lsDirectMode
-			end if
-		case "UseCase", "NoteLink", "Abstraction"
+		case "UseCase", "Dependency","NoteLink", "Abstraction"
 			determineLineStyle = lsDirectMode
 		case "Sequence" 
 			exit function

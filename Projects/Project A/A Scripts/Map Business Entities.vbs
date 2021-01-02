@@ -38,7 +38,7 @@ sub main
 		'tell the user we are finished
 		Repository.WriteOutput outPutName, now() & " Finished Map Business entities for package '" & selectedElement.Name & "'", selectedElement.Element.ElementID
 	else
-		msgbox "Please select a MessageAssembly (element with stereotype «MA»)"
+		msgbox "Please select a MessageAssembly (element with stereotype Â«MAÂ»)"
 	end if
 end sub
 
@@ -72,7 +72,7 @@ function mapBusinessEntities(selectedElement)
 	'tell the user what we are doing
 	Repository.WriteOutput outPutName, now() & " Processing MA '" & selectedElement.Name & "'", selectedElement.ElementID
 	'first get ID's of the related business entities. These are found on a diagram in the same package as the business entity that is 
-	' linked to the «InvEnvelop» element that is linked to the selected «MA»
+	' linked to the Â«InvEnvelopÂ» element that is linked to the selected Â«MAÂ»
 	dim businessEntityIDs
 	businessEntityIDs = getBusinessEntityIDs(selectedElement)
 	'get all BBIE' in the same package
@@ -178,7 +178,7 @@ end function
 function isMessageAssembly(selectedElement)
 	'initialize on false
 	isMessageAssembly = false
-	'check if stereotype «MA» is present
+	'check if stereotype Â«MAÂ» is present
 	dim stereotypes
 	dim stereotype
 	stereotypes = split(selectedElement.StereotypeEx, ",")

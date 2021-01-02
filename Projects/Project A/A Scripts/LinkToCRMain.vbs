@@ -5,7 +5,7 @@
 
 ' Script Name: LinkToCRMain
 ' Author: Geert Bellekens
-' Purpose: Link Elements to a change
+' Purpose: Link Elemnents to a change
 ' Date: 2015-10-30
 '
 '

@@ -7,8 +7,8 @@ option explicit
 
 '
 ' Script Name: 
-' Author: Geert Belekens
-' Purpose: Script fragment for the process specific activities
+' Author: 
+' Purpose: 
 ' Date: 
 '
 function MyRtfData (objectID)

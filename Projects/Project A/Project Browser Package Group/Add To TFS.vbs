@@ -12,6 +12,7 @@ option explicit
 ' Date: 2017-10-19
 '
 
+const versionControlID = "TFS_EA_MODEL"
 const outPutName = "Add to TFS"
 
 sub main
@@ -24,21 +25,14 @@ sub main
 	set package = Repository.GetTreeSelectedPackage()
 	'let the user know we started
 	Repository.WriteOutput outPutName, now() & " Starting adding to TFS for package '"& package.Name &"'", 0
-	'get the automatic or user selected version control ID
-	dim versionControlID
-	versionControlID = getUserSelectedVersionControlID(package)
-	if not len(versionControlID) > 0 then
-		Msgbox "No version control ID selected or present in the model"
-		exit sub
-	end if
 	'ask the user if he is sure
 	dim userIsSure
-	userIsSure = Msgbox("Do you really want to add package '" &package.Name & "' to '" & versionControlID &  "' in TFS?", vbYesNo+vbQuestion, "Add package to TFS?")
+	userIsSure = Msgbox("Do you really want to add package '" &package.Name & "' to TFS?", vbYesNo+vbQuestion, "Add package to TFS?")
 	if userIsSure = vbYes then
 		on error resume next
 		'get the subfolder from the user
 		dim subFolder
-		subFolder = getVersionControlSubFolderPath(versionControlID)
+		subFolder = getVersionControlSubFolderPath()
 		'check if error was raised
 		if Err.number <> 0 then
 			Err.clear
@@ -47,57 +41,17 @@ sub main
 		end if
 		on error goto 0
 		'add the selected package to version control
-		addToVersionControl package, subfolder, versionControlID
+		addToVersionControl package, subfolder
 	end if
 	'let the user know it is finished
 	Repository.WriteOutput outPutName, now() & " Finished adding to TFS for package '"& package.Name &"'", 0
 end sub
 
-function getUserSelectedVersionControlID(package)
-	'check if the parent package has a version control ID
-	dim versionControlIDs 
-	set versionControlIDs = getVersionControlIDsForPackages(package.ParentID)
-	if versionControlIDs.Count = 1 then
-		'return this one
-		getUserSelectedVersionControlID = versionControlIDs(0)
-		exit function
-	elseif versionControlIDs.Count = 0 then
-		'get all version control ID's in this model
-		set versionControlIDs = getVersionControlIDs()
-	end if
-	if versionControlIDs.Count <= 0 then
-		'no version control ID's here
-		exit function
-	end if
-	'build string
-	dim selectMessage
-	selectMessage = "Please enter the number of the configuration"
-	dim i
-	i = 0
-	dim versionControlID
-	for each versionControlID in versionControlIDs
-		i = i + 1
-		selectMessage = selectMessage & vbNewLine & i & ": " & versionControlID
-	next
-	dim response
-	response = InputBox(selectMessage, "Select Version control ID", "1" )
-	if isNumeric(response) then
-		if Cstr(Cint(response)) = response then 'check if response is integer
-			dim selectedID
-			selectedID = Cint(response) - 1
-			if selectedID >= 0 and selectedID < versionControlIDs.Count then
-				'return the version control ID
-				getUserSelectedVersionControlID = versionControlIDs(selectedID)
-			end if
-		end if
-	end if
-end function
-
-function addToVersionControl(package, subfolder, versionControlID)
+function addToVersionControl(package, subfolder)
 	'first process subPackages
 	dim subPackage
 	for each subPackage in package.Packages
-		addToVersionControl subPackage, subfolder, versionControlID
+		addToVersionControl subPackage, subfolder
 	next
 	
 	if not package.IsVersionControlled then
@@ -113,7 +67,7 @@ function addToVersionControl(package, subfolder, versionControlID)
 	end if
 end function
 
-function getVersionControlSubFolderPath(versionControlID)
+function getVersionControlSubFolderPath()
 	'get the base folder for this version control configuration
 	dim baseFolderName
 	dim shell

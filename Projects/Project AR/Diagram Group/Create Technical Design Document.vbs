@@ -155,12 +155,12 @@ end function
 
 function addDatabases(masterDocument,selectedDiagram,i)
 	dim sqlGetApplications
-	sqlGetApplications = "select o.[Object_ID]                                                               " & _
+	sqlGetApplications = "select o.Object_ID                                                               " & _
 						" from ((([t_diagramobjects] do                                                      " & _
-						" inner join [t_object] o on (o.[Object_ID] = do.[Object_ID]                         " & _
+						" inner join [t_object] o on (o.Object_ID = do.Object_ID                         " & _
 						"                            and o.[Stereotype] = 'ArchiMate_ApplicationComponent')) " & _
-						" inner join [t_connector] c on c.[Start_Object_ID] = o.[Object_ID])                 " & _
-						" inner join [t_object] odb on (odb.[Object_ID] = c.[End_Object_ID]                  " & _
+						" inner join [t_connector] c on c.[Start_Object_ID] = o.Object_ID)                 " & _
+						" inner join [t_object] odb on (odb.Object_ID = c.[End_Object_ID]                  " & _
 						"                              and odb.[Stereotype] = 'ArchiMate_DataObject'))       " & _
 						" where do.[Diagram_ID] = " & selectedDiagram.DiagramID
 	dim applications
@@ -177,9 +177,9 @@ end function
 function addServers(masterDocument,selectedDiagram,i)
 	'find all servers on the diagram based on their position
 	dim sqlGetserversOnDiagram
-	sqlGetserversOnDiagram = "select o.[Object_ID]                                               "& _
+	sqlGetserversOnDiagram = "select o.Object_ID                                               "& _
 							" from ([t_diagramobjects] do                                        "& _
-							" inner join [t_object] o on (o.[Object_ID] = do.[Object_ID]         "& _
+							" inner join [t_object] o on (o.Object_ID = do.Object_ID         "& _
 							"                            and o.[Stereotype] = 'ArchiMate_Node')) "& _
 							" where do.[Diagram_ID] = " & selectedDiagram.DiagramID & "          "& _
 							" order by do.[RectTop] desc, do.[RectLeft]                          "
@@ -199,11 +199,11 @@ function addServer(masterDocument,server,selectedDiagram,i)
 	i = i +1
 	'add container template if needed
 	dim sqlGetcontainers
-	sqlGetcontainers = "select o.[Object_ID]                                                           " & _
+	sqlGetcontainers = "select o.Object_ID                                                           " & _
 						" from (([t_diagramobjects] do                                                 " & _
-						" inner join [t_object] o on (o.[Object_ID] = do.[Object_ID]                   " & _
+						" inner join [t_object] o on (o.Object_ID = do.Object_ID                   " & _
 						"                            and o.[Stereotype] = 'ArchiMate_SystemSoftware')) " & _
-						" inner join [t_connector] c on c.[Start_Object_ID] = o.[Object_ID])           " & _
+						" inner join [t_connector] c on c.[Start_Object_ID] = o.Object_ID)           " & _
 						" where do.[Diagram_ID] = " & selectedDiagram.DiagramID & "                    " & _
 						" and c.[End_Object_ID] = " & server.ElementID
 	dim containers
@@ -215,11 +215,11 @@ function addServer(masterDocument,server,selectedDiagram,i)
 	next
 	'add shared folder template if needed
 	dim sqlGetSharedFolder
-	sqlGetSharedFolder = "select o.[Object_ID]                                                            " & _
+	sqlGetSharedFolder = "select o.Object_ID                                                            " & _
 						" from (([t_diagramobjects] do                                                    " & _
-						" inner join [t_object] o on (o.[Object_ID] = do.[Object_ID]                      " & _
+						" inner join [t_object] o on (o.Object_ID = do.Object_ID                      " & _
 						"                            and o.[Stereotype] = 'ArchiMate_TechnologyFunction'))" & _
-						" inner join [t_connector] c on c.[End_Object_ID] = o.[Object_ID])                " & _  
+						" inner join [t_connector] c on c.[End_Object_ID] = o.Object_ID)                " & _  
 						" where do.[Diagram_ID] = " & selectedDiagram.DiagramID & "                       " & _
 						" and c.[Start_Object_ID] = " & server.ElementID
 	dim sharedFolders

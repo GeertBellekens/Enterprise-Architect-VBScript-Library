@@ -8,8 +8,8 @@ option explicit
 '
 ' Script Name: Cleanup Messaging Model
 ' Author: Geert Bellekens
-' Purpose: moves the «MA» and «invEnvelope» elements to a separate folder in the messaging model 
-' moves the schema file into the «DOCLibrary» package and moves «DOCLibrary» package to the Messages package.
+' Purpose: moves the Â«MAÂ» and Â«invEnvelopeÂ» elements to a separate folder in the messaging model 
+' moves the schema file into the Â«DOCLibraryÂ» package and moves Â«DOCLibraryÂ» package to the Messages package.
 ' each package will remain in its original structure
 ' Date: 2018-06-14
 '

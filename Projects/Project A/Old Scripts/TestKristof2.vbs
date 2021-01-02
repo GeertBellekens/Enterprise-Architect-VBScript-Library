@@ -51,7 +51,7 @@ sub GenerateFD(selectedElement)
 	documentAlias = selectedElement.Name
 	documentName = selectedElement.Name
 	documentTitle = "BI and Reporting - " & documentName
-	documentStatus = "Voor implementatie / Pour implémentation"
+	documentStatus = "Voor implementatie / Pour implÃ©mentation"
 	masterDocumentName = documentTitle & " v" & documentVersion
 	'first create a master document
 	dim masterDocument as EA.Package

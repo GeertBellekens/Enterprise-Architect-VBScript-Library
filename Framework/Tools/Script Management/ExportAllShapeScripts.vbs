@@ -10,7 +10,7 @@
 ' Date: 2016-06-18
 '
 sub main
-	'get all attributes with name _image that have shapescript in the default field and a parent with stereotype «stereotype»
+	'get all attributes with name _image that have shapescript in the default field and a parent with stereotype Â«stereotypeÂ»
 	dim sqlGetShapescriptAttributes
 	sqlGetShapescriptAttributes = "select a.ID from (t_attribute a " & _
 								  " inner join t_object o on (o.Object_ID = a.Object_ID " & _

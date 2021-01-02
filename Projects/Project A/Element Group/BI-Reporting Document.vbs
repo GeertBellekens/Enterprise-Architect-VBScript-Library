@@ -113,7 +113,7 @@ function createMasterDocument(selectedElement)
 		end if
 		documentName = selectedElement.Name
 		documentTitle = documentAlias & " - " & documentName
-		documentStatus = "Voor implementatie / Pour implémentation"
+		documentStatus = "Voor implementatie / Pour implÃ©mentation"
 		masterDocumentName = documentTitle & " - v. " & documentVersion
 		
 		'Remove older version of the master document

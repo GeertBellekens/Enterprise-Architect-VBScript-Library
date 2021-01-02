@@ -177,7 +177,7 @@ function getTransformationSource(element)
 	set sourceElement = nothing
 	dim sqlFindSource
 	dim sourceElements
-	sqlFindSource = "select o.[Object_ID] from  t_object o " & _
+	sqlFindSource = "select o.Object_ID from  t_object o " & _
 					"inner join t_xref x on x.[Supplier] = o.[ea_guid] " & _
 					"where x.TYPE = 'Transformation' " & _
 					"and x.[Client] =  '" & element.ElementGUID & "'"
@@ -237,14 +237,14 @@ function fixConnectors(package)
 						" ( " & _
 						" select source.StartID, source.EndID from  " & _
 						" ( " & _
-						" select o.[Object_ID] AS StartID, con.[End_Object_ID] AS EndID " & _
+						" select o.Object_ID AS StartID, con.[End_Object_ID] AS EndID " & _
 						" from (t_object o " & _
-						" inner join t_connector con on con.[Start_Object_ID] = o.[Object_ID]) " & _
+						" inner join t_connector con on con.[Start_Object_ID] = o.Object_ID) " & _
 						" where o.package_ID = "& package.PackageID & _
 						" union all " & _
-						" select o.[Object_ID] AS StartID, con.[Start_Object_ID] AS EndID " & _
+						" select o.Object_ID AS StartID, con.[Start_Object_ID] AS EndID " & _
 						" from (t_object o " & _
-						" inner join t_connector con on con.[End_Object_ID] = o.[Object_ID]) " & _
+						" inner join t_connector con on con.[End_Object_ID] = o.Object_ID) " & _
 						" where o.package_ID = "& package.PackageID & _
 						" ) source " & _
 						" group by source.StartID, source.EndID " & _

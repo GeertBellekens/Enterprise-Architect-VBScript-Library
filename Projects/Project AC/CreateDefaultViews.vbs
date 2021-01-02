@@ -18,7 +18,7 @@ sub main
 	'select database
 	dim databasePackage as EA.Package
 	
-	msgbox "select the «Database» or «DataModel» package"
+	msgbox "select the Â«DatabaseÂ» or Â«DataModelÂ» package"
 	set databasePackage = selectPackage()
 	if not databasePackage is nothing then
 		if databasePackage.StereotypeEx = "Database" or databasePackage.StereotypeEx = "DataModel" then

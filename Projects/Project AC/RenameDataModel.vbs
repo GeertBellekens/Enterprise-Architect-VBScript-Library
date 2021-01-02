@@ -58,7 +58,7 @@ sub main
 				msgbox "Finished renaming"
 			end if
 		else
-			msgbox "Please select a package with stereotype «DataModel»"
+			msgbox "Please select a package with stereotype Â«DataModelÂ»"
 		end if
 	end if
 end sub
