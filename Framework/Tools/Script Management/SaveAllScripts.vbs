@@ -18,7 +18,7 @@ sub main
 	'get the folder from the user
 	dim folder
     set folder = new FileSystemFolder
-	set folder = folder.getUserSelectedFolder("")
+	set folder = folder.getUserSelectedFolder(SCRIPT_FOLDER)
 	if not folder is nothing then
 		set allScripts = script.getAllScripts(allGroups)
 		Session.Output "allGroups.Count: " & allGroups.Count
