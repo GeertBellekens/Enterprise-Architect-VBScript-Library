@@ -12,7 +12,7 @@
 sub main
 	dim selectedFolder,file, allScripts, allGroups,script, overwriteExisting
 	set selectedFolder = new FileSystemFolder
-	set selectedFolder = selectedFolder.getUserSelectedFolder("")
+	set selectedFolder = selectedFolder.getUserSelectedFolder(SCRIPT_FOLDER)
 	overwriteExisting = "undecided"
 	if not selectedFolder is nothing then
 		set allGroups = Nothing
