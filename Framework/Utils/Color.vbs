@@ -1,8 +1,6 @@
 '[path=\Framework\Utils]
 '[group=Utils]
 
-option explicit
-
 !INC Local Scripts.EAConstants-VBScript
 
 ' From http://www.sparxsystems.com.au/enterprise_architect_user_guide/11/automation_and_scripting/diagramobjects.html
