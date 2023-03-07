@@ -20,3 +20,7 @@ events](https://sparxsystems.com/enterprise_architect_user_guide/15.2/automation
 in the Sparx documentation for all the events that the EA-Matic settings dialog can
 handle. These pages list the events and the arguments provided to the event
 handler.
+
+## Workflow
+
+Write your EA-Matic script, then open and close EA-Matic settings to force EA-Matic to refresh its in memory copy (Specialize > EA-Matics > settings), then run your script.
