@@ -24,6 +24,10 @@ The included scripts should do the actual work.
 
 Common or reusable functions/procedures should be extracted into their own scripts possibly grouping related items.
 
+See Layering diagram:
+
+![EA Layering Diagram](./EA-Matic.png)
+
 ### option explicit
 
 [option explicit](https://learn.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/scripting-articles/bw9t3484(v=vs.84)) must appears in a script before any other statements.
