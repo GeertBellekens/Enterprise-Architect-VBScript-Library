@@ -54,13 +54,13 @@ function getScriptFromFile(file, allGroups, allScripts,overwriteExisting)
 			set newScript = new Script
 			newScript.Name = file.FileNameWithoutExtension
 			newScript.Code = file.Contents
-			newScriptGroupName = newScript.GroupInNameCode 
-			'if the groupname was not found in the code we use the name of the package
-			if len(newScriptGroupName) = 0 then
-				newScriptGroupName = file.Folder.Name
-			end if
 			'check the name of the script
 			if script.Name = newScript.Name then
+				newScriptGroupName = newScript.GroupInNameCode 
+				'if the groupname was not found in the code we use the name of the package
+				if len(newScriptGroupName) = 0 then
+					newScriptGroupName = file.Folder.Name
+				end if
 				'check if there is a groupname defined in the file
 				if script.Group.Name = newScriptGroupName then
 					'we have a match

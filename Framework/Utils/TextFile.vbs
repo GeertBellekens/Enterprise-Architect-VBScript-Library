@@ -77,12 +77,28 @@ Class TextFile
 	sub Save
 		Dim fso, MyFile
 		Set fso = CreateObject("Scripting.FileSystemObject")
+		'invalid characters cause errors, ignore them
+		On Error Resume Next
 		'first make sure the directory exists
 		me.Folder.Save
+		If Err.Number <> 0 Then
+			Session.Output "ERROR: " &  Err.Description
+			Err.Clear
+			exit sub
+		End If
+
 		'then create file
 		Set MyFile = fso.CreateTextFile(me.FullPath, True)
+		If Err.Number <> 0 Then
+			Session.Output "ERROR: " &  Err.Description
+			Err.Clear
+			exit sub
+		End If
+		On Error Goto 0
+
 		MyFile.Write(Contents)
 		MyFile.close
+		
 	end sub
 	
 	'delete the file
