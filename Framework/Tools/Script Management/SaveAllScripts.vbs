@@ -23,11 +23,16 @@ sub main
 		set allScripts = script.getAllScripts(allGroups)
 		Session.Output "allGroups.Count: " & allGroups.Count
 	end if
+
+	set allScripts = script.getAllScripts(allGroups)
+	Session.Output "allGroups.Count: " & allGroups.Count
 	for each script in allScripts
-		Session.Output "filename: " & folder.FullPath & script.Path & "\" & script.Name & ".vbs"
+		dim fullPath 
+		fullPath = folder.FullPath & script.Path & "\" & script.Name & ".vbs"
+		Session.Output "filename: " & fullPath
 		dim file
 		set file = New TextFile
-		file.FullPath = folder.FullPath & script.Path & "\" & script.Name & ".vbs"
+		file.FullPath = fullPath
 		'first make sure the code indicator is added to the code
 		script.addGroupToCode
 		'then save the script with the group indicator

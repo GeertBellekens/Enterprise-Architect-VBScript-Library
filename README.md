@@ -8,3 +8,6 @@ TODO:
 
 - Add a functional wrapper library for EA's API objects
 
+## Documentation
+
+See [Documentation](./Documentation/README.md) for more details

@@ -165,27 +165,56 @@ Class Script
 			getGroupTypeFromCode = gtNormal
 		end if
 	end function
-	
+
 	'the key-value pair is defined in the code as '[keyName=value]
 	public function getKeyValue(keyName)
 		dim returnValue
 		returnValue = "" 'initialise emtpy
-		dim keyIndicator, startKey, endKey, tempValue
-		keyIndicator = "[" & keyName & "=" 
-		startKey = instr(me.Code, keyIndicator) + len(keyIndicator)
-		if startKey > len(keyIndicator) then
-			endKey = instr(startKey, me.Code, "]")
-			if endKey > startKey then
-				tempValue = mid(me.code,startKey, endKey - startKey)
-				'filter out newline in case someone forgot to add the closing "]"
-				if instr(tempValue,vbNewLine) = 0 and instr(tempValue,vbLF) = 0 then
-					returnValue = tempValue
-				end if
+		getKeyValue = returnValue
+
+		dim keyIndicator, startKey, endKey, tempValue, prevCharIndex, prevChar
+		keyIndicator = "'[" & keyName & "="
+		'Session.Output "DEBUG: matching " & keyIndicator
+		startKey = instr(me.Code, keyIndicator)
+		if startKey = 0 then
+			'no matches found
+			'Session.Output "DEBUG: no start key found, " & keyIndicator
+			exit function
+		end if
+
+		'only allow key/values at the beginning of a line
+		prevCharIndex = startKey - 1
+		'check at beginning of line, prevCharIndex=0 indicates its the first line of the file
+		if prevCharIndex <> 0 then
+			prevChar = mid(me.Code, prevCharindex, 1)
+			if prevChar <> vbLf and prevChar <> vbCr then
+				'key/value not at start of line
+				'Session.Output "DEBUG: previous char is not new line, '" & Asc(prevChar) & "' at index " & prevCharindex
+				exit function
 			end if
 		end if
+
+		endKey = instr(startKey, me.Code, "]")
+		if endKey = 0 then
+			'no closing bracket
+			'Session.Output "DEBUG: no closing bracket ']'"
+			exit function
+		end if
+
+		'move startkey to after keyIndicator
+		startKey = startKey + len(keyIndicator)
+		tempValue = mid(me.code, startKey, endKey - startKey)
+		'filter out multiline results in case someone forgot to add the closing "]"
+		if instr(tempValue,vbNewLine) <> 0 or instr(tempValue,vbLF) <> 0 then
+			Session.Output "ERROR: " & keyIndicator & " missing closing ] one same line"
+			exit function
+		end if
+		returnValue = tempValue
+
 		getKeyValue = returnValue
+		'Session.Output "DEBUG: getKeyValue (" & keyName & ") = " & getKeyValue
 	end function
-	
+
 	public function addGroupToCode()
 		dim groupFromCode
 		groupFromCode = me.getGroupFromCode()
