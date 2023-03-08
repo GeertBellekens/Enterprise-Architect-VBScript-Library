@@ -5,11 +5,18 @@ option explicit
 !INC Local Scripts.EAConstants-VBScript
 !INC EAScriptLib.VBScript-GUID
 
+'Configure this with the path to your Enterprise-Architect-VBScript-Library installations
+'e.g. "C:\install\path\Enterprise-Architect-VBScript-Library"
+Const SCRIPT_FOLDER = ""
+
 ' Author: Barrie Treloar
 ' Purpose: An all-in-one script, copied from the originals, to bootstrap the loads processes.
 ' 		   This should be a once-off-script, as it is not kept up-to-date.
 '          Afterward use the LoadScripts script.
 ' Date: 2017-02-14
+
+Dim SCRIPTS_SCRIPT_MANAGEMENT
+SCRIPTS_SCRIPT_MANAGEMENT = SCRIPT_FOLDER & "\Framework\Tools\Script Management"
 
 function getWC()
 	if Repository.RepositoryType = "JET" then
@@ -728,7 +735,7 @@ end function
 sub main
 	dim selectedFolder,file, allScripts, allGroups,script, overwriteExisting
 	set selectedFolder = new FileSystemFolder
-	set selectedFolder = selectedFolder.getUserSelectedFolder("C:\SparxEA-Scripts\Enterprise-Architect-VBScript-Library\Framework")
+	set selectedFolder = selectedFolder.getUserSelectedFolder(SCRIPT_FOLDER)
 	overwriteExisting = "undecided"
 	if not selectedFolder is nothing then
 		set allGroups = Nothing
@@ -738,6 +745,7 @@ sub main
 		'get the scripts from the folder and its subfolders
 		getScriptsFromFolder selectedFolder, allGroups, allScripts, overwriteExisting
 	end if
+
 end sub
 
 sub main1
@@ -750,7 +758,7 @@ sub main1
 	overwriteExisting = vbYes
 
 	set folder = New FileSystemFolder
-	folder.FullPath = "C:\SparxEA-Scripts\Enterprise-Architect-VBScript-Library\Framework\Tools\Script Management"
+	folder.FullPath = SCRIPTS_SCRIPT_MANAGEMENT
 	
 	set files = folder.TextFiles
 	for each file in files
