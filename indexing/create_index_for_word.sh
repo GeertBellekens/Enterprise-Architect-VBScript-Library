@@ -25,7 +25,9 @@ INDEX_WORD=$1
 FILE_INDEX_FULL_SCAN="${TMP_DIR}/_index.full_scan"
 FILE_INDEX="${INDEX_DIR}/${INDEX_WORD}.md"
 
-rm "${FILE_INDEX_FULL_SCAN}"
+if [ -f "${FILE_INDEX_FULL_SCAN}" ]; then
+    rm "${FILE_INDEX_FULL_SCAN}"
+fi
 touch "${FILE_INDEX_FULL_SCAN}"
 
 find .. -type f -name "*.vbs" -not -path indexing -print0 | xargs -0 grep --with-filename --only-matching "${INDEX_WORD}" >> "${FILE_INDEX_FULL_SCAN}"
