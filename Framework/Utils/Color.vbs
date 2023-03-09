@@ -7,13 +7,11 @@
 dim sparxDefaultColor
 sparxDefaultColor 					= -1
 
-' Convert a (red, green, blue) color into a Sparx Color
-' See https://learn.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/scripting-articles/676k6dt6(v=vs.84)
-'
+' Convert a (red, green, blue) color (for example, (230, 255, 230)) into a Sparx Color 
+' 
 ' From http://www.sparxsystems.com.au/enterprise_architect_user_guide/11/automation_and_scripting/diagramobjects.html
 ' The color value is a decimal representation of the hex RGB value, where Red=FF, Green=FF00 and Blue=FF0000
-' Who would write an RGB as BGR. YAEAB
-' red, green, blue are string for the hex values 00-FF
+' See https://learn.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/scripting-articles/676k6dt6(v=vs.84)
 function RgbColorToSparxColor(red, green, blue)
 	RgbColorToSparxColor = RGB(red, green, blue)
 end function
