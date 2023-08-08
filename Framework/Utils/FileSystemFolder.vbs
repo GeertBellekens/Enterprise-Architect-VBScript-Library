@@ -56,9 +56,7 @@ Class FileSystemFolder
 				set v_textFile = new TextFile
 				v_textFile.Folder = me
 				v_textFile.FileName = file.Name
-				set ts = file.OpenAsTextStream(ForReading, TristateUseDefault)
-				v_textFile.Contents = ts.ReadAll
-				ts.Close
+                                v_textFile.loadContents()
 				result.add v_textFile
 			Next
 		end if

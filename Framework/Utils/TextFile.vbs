@@ -132,6 +132,7 @@ Class TextFile
 			set fsoFile = fso.GetFile(me.FullPath)
 			set ts = fsoFile.OpenAsTextStream(ForReading, TristateUseDefault)
 			me.Contents = ts.ReadAll
+                        ts.Close
 		end if
 	end function
 	'appends the given string to the end of the textfile
