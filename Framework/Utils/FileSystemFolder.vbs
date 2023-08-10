@@ -89,7 +89,6 @@ Class FileSystemFolder
 		if not folder is nothing then
 			set getUserSelectedFolder = New FileSystemFolder
 			getUserSelectedFolder.FullPath = folder.Self.Path 
-			Session.Output "folder.Self.Path: " & folder.Self.Path
 		else
 			set getUserSelectedFolder = Nothing
 		end if
