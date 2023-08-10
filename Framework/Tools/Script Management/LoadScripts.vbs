@@ -34,6 +34,7 @@ sub main
 	set selectedFolder = selectedFolder.getUserSelectedFolder(scriptsFolder)
 	if not selectedFolder is nothing then
 		'get the scripts from the folder and its subfolders
+                Session.Output "Loading scripts from folder: " & selectedFolder.FullPath
 		getScriptsFromFolder selectedFolder
 	end if
 end sub
@@ -68,7 +69,6 @@ function getScriptFromFile(file)
         newScript.Name = file.FileNameWithoutExtension
         newScript.Code = file.Contents
         newScriptGroupName = newScript.GroupInNameCode
-        Session.Output "Scripts group name = " & newScriptGroupName
 
 	if file.Extension = "vbs" then
 		for each script in allScriptsInSparxModel
@@ -109,9 +109,7 @@ function getScriptFromFile(file)
 				'create the Group in the database
 				group.Create
 				'refresh allGroupsInSparxModel
-				Session.Output "allGroupsInSparxModel.Count before: " & allGroupsInSparxModel.Count
 				set allGroupsInSparxModel = group.GetAllGroups()
-				Session.Output "allGroupsInSparxModel.Count after: " & allGroupsInSparxModel.Count
 				'add the group to the script
 				newScript.Group = group
 			end if
