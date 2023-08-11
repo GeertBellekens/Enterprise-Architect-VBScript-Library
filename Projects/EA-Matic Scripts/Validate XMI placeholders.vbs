@@ -1,6 +1,8 @@
 '[path=\Projects\EA-Matic Scripts]
 '[group=EA-Matic]
 
+option explicit
+
 !INC Local Scripts.EAConstants-VBScript
 
 '
@@ -12,10 +14,10 @@
 'EA-Matic
 
 function EA_FileOpen()
-	
 	'figure out how many locks he has
 	dim xmiPlaceHolderSet
 	xmiPlaceHolderSet = isXMIPlaceHoldersSet()
+
 	if not xmiPlaceHolderSet then
 		dim result
 		result = Msgbox("The option 'For all packages, create placeholders for external references' is not enabled. " & _
@@ -36,19 +38,25 @@ function fixXMIPlaceholder()
 end function
 
 function isXMIPlaceHoldersSet()
+	isXMIPlaceHoldersSet = false
+
 	dim sqlXmiPlaceholder
-	sqlXmiPlaceholder = "select s.Value as XmiPlaceHolder from usys_system s where s.Property = 'XMI_ShowMissingItems'"
 	dim queryResponse
-	queryResponse = Repository.SQLQuery(sqlXmiPlaceholder)
-    Dim xDoc 
+    Dim xDoc
+	sqlXmiPlaceholder = "select s.Value as XmiPlaceHolder from usys_system s where s.Property = 'XMI_ShowMissingItems'"
     Set xDoc = CreateObject( "MSXML2.DOMDocument" )
-	xDoc.LoadXML(queryResponse)
-	dim xmiPlaceHolderNode
-	set xmiPlaceHolderNode = xDoc.SelectSingleNode("//XmiPlaceHolder")
-	'return count as integer
-	if xmiPlaceHolderNode.Text = "1" then
-		isXMIPlaceHoldersSet = true
-	else
-		isXMIPlaceHoldersSet = false
+	set xdoc = nothing
+	if not xDoc is nothing then
+		queryResponse = Repository.SQLQuery(sqlXmiPlaceholder)
+		if not queryResponse is nothing then
+			xDoc.LoadXML(queryResponse)
+			dim xmiPlaceHolderNode
+			set xmiPlaceHolderNode = xDoc.SelectSingleNode("//XmiPlaceHolder")
+			if xmiPlaceHolderNode is not nothing then
+				if xmiPlaceHolderNode.Text = "1" then
+					isXMIPlaceHoldersSet = true
+				end if
+			end if
+		end if
 	end if
 end function
