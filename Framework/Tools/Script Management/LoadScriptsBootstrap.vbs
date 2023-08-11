@@ -1332,7 +1332,6 @@ end function
 '[group=Utils]
 'Author: Geert Bellekens
 'Date: 2015-12-07
-'EA-Matic
 
 'returns the SQL wildcard depending on the type of repository
 function getWC()
@@ -2803,7 +2802,6 @@ const csDeleted 					= 8
 
 'Author: Geert Bellekens
 'Date: 2015-12-07
-'EA-Matic
 '
 ' END: ../Framework/Utils/Include.vbs
 ' #######################
@@ -8663,7 +8661,6 @@ end Class
 
 'Author: Geert Bellekens
 'Date: 2015-12-07
-'EA-Matic
 '
 ' END: ../Framework/Wrappers/Include.vbs
 ' #######################
@@ -8852,63 +8849,7 @@ init
 
 dim fileToLoad
 set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\OCL\Schema.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\OCL\Include.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\LocalPaths.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\Messaging\MessageNode.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\Util.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\Messaging\Message.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\BinaryFile.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\Include.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\OCL\SchemaElement.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\DocGenHelpers.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\OCL\SchemaProperty.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\SQL.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\OCL\OCLStatement.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\EA Enums.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\FileSystem.vbs"
+fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\Include.vbs"
 fileToLoad.loadContents()
 getScriptFromFile(fileToLoad)
 set fileToLoad = new TextFile
@@ -8916,15 +8857,15 @@ fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\Messaging\MessageVali
 fileToLoad.loadContents()
 getScriptFromFile(fileToLoad)
 set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\ModelInfo.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
 fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\XML.vbs"
 fileToLoad.loadContents()
 getScriptFromFile(fileToLoad)
 set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\TaggedValues\TaggedValue.vbs"
+fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\ModelInfo.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\OCL\SchemaProperty.vbs"
 fileToLoad.loadContents()
 getScriptFromFile(fileToLoad)
 set fileToLoad = new TextFile
@@ -8932,19 +8873,7 @@ fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\Scripting\SearchResul
 fileToLoad.loadContents()
 getScriptFromFile(fileToLoad)
 set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\Scripting\Script.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\Messaging\Include.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\Include.vbs"
-fileToLoad.loadContents()
-getScriptFromFile(fileToLoad)
-set fileToLoad = new TextFile
-fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\FileSystemFolder.vbs"
+fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\EA Enums.vbs"
 fileToLoad.loadContents()
 getScriptFromFile(fileToLoad)
 set fileToLoad = new TextFile
@@ -8952,11 +8881,79 @@ fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\ExcelFile.vbs"
 fileToLoad.loadContents()
 getScriptFromFile(fileToLoad)
 set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\Scripting\Script.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\OCL\Schema.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\BinaryFile.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\Util.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\Messaging\MessageNode.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\LocalPaths.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\Include.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\Messaging\Include.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\TaggedValues\TaggedValue.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\OCL\Include.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\DocGenHelpers.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\Messaging\Message.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\OCL\SchemaElement.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
 fileToLoad.FullPath = scriptsFolder & "\Framework\Wrappers\Scripting\ScriptGroup.vbs"
 fileToLoad.loadContents()
 getScriptFromFile(fileToLoad)
 set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\OCL\OCLStatement.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
 fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\TextFile.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\SQL.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\FileSystemFolder.vbs"
+fileToLoad.loadContents()
+getScriptFromFile(fileToLoad)
+set fileToLoad = new TextFile
+fileToLoad.FullPath = scriptsFolder & "\Framework\Utils\FileSystem.vbs"
 fileToLoad.loadContents()
 getScriptFromFile(fileToLoad)
 set fileToLoad = new TextFile
