@@ -2,7 +2,7 @@
 '[group=Atrias Rules]
 
 'includes all individual Atrias rules
-!INC Rule_BPANotSynchronized
-!INC Rule_MessageNotSynchronized
-!INC Rule_MessageUsedAsLink
-!INC Rule_MessageFlowWithoutMessage
+!INC Atrias Rules.Rule_BPANotSynchronized
+!INC Atrias Rules.Rule_MessageNotSynchronized
+!INC Atrias Rules.Rule_MessageUsedAsLink
+!INC Atrias Rules.Rule_MessageFlowWithoutMessage
