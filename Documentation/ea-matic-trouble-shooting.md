@@ -1,5 +1,19 @@
 # EA-Matic Trouble Shooting
 
+## Variable uses an Automation type not supported in VBScript
+
+If EA-Matic throws an An unhandled exception MessageBox with an error lile:
+
+```
+Error Message: Script '<Group Name>.<Script Name>' failed: Variable uses an Automation type not supported in VBScript
+```
+
+A likely cause is you are trying to concatenate a non-string type to a string.
+
+Unfortunately there is no easy way to provide further detail on the error. You
+will need to manually eyeball every variable and check its type and use CStr()
+for non-string types.
+
 ## EA-Matic only saves work every 5 minutes
 
 **This is by design.**
