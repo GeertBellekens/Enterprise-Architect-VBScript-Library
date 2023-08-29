@@ -19,9 +19,8 @@ sub main
 	dim folder
     set folder = new FileSystemFolder
 	set folder = folder.getUserSelectedFolder(SCRIPT_FOLDER)
-	if not folder is nothing then
-		set allScripts = script.getAllScripts(allGroups)
-		Session.Output "allGroups.Count: " & allGroups.Count
+	if folder is nothing then
+		exit sub
 	end if
 
 	set allScripts = script.getAllScripts(allGroups)
