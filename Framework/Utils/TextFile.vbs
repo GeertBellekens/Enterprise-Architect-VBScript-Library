@@ -52,8 +52,11 @@ Class TextFile
 	' FileNameWithoutExtension property.
 	Public Property Get FileNameWithoutExtension
 	  dim startExtension
+          FileNameWithoutExtension = FileName
 	  startExtension = InstrRev(me.FileName, ".", -1, 1)
-	  FileNameWithoutExtension = left(me.FileName, startExtension -1) 'get everything before the last "."
+          if startExtension <> 0 then
+	    FileNameWithoutExtension = left(me.FileName, startExtension -1) 'get everything before the last "."
+          end if
 	End Property
 	' Extension property.
 	Public Property Get Extension

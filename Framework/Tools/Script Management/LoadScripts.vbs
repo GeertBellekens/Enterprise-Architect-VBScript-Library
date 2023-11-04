@@ -1,36 +1,51 @@
 '[path=\Framework\Tools\Script Management]
 '[group=Script Management]
 
+option explicit
+
 !INC Local Scripts.EAConstants-VBScript
 !INC Wrappers.Include
+!INC Utils.LocalPaths
 !INC EAScriptLib.VBScript-GUID
 
 ' Author: Geert Bellekens
 ' Purpose: Loads scripts from the file systems and stores them in Enterprise Architect
 ' Date: 2015-12-07
 '
+
+dim allScriptsInSparxModel, allGroupsInSparxModel, overwriteExisting, scriptsFolder
+
+sub init
+    dim script
+
+    overwriteExisting = "undecided"
+    set allGroupsInSparxModel = Nothing
+
+    'first get all existing scripts and groups
+    set script = new Script
+    set allScriptsInSparxModel = script.getAllScripts(allGroupsInSparxModel)
+
+    scriptsFolder = LocalPathsToPathForId("EA-Matic Script Folder")
+end sub
+
 sub main
-	dim selectedFolder,file, allScripts, allGroups,script, overwriteExisting
+	dim selectedFolder
 	set selectedFolder = new FileSystemFolder
-	set selectedFolder = selectedFolder.getUserSelectedFolder(SCRIPT_FOLDER)
-	overwriteExisting = "undecided"
+	set selectedFolder = selectedFolder.getUserSelectedFolder(scriptsFolder)
 	if not selectedFolder is nothing then
-		set allGroups = Nothing
-		set script = new Script
-		'first get all existing scripts and groups
-		set allScripts = Script.getAllScripts(allGroups)
 		'get the scripts from the folder and its subfolders
-		getScriptsFromFolder selectedFolder, allGroups, allScripts, overwriteExisting
+                Session.Output "Loading scripts from folder: " & selectedFolder.FullPath
+		getScriptsFromFolder selectedFolder
 	end if
 end sub
 
 'gets all the scripts from the given folder and its subfolders (if any)
-function getScriptsFromFolder(selectedFolder, allGroups, allScripts, overwriteExisting)
-	dim script, subFolder
+function getScriptsFromFolder(selectedFolder)
+	dim file, script, subFolder
 	for each file in selectedFolder.TextFiles
 		Session.Output "FileName: " & file.FileName
 		'Session.Output "Code: " & file.Contents
-		set script = getScriptFromFile(file, allGroups, allScripts,overwriteExisting)
+		set script = getScriptFromFile(file)
 		if overwriteExisting = vbCancel then
 			exit for
 		end if
@@ -38,25 +53,27 @@ function getScriptsFromFolder(selectedFolder, allGroups, allScripts, overwriteEx
 	'then process subfolders
 	if not overwriteExisting = vbCancel then
 		for each subFolder in selectedFolder.SubFolders
-			getScriptsFromFolder subFolder, allGroups, allScripts, overwriteExisting
+			getScriptsFromFolder subFolder
 		next
 	end if
 end function
 
-function getScriptFromFile(file, allGroups, allScripts,overwriteExisting)
+function getScriptFromFile(file)
 	dim script, newScript, foundMatch, newScriptGroupName, group, foundGroup
 	foundMatch = false
 	foundGroup = false
 	set group = nothing
 	set script = Nothing
+
+        set newScript = new Script
+        newScript.Name = file.FileNameWithoutExtension
+        newScript.Code = file.Contents
+        newScriptGroupName = newScript.GroupInNameCode
+
 	if file.Extension = "vbs" then
-		for each script in allScripts
-			set newScript = new Script
-			newScript.Name = file.FileNameWithoutExtension
-			newScript.Code = file.Contents
+		for each script in allScriptsInSparxModel
 			'check the name of the script
 			if script.Name = newScript.Name then
-				newScriptGroupName = newScript.GroupInNameCode 
 				'if the groupname was not found in the code we use the name of the package
 				if len(newScriptGroupName) = 0 then
 					newScriptGroupName = file.Folder.Name
@@ -70,10 +87,10 @@ function getScriptFromFile(file, allGroups, allScripts,overwriteExisting)
 				end if
 			end if
 		next
-		if not foundMatch then 
+		if not foundMatch then
 			'script did not exist yet
 			'figure out if the group exists already
-			for each group in allGroups.Items
+			for each group in allGroupsInSparxModel.Items
 				if group.Name = newScriptGroupName then
 					'found the group
 					'add the group to the new script
@@ -91,10 +108,8 @@ function getScriptFromFile(file, allGroups, allScripts,overwriteExisting)
 				group.GroupType = newScript.GroupType
 				'create the Group in the database
 				group.Create
-				'refresh allGroups
-				Session.Output "allGroups.Count before: " & allGroups.Count
-				set allGroups = group.GetAllGroups()
-				Session.Output "allGroups.Count after: " & allGroups.Count
+				'refresh allGroupsInSparxModel
+				set allGroupsInSparxModel = group.GetAllGroups()
 				'add the group to the script
 				newScript.Group = group
 			end if
@@ -128,4 +143,5 @@ sub checkGroupTypeAndOverwrite(group, newScript)
 	end if
 end sub
 
+init
 main
