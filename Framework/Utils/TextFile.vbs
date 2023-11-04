@@ -128,14 +128,21 @@ Class TextFile
 	'load the contents of the file from the file system
 	public function loadContents()
 		Dim fso
-		dim fsoFile
-		dim ts
+		Dim BinaryStream
+		
 		Set fso = CreateObject("Scripting.FileSystemObject")
 		if fso.FileExists(me.FullPath) then
-			set fsoFile = fso.GetFile(me.FullPath)
-			set ts = fsoFile.OpenAsTextStream(ForReading, TristateUseDefault)
-			me.Contents = ts.ReadAll
-                        ts.Close
+			' Load with ADO stream to handle UTF-8
+			' See https://github.com/GeertBellekens/Enterprise-Architect-VBScript-Library/issues/25
+			Set BinaryStream = CreateObject("ADODB.Stream")
+			With BinaryStream
+				.Charset = "utf-8"
+				.Type = 2
+				.Open
+				.LoadFromFile me.FullPath
+				me.Contents = BinaryStream.ReadText()
+				.Close
+			End With
 		end if
 	end function
 	'appends the given string to the end of the textfile
