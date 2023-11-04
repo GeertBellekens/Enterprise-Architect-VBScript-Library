@@ -54,7 +54,8 @@ function determineLineStyle(connector)
 end function
 
 'set here the color to be used for each type of connector
-' use SparxColorFromRGB("E8", "8C", "0C") to get the correct integer color value
+' use Utils.Color to convert RGB or Hex colors into Sparx Colors
+' for example, HexColorToSparxColor(&HE88C0C) to get the correct integer color value
 function determineColor(connector)
 	' the default color
 	determineColor = -1
