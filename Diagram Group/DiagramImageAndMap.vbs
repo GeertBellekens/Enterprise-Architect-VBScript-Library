@@ -19,21 +19,21 @@ option explicit
 '
 sub OnDiagramScript()
 
-	' Get a reference to the current diagram
-	dim currentDiagram as EA.Diagram
-	set currentDiagram = Repository.GetCurrentDiagram()
-	set currentDiagram = Repository.GetDiagramByGuid("{D66BC2EC-4D2B-41b2-A29D-4FE3B051EFBD}")
-	if not currentDiagram is nothing then
-		dim xmlGuid
-		dim project as EA.Project
-		set project = Repository.GetProjectInterface()
-		xmlGUID = project.GUIDtoXML(currentDiagram.DiagramGUID)
-		dim gelukt
-		gelukt = project.GetDiagramImageAndMap("{D66BC2EC-4D2B-41b2-A29D-4FE3B051EFBD}","c:\temp\")
-		session.output "het is gelukt: " & gelukt
-	else
-		Session.Prompt "This script requires a diagram to be visible", promptOK
-	end if
+ ' Get a reference to the current diagram
+ dim currentDiagram as EA.Diagram
+ set currentDiagram = Repository.GetCurrentDiagram()
+ set currentDiagram = Repository.GetDiagramByGuid("{D66BC2EC-4D2B-41b2-A29D-4FE3B051EFBD}")
+ if not currentDiagram is nothing then
+  dim xmlGuid
+  dim project as EA.Project
+  set project = Repository.GetProjectInterface()
+  xmlGUID = project.GUIDtoXML(currentDiagram.DiagramGUID)
+  dim gelukt
+  gelukt = project.GetDiagramImageAndMap("{D66BC2EC-4D2B-41b2-A29D-4FE3B051EFBD}","c:\temp\")
+  session.output "het is gelukt: " & gelukt
+ else
+  Session.Prompt "This script requires a diagram to be visible", promptOK
+ end if
 
 end sub
 

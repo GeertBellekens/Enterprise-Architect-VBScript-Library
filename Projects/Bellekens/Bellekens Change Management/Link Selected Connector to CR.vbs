@@ -9,9 +9,9 @@ option explicit
 
 'Execute main function defined in LinkToCRMain
 sub main
-	dim selectedItem
-	set selectedItem = Repository.GetContextObject
-	linkItemToCR selectedItem, nothing
+ dim selectedItem
+ set selectedItem = Repository.GetContextObject
+ linkItemToCR selectedItem, nothing
 end sub
 
 main

@@ -28,7 +28,7 @@ Class CSVFile
 	
 	' Contents property. An ArrayList ArrayLists of strings
 	Public Property Get Contents
-	  Contents = m_TextFile.Contents
+	  set Contents = getDataFromCSVString(m_TextFile.Contents)
 	End Property
 	Public Property Let Contents(value)
 		'create CSV string
@@ -41,18 +41,52 @@ Class CSVFile
 	End Property	
 	public Property Let FullPath(value)
 		m_TextFile.FullPath = value
+		m_TextFile.LoadContents
 	End Property
 	
+	public Function getUserSelectedFileName()
+		dim selectedFileName
+		dim project
+		set project = Repository.GetProjectInterface()
+		m_TextFile.FullPath = project.GetFileNameDialog ("", "CSV files|*.csv", 1, 2 ,"", 1) 'save as with overwrite prompt: OFN_OVERWRITEPROMPT
+	end function
 	'save
 	sub Save
+		if len(me.FileName) = 0 then
+			getUserSelectedFileName()
+		end if		
+		if len(me.FileName) = 0 then
+			exit sub 'if still no path, then stop trying to save
+		end if
 		m_TextFile.Save
 		Dim objStream
 		Set objStream = CreateObject("ADODB.Stream")
 		objStream.CharSet = "utf-8"
 		objStream.Open
-		objStream.WriteText me.Contents
+		objStream.WriteText m_TextFile.Contents
 		objStream.SaveToFile me.FullPath, adSaveCreateOverWrite
 	end sub
+	
+	private function getDataFromCSVString(csvstring)
+		dim data
+		set data = CreateObject("System.Collections.ArrayList")
+		dim lines
+		lines = split(csvstring, vbNewLine)
+		dim line
+		for each line in lines
+			dim row
+			set row = CreateObject("System.Collections.ArrayList")
+			data.Add row
+			dim parts
+			parts = split(line, ",")
+			dim part
+			for each part in parts
+				part = replace(part, """", "") 'remove all double quotes from the text
+				row.Add part
+			next
+		next
+		set getDataFromCSVString = data
+	end function
 	
 	private function getCSVString(arrayList)
 		dim csvString
@@ -72,7 +106,7 @@ Class CSVFile
 					row(i) = """" & value & """"
 				end if
 			next
-			rowString = Join(row.ToArray(), ";")
+			rowString = Join(row.ToArray(), ",")
 			csvString = csvString & rowString
 		next
 		'return

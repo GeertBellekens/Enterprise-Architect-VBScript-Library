@@ -1,6 +1,7 @@
 '[path=\Framework\Utils]
 '[group=Utils]
 !INC Utils.BinaryFile
+!INC Utils.CSVFile
 !INC Utils.DocGenHelpers
 !INC Utils.ExcelFile
 !INC Utils.FileSystem
@@ -14,3 +15,4 @@
 
 'Author: Geert Bellekens
 'Date: 2015-12-07
+'EA-Matic

@@ -17,11 +17,11 @@ option explicit
 const businessProcessDocumentsPackageGUID = "{6C6AFA41-B06C-4d65-B11C-1816EF5811CD}"
 
 sub main
-	'get the selected element
-	dim rootBusinessProcess
-	set rootBusinessProcess = Repository.GetContextObject()
-	'call the main function
-	createNewBusinessProcessDocument businessProcessDocumentsPackageGUID, rootBusinessProcess
+ 'get the selected element
+ dim rootBusinessProcess
+ set rootBusinessProcess = Repository.GetContextObject()
+ 'call the main function
+ createNewBusinessProcessDocument businessProcessDocumentsPackageGUID, rootBusinessProcess
 end sub
 
 main

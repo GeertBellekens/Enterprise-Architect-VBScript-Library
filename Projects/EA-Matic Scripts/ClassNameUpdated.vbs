@@ -14,34 +14,34 @@ option explicit
 Dim contextName
 Dim contextGUID
 function EA_OnContextItemChanged(GUID, ot)
-	 if ot = otElement then
-		Dim contextElement 
-		set contextElement = Repository.GetElementByGuid(GUID)
-		if not contextElement is nothing AND isUsedByBPM(contextElement) then
-			contextName = contextElement.Name
-			contextGUID = contextElement.ElementGUID
-		end if
-	end if
+  if ot = otElement then
+  Dim contextElement 
+  set contextElement = Repository.GetElementByGuid(GUID)
+  if not contextElement is nothing AND isUsedByBPM(contextElement) then
+   contextName = contextElement.Name
+   contextGUID = contextElement.ElementGUID
+  end if
+ end if
 end function
 
 function EA_OnNotifyContextItemModified(GUID, ot)
-	 'check if the name has been changed
-	 if GUID = contextGUID then
-		Dim contextElement 
-		set contextElement = Repository.GetElementByGuid(GUID)
-		if contextName <> contextElement.Name then
-			msgbox "Element with name '" & contextName & "' has been changed to '" & contextElement.Name & "'"
-		end if
-	 end if
+  'check if the name has been changed
+  if GUID = contextGUID then
+  Dim contextElement 
+  set contextElement = Repository.GetElementByGuid(GUID)
+  if contextName <> contextElement.Name then
+   msgbox "Element with name '" & contextName & "' has been changed to '" & contextElement.Name & "'"
+  end if
+  end if
 end function
 
 function isUsedByBPM(contextElement)
-	dim taggedValue
-	isUsedByBPM = false
-	for each taggedValue in contextElement.TaggedValues
-		if taggedValue.Name = "BPM_ID" and len(taggedValue.Value) > 0 then
-			isUsedByBPM = true
-			exit for
-		end if
-	next
+ dim taggedValue
+ isUsedByBPM = false
+ for each taggedValue in contextElement.TaggedValues
+  if taggedValue.Name = "BPM_ID" and len(taggedValue.Value) > 0 then
+   isUsedByBPM = true
+   exit for
+  end if
+ next
 end function

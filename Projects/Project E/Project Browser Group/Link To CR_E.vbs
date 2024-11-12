@@ -11,15 +11,15 @@ option explicit
 
 'Execute main function defined in LinkToCRMain
 sub main
-	dim treeSelectedElements
-	set treeSelectedElements = Repository.GetTreeSelectedElements()
-	if treeSelectedElements.Count > 0 then
-		linkItemToCR nothing, treeSelectedElements
-	else
-		dim selectedItem
-		set selectedItem = Repository.GetTreeSelectedObject
-		linkItemToCR selectedItem, nothing
-	end if
+ dim treeSelectedElements
+ set treeSelectedElements = Repository.GetTreeSelectedElements()
+ if treeSelectedElements.Count > 0 then
+  linkItemToCR nothing, treeSelectedElements
+ else
+  dim selectedItem
+  set selectedItem = Repository.GetTreeSelectedObject
+  linkItemToCR selectedItem, nothing
+ end if
 end sub
 
 main

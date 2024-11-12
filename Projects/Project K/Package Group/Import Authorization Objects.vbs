@@ -18,24 +18,24 @@ const singleRolePackageGUID = "{297D8B49-1723-4cad-84F0-B96393E5E929}"
 const compositeRolePackageGUID = "{CF3E3DD8-202B-4746-A053-69A4F2C34A4F}"
 
 sub main
-		'create output tab
-		Repository.CreateOutputTab outPutName
-		Repository.ClearOutput outPutName
-		Repository.EnsureOutputVisible outPutName
-		'set timestamp
-		Repository.WriteOutput outPutName, now() & " Starting Import Authorization Objects", 0
-		'get selected package
-		dim package as EA.Package
-		set package = Repository.GetTreeSelectedPackage()
-		'exit if not selected
-		if package is nothing then
-			msgbox "Please select a package before running this script"
-			exit sub
-		end if
-		'start import
-		importXmlFile(package)
-		'set timestamp
-		Repository.WriteOutput outPutName, now() & " Finished Import Authorization Objects", 0
+	'create output tab
+	Repository.CreateOutputTab outPutName
+	Repository.ClearOutput outPutName
+	Repository.EnsureOutputVisible outPutName
+	'set timestamp
+	Repository.WriteOutput outPutName, now() & " Starting Import Authorization Objects", 0
+	'get selected package
+	dim package as EA.Package
+	set package = Repository.GetTreeSelectedPackage()
+	'exit if not selected
+	if package is nothing then
+		msgbox "Please select a package before running this script"
+		exit sub
+	end if
+	'start import
+	importXmlFile(package)
+	'set timestamp
+	Repository.WriteOutput outPutName, now() & " Finished Import Authorization Objects", 0
 end sub
 
 function importXmlFile(package)

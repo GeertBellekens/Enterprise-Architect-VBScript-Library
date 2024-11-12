@@ -51,7 +51,7 @@ sub OnProjectBrowserScript()
                                     dim theDiagram as EA.Diagram
                                     set theDiagram = Repository.GetTreeSelectedObject()
                                     AddDependencyForDiagram theDiagram
-									Repository.ReloadDiagram theDiagram.DiagramID
+         Repository.ReloadDiagram theDiagram.DiagramID
                                     Session.Prompt "Script finished. Look at output tab for log details.", promptOK
                                     
 '                       case otAttribute

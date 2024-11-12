@@ -16,6 +16,6 @@ option explicit
 const outPutName = "Get Message Details (functional)"
 
 sub main
-	getMessageDetailsMain false
+ getMessageDetailsMain false
 end sub
 main

@@ -28,21 +28,21 @@ function EA_OnPostNewElement(Info)
 end function
 
 function renameDuplicate(element)
-	'only if needed
-	if not elementNeedsChecking(element) then
-		exit function
-	end if
-	'default false
-	renameDuplicate = false
-	dim dup
-	dup = hasDuplicateElements(element)
-	if dup then
-		MsgBox "An element with this the same name and stereotype already exists!", vbOKOnly + vbExclamation, "Duplicate Element detected"
-		element.Name = element.Name & "_" & element.ElementID
-		element.update
-		'return true
-		renameDuplicate = true
-	end if
+'	'only if needed
+'	if not elementNeedsChecking(element) then
+'		exit function
+'	end if
+'	'default false
+'	renameDuplicate = false
+'	dim dup
+'	dup = hasDuplicateElements(element)
+'	if dup then
+'		MsgBox "An element with this the same name and stereotype already exists!", vbOKOnly + vbExclamation, "Duplicate Element detected"
+'		element.Name = element.Name & "_" & element.ElementID
+'		element.update
+'		'return true
+'		renameDuplicate = true
+'	end if
 end function
 
 function elementNeedsChecking(element)

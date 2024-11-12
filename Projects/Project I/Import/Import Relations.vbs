@@ -11,6 +11,8 @@
 ' Date: 2018-01-26
 const outPutName = "Import Relations"
 
+dim test
+test.AttributesEx
 
 sub main
 	dim mappingFile

@@ -15,6 +15,6 @@ option explicit
 const outPutName = "Get Message Details (technical)"
 
 sub main
-	getMessageDetailsMain true
+ getMessageDetailsMain true
 end sub
 main

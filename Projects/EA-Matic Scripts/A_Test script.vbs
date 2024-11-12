@@ -1,16 +1,14 @@
-'[path=\Projects\EA-Matic Scripts]
-'[group=EA-Matic]
-option explicit
-
-!INC Local Scripts.EAConstants-VBScript
-!INC Wrappers.Include
-
-dim counter
-counter = 0
-'function EA_OnAttributeTagEdit(AttributeID, TagName, TagValue, TagNotes)
-'	 Msgbox "AttributeTagEdit"
+''[path=\Projects\EA-Matic Scripts]
+''[group=EA-Matic]
+'option explicit
+'
+'!INC Local Scripts.EAConstants-VBScript
+'!INC Wrappers.Include
+'
+'function EA_OnPostNewConnector(Info)
+'  'Add code here
+'  'msgbox "gelukt met includes wan getWC() =" & getWC()
 'end function
-function EA_OnPostNewPackage(Info)
-	counter = counter + 1
-	 Msgbox "new package try: "  & counter
-end function
+'function EA_Disconnect()
+'  'Add code here
+'end function

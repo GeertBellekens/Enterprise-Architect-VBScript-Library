@@ -14,10 +14,12 @@ option explicit
 
 
 function EA_OnPostNewAttribute(Info)
+	msgbox "EA_OnPostNewAttribute"
 	dim attributeID 
 	attributeID = Info.Get("AttributeID")
 	dim attribute
 	set attribute = Repository.GetAttributeByID(attributeID)
+	msgbox "Attribute Name " & attribute.Name
 	'set type to none
 	attribute.Type = ""
 	attribute.Update

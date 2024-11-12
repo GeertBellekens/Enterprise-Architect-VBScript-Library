@@ -10,7 +10,7 @@ option explicit
 ' Date: 
 '
 sub main
-	Repository.SaveImageToPath "test.png","c:\temp"
+ Repository.SaveImageToPath "test.png","c:\temp"
 end sub
 
 main

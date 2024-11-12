@@ -1,7 +1,7 @@
 '[path=\Projects\Project A\A Scripts]
 '[group=Atrias Scripts]
 !INC Local Scripts.EAConstants-VBScript
-!INC Atrias Scripts.Util
+!INC Wrappers.Include
 
 ' Script Name: LinkToCRMain
 ' Author: Geert Bellekens

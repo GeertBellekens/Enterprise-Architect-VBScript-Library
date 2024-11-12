@@ -6,7 +6,7 @@ option explicit
 
 
 sub main
-	Repository.Execute "update t_diagram set locked = 0 where locked = 1"
+ Repository.Execute "update t_diagram set locked = 0 where locked = 1"
 end sub
 
 main
