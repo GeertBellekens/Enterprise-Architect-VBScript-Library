@@ -11,6 +11,6 @@ sub main
  m_ExcelApp.Visible = true
  m_ExcelApp.Quit
 end sub
-'blabla, and more blabla
+'blabla, less blabla
 
 main
