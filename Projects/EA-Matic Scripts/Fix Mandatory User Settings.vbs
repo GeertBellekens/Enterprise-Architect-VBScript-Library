@@ -8,7 +8,7 @@ option explicit
 ' Script Name: Fix Mandatory User Settings
 ' Author: Geert Bellekens
 ' Purpose: Check the mandatory user settings in the registry and set them correctly if needed
-' Date: 2019-11-05
+' Date: 2021-05-28
 '
 
 'EA-Matic
@@ -25,23 +25,17 @@ function fixSettings
 	'place in the registry that contains all of the user settings
 	regPath = "HKEY_CURRENT_USER\Software\Sparx Systems\EA400\EA\OPTIONS\"
 	'get the EA version
-	dim eaVersion
-	eaVersion = Repository.LibraryVersion
-	
+	'set the default diagram layout
+	Repository.Execute  "update s set s.[Value] = 'l=20;c=20;d=1;cr=1;la=2;i=1;it=4;a=0;' from usys_system s where s.[Property] = 'Diagram_Layout'"
+	'fix registry settings
 	dim settingsValid
 	settingsValid = true
-	'Fontname13 is only relevant for V15
-	if eaVersion > 1300 then
-		settingsValid = settingsValid AND validateRegValue(regPath, "FONTNAME13","Arial", REG_SZ)
-	else
-		settingsValid = settingsValid AND validateRegValue(regPath, "FONTNAME","Arial", REG_SZ)
-	end if
-	settingsValid = settingsValid AND validateRegValue(regPath, "SAVE_CLIP_FRAME","1", REG_DWORD)
-	settingsValid = settingsValid AND validateRegValue(regPath, "PRINT_IMAGE_FRAME","1", REG_DWORD)
-	settingsValid = settingsValid AND validateRegValue(regPath, "SAVE_IMAGE_FRAME","1", REG_DWORD)
-	settingsValid = settingsValid AND validateRegValue(regPath, "SORT_FEATURES","0", REG_DWORD)
-	settingsValid = settingsValid AND validateRegValue(regPath, "ALLOW_DUPLICATE_TAGS","1", REG_DWORD)
-	
+	'settingsValid = settingsValid AND validateRegValue(regPath, "SORT_FEATURES","1", REG_DWORD) 'commented out because of conflicts with TMF model. Has to be uncommented for Baloise
+	settingsValid = settingsValid AND validateRegValue(regPath, "TREE_SORT","0", REG_DWORD)
+	settingsValid = settingsValid AND validateRegValue(regPath, "XMI_ReportXrefDeletion","0", REG_DWORD)
+	settingsValid = settingsValid AND validateRegValue(regPath, "JET4","1", REG_DWORD)
+	validateRegValue regPath, "XSDFileName","", REG_SZ
+		
 	if not settingsValid then
 		msgbox "Mandatory user settings have been corrected." & vbNewLine & "Please restart EA",vbOKOnly+vbExclamation,"Corrected mandatory user settings!" 
 		Repository.Exit

@@ -11,31 +11,31 @@ option explicit
 
 'Execute main function defined in LinkToCRMain
 sub main
-	dim diagram as EA.Diagram
-	set diagram = Repository.GetCurrentDiagram
-	if not diagram is nothing then
-		dim selectedItems
-		set selectedItems = getSelectedElements(diagram)
-		if selectedItems.Count > 0 then
-			linkItemToCR nothing, selectedItems
-		end if
-	end if
+ dim diagram as EA.Diagram
+ set diagram = Repository.GetCurrentDiagram
+ if not diagram is nothing then
+  dim selectedItems
+  set selectedItems = getSelectedElements(diagram)
+  if selectedItems.Count > 0 then
+   linkItemToCR nothing, selectedItems
+  end if
+ end if
 end sub
 
 function getSelectedElements(diagram)
-	dim selectedElements
-	set selectedElements = CreateObject("System.Collections.ArrayList")
-	dim selectedDiagramObjects
-	set selectedDiagramObjects = diagram.SelectedObjects
-	dim selectedDiagramObject as EA.DiagramObject
-	for each selectedDiagramObject in selectedDiagramObjects
-		dim selectedElement
-		set selectedElement = Repository.GetElementByID(selectedDiagramObject.ElementID)
-		if not selectedElement is nothing then
-			selectedElements.Add selectedElement
-		end if
-	next	
-	set getSelectedElements = selectedElements
+ dim selectedElements
+ set selectedElements = CreateObject("System.Collections.ArrayList")
+ dim selectedDiagramObjects
+ set selectedDiagramObjects = diagram.SelectedObjects
+ dim selectedDiagramObject as EA.DiagramObject
+ for each selectedDiagramObject in selectedDiagramObjects
+  dim selectedElement
+  set selectedElement = Repository.GetElementByID(selectedDiagramObject.ElementID)
+  if not selectedElement is nothing then
+   selectedElements.Add selectedElement
+  end if
+ next 
+ set getSelectedElements = selectedElements
 end function
 
 main
