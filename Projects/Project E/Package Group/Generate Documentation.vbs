@@ -51,11 +51,22 @@ function generateDocumentation()
 	project.RunReport package.PackageGUID, "", fileName
 	if exportToXmi then
 		'export to xmi and commit to git
-		exportControlledRootPackages
-		'TODO commit to git
-		dim shell 
-		set shell  = CreateObject("WScript.Shell")
-		shell.Run "cmd.exe /K " & "git status", 1, False  
+		dim paths
+		set paths = exportControlledRootPackages()
+		'get the directories from the paths
+		dim directories
+		set directories = getDirectories(paths)
+		dim commitMessage
+		commitMessage = inputBox("Please enter a commit message")
+		if len(commitMessage) > 0 then
+			'Add, commit and push in each directory
+			dim shell 
+			set shell  = CreateObject("WScript.Shell")
+			dim directory
+			for each directory in 
+				shell.Run "cmd.exe /K cd """ & directory & """ & git add . & git commit -am """ & commitMessage & """ & git push" , 1, False  
+			next
+		end if		
 	end if
 end function
 
@@ -63,6 +74,24 @@ function test
 	dim shell 
 	set shell  = CreateObject("WScript.Shell")
 	shell.Run "cmd.exe /K " & "git status", 1, False  
+end function
+
+function getDirectories(paths)
+	dim directories
+	set directories = CreateObject("Scripting.Dictionary")
+	dim path
+	for each path in paths
+		'find last backslash
+		dim endPos
+		endPos = instrrev(path "\")
+		dim directory
+		directory = left(path, endPos -1)
+		if not directories.Exists(directory)
+			directories.Add directory, directory
+		end if
+	next
+	'return
+	set getDirectories = directories
 end function
 
 test

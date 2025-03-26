@@ -1,7 +1,6 @@
 '[path=\Framework\Utils]
 '[group=Utils]
 !INC Utils.BinaryFile
-!INC Utils.CSVFile
 !INC Utils.DocGenHelpers
 !INC Utils.ExcelFile
 !INC Utils.FileSystem

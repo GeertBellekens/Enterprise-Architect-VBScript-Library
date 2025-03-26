@@ -77,7 +77,7 @@ Class BinaryFile
 		'Create Stream object
 		Dim BinaryStream
 		Set BinaryStream = CreateObject("ADODB.Stream")
-		'Specify stream type ï¿½ we want To save binary data.
+		'Specify stream type – we want To save binary data.
 		BinaryStream.Type = adTypeBinary
 		'Open the stream And write binary data To the object
 		BinaryStream.Open

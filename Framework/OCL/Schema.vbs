@@ -163,7 +163,7 @@ Class Schema
 		
 	end function
 	
-	'add the missing attributes for all ï¿½BDTï¿½ elements as they should always be part of the schema
+	'add the missing attributes for all «BDT» elements as they should always be part of the schema
 	function addMissingAttributes()
 		dim element
 		for each element in me.Elements.Items

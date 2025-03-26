@@ -16,7 +16,7 @@ function addMasterDocument (packageGUID, documentName)
 	dim masterDocumentPackage as EA.Package
 	set masterDocumentPackage = ownerPackage.Packages.AddNew(documentName, "package")
 	masterDocumentPackage.Update
-	masterDocumentPackage.Element.Stereotype = "master document"
+	masterDocumentPackage.StereotypeEx = "EAUML::master document"
 	masterDocumentPackage.Alias = domainName
 	masterDocumentPackage.Update
 	'link to the master template
@@ -48,14 +48,15 @@ function removeMasterDocumentDuplicates(packageGUID, masterDocumentName)
 	for i = package.Packages.Count -1 to 0 step -1
 		set masterDocument = package.Packages(i)
 		if len(masterDocumentName) <= len(masterDocument.Name) then
-			if requireUserLock then
-				canDelete = masterDocument.ApplyUserLockRecursive(true, true, true)
-			end if
 			'if the first part is equal then delete it
-			if canDelete _
-				and left(masterDocument.Name, len(masterDocumentName)) = masterDocumentName then
-				'delete the package
-				package.Packages.DeleteAt i,false
+			if left(masterDocument.Name, len(masterDocumentName)) = masterDocumentName then
+				if requireUserLock then
+					canDelete = masterDocument.ApplyUserLockRecursive(true, true, true)
+				end if
+				if canDelete then
+					'delete the package
+					package.Packages.DeleteAt i,false
+				end if
 			end if
 		end if
 	next
@@ -73,7 +74,7 @@ function addMasterDocumentWithDetailTags (packageGUID,masterDocumentName,documen
 	end if
 	set masterDocumentPackage = ownerPackage.Packages.AddNew(masterDocumentName, "package")
 	masterDocumentPackage.Update
-	masterDocumentPackage.Element.Stereotype = "master document"
+	masterDocumentPackage.StereotypeEx = "EAUML::master document"
 	masterDocumentPackage.Update
 	'link to the master template
 	dim templateTag as EA.TaggedValue
@@ -108,7 +109,7 @@ function addMasterDocumentWithDetails (packageGUID, documentName,documentVersion
 	dim masterDocumentPackage as EA.Package
 	set masterDocumentPackage = ownerPackage.Packages.AddNew(documentName, "package")
 	masterDocumentPackage.Update
-	masterDocumentPackage.Element.Stereotype = "master document"
+	masterDocumentPackage.StereotypeEx = "EAUML::master document"
 	masterDocumentPackage.Alias = documentAlias
 	masterDocumentPackage.Version = documentVersion
 	masterDocumentPackage.Update
@@ -132,12 +133,12 @@ function addModelDocumentForDiagram(masterDocument,diagram, treepos, template)
 	addModelDocumentForPackage masterDocument,diagramPackage,diagram.Name & " diagram", treepos, template
 end function
 
-function addModelDocumentForPackage(masterDocument,package,name, treepos, template)
+function addEmptyModelDocument(masterDocument, name, treepos, template)
 	dim modelDocElement as EA.Element
 	set modelDocElement = masterDocument.Elements.AddNew(name, "Class")
 	'set the position
 	modelDocElement.TreePos = treepos
-	modelDocElement.StereotypeEx = "model document"
+	modelDocElement.StereotypeEx = "EAUML::model document"
 	modelDocElement.Update
 	'add tagged values
 	dim templateTag as EA.TaggedValue
@@ -149,11 +150,22 @@ function addModelDocumentForPackage(masterDocument,package,name, treepos, templa
 			exit for
 		end if
 	next
+	'return
+	set addEmptyModelDocument = modelDocElement
+end function
+
+function addPackageToModelDocument(modelDocElement, package)
 	'add attribute
 	dim attribute as EA.Attribute
 	set attribute = modelDocElement.Attributes.AddNew(package.Name, "Package")
 	attribute.ClassifierID = package.Element.ElementID
 	attribute.Update
+end function
+
+function addModelDocumentForPackage(masterDocument,package,name, treepos, template)
+	dim modelDocElement as EA.Element
+	set modelDocElement = addEmptyModelDocument(masterDocument, name, treepos, template)
+	addPackageToModelDocument modelDocElement, package	
 end function
 
 function addModelDocument(masterDocument, template,elementName, elementGUID, treepos)
@@ -166,7 +178,7 @@ function addModelDocumentWithSearch(masterDocument, template,elementName, elemen
 	set modelDocElement = masterDocument.Elements.AddNew(elementName, "Class")
 	'set the position
 	modelDocElement.TreePos = treepos
-	modelDocElement.StereotypeEx = "model document"
+	modelDocElement.StereotypeEx = "EAUML::model document"
 	modelDocElement.Update
 	dim templateTag as EA.TaggedValue
 	if len(elementGUID) > 0 then
@@ -212,4 +224,30 @@ function getApplication(selectedElement)
 			getApplication = applicationName
 		end if
 	end if
+end function
+
+function generateMasterDocument(masterDocument)
+	dim project as EA.Project
+	set project  = Repository.GetProjectInterface()
+	dim fileName
+	fileName = getUserSelectedDocumentFileName()
+	project.RunReport masterDocument.PackageGUID, "", fileName
+	CreateObject("WScript.Shell").Run("""" & fileName & """")
+end function
+
+function startDocumentGeneration(masterDocument)
+	'get the parent package
+	dim documentsPackage as EA.Package
+	set documentsPackage = Repository.GetPackageByID(masterDocument.ParentID)
+	 'reload the parent
+	Repository.ReloadPackage documentsPackage.PackageID
+	'select the masterDocument in the project browser (select someting else andt then again the master document to make sure it's refreshed properly)
+	Repository.ShowInProjectView masterDocument
+	Repository.ShowInProjectView documentsPackage
+	Repository.ShowInProjectView masterDocument
+	'press F8
+	dim ws
+	Set ws = CreateObject("wscript.shell")
+	ws.sendkeys "{F8}" 
+
 end function
