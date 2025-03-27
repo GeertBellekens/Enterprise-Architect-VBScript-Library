@@ -8,7 +8,8 @@ option explicit
 '
 ' Script Name: Generate Documentation
 ' Author: Geert Bellekens
-' Purpose: Generate the documentation for this package if it is a master document
+' Purpose: Generate the documentation for this package if it is a master document. 
+' This will also generate xmi files for all controlled root packages, and commit/add and push them to git.
 ' Date: 2025-03-17
 
 const outPutName = "Generate Documentation"
@@ -63,17 +64,11 @@ function generateDocumentation()
 			dim shell 
 			set shell  = CreateObject("WScript.Shell")
 			dim directory
-			for each directory in 
+			for each directory in directories
 				shell.Run "cmd.exe /K cd """ & directory & """ & git add . & git commit -am """ & commitMessage & """ & git push" , 1, False  
 			next
 		end if		
 	end if
-end function
-
-function test
-	dim shell 
-	set shell  = CreateObject("WScript.Shell")
-	shell.Run "cmd.exe /K " & "git status", 1, False  
 end function
 
 function getDirectories(paths)
@@ -83,10 +78,10 @@ function getDirectories(paths)
 	for each path in paths
 		'find last backslash
 		dim endPos
-		endPos = instrrev(path "\")
+		endPos = instrrev(path, "\")
 		dim directory
 		directory = left(path, endPos -1)
-		if not directories.Exists(directory)
+		if not directories.Exists(directory) then
 			directories.Add directory, directory
 		end if
 	next
@@ -94,5 +89,4 @@ function getDirectories(paths)
 	set getDirectories = directories
 end function
 
-test
-'main
+main
