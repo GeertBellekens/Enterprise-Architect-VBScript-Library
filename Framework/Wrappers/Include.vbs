@@ -6,6 +6,9 @@
 !INC Wrappers.ScriptGroup
 !INC Wrappers.TaggedValue
 !INC Wrappers.SearchResults
+!INC Wrappers.BusinessProcess
+!INC Wrappers.ExcelReport
+!INC Wrappers.Shapescript
 'include the util group
 !INC Utils.Include
 'include the messages group
