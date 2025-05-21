@@ -50,7 +50,7 @@ function getMessages(selectedPackage)
 	dim sqlGetMessageElements
 	sqlGetMessageElements =	"select o.Object_ID                                                            " & vbNewLine & _
 							" from t_object o                                                              " & vbNewLine & _
-							" where o.Stereotype  = 'XSDtopLevelElement'                                   " & vbNewLine & _
+							" where o.Stereotype  in ('XSDtopLevelElement', 'JSON_Schema')                 " & vbNewLine & _
 							" and o.Package_ID in (" & packageIDtree & ")                                  "
 	dim messageElements
 	set messageElements = getElementsFromQuery(sqlGetMessageElements)

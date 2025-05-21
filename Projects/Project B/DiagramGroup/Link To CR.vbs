@@ -1,10 +1,10 @@
-'[path=\Projects\Project A\Diagram Group]
-'[group=Diagram Group]
+'[path=\Projects\Project B\DiagramGroup]
+'[group=DiagramGroup]
 option explicit
 
 !INC Local Scripts.EAConstants-VBScript
 !INC Wrappers.Include
-!INC Atrias Scripts.LinkToCRMain
+!INC Baloise Scripts.LinkToCRMain
 
 'This script only calls the function defined in the main script.
 'Ths script is to be copied in Diagram, Search and Project Browser groups

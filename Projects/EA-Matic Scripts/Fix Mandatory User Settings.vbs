@@ -30,7 +30,7 @@ function fixSettings
 	'fix registry settings
 	dim settingsValid
 	settingsValid = true
-	'settingsValid = settingsValid AND validateRegValue(regPath, "SORT_FEATURES","1", REG_DWORD) 'commented out because of conflicts with TMF model. Has to be uncommented for Baloise
+	settingsValid = settingsValid AND validateRegValue(regPath, "SORT_FEATURES","1", REG_DWORD) 'commented out because of conflicts with TMF model. Has to be uncommented for Baloise
 	settingsValid = settingsValid AND validateRegValue(regPath, "TREE_SORT","0", REG_DWORD)
 	settingsValid = settingsValid AND validateRegValue(regPath, "XMI_ReportXrefDeletion","0", REG_DWORD)
 	settingsValid = settingsValid AND validateRegValue(regPath, "JET4","1", REG_DWORD)

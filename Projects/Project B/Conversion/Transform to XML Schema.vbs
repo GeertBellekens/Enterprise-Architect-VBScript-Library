@@ -6,20 +6,23 @@ option explicit
 !INC Wrappers.Include
 
 '
-' Script Name: Transform to JSON
+' Script Name: Transform to XML Schema
 ' Author: Geert Bellekens
 ' Purpose: Transforms the current package into a new package, transforming the stereotypes
-' Date: 2025-01-16
+' Date: 2025-05-16
 '
 
-const outPutName = "Transform to JSON"
-const classStereotype = "JSON::JSON_Element"
-const attributeStereotype = "JSON::JSON_Attribute"
+const outPutName = "Transform to XSD"
+const packageStereotype = "UML Profile for XSD Schema::XSDschema"
+const classStereotype = "UML Profile for XSD Schema::XSDcomplexType"
+const choiceStereotype = "UML Profile for XSD Schema::XSDchoice"
+const attributeStereotype = "UML Profile for XSD Schema::XSDelement"
 const enumerationStereotype = ""
-const datatypeStereotype = "JSON::JSON_Datatype"
-const messageStereotype = "JSON::JSON_Schema"
-const defaultSchemaVersion = "json-schema.org/draft-04/schema#"
+const datatypeStereotype = "UML Profile for XSD Schema::XSDsimpleType"
+const messageStereotype = "UML Profile for XSD Schema::XSDtopLevelElement"
+const baseXSDTypesPackageGUID = "{9047E8CB-6D6A-47ec-82B9-16FA22D288D1}"
 
+'TODO Enumeraties switchen
 
 sub main
 	'create output tab
@@ -31,12 +34,12 @@ sub main
 	set package = Repository.GetTreeSelectedPackage()
 	'let the user know we started
 	Repository.WriteOutput outPutName, now() & " Starting " & outPutName & " for package '"& package.Name &"'", 0
-	if right(package.Name, len("-JSON") ) = "-JSON" then
+	if right(package.Name, len("-XSD") ) = "-XSD" then
 		'do only the conversion
-		convertPackageToJSONProfile package, false
+		convertPackageToXSDProfile package, false
 	else
 		'first clone, and then convert
-		transformToJSON package
+		transformToXSD package
 	end if
 	'reload package
 	Repository.ReloadPackage package.PackageID
@@ -46,7 +49,7 @@ end sub
 
 
 
-function transformToJSON (package)
+function transformToXSD (package)
 	'select the target package
 	dim targetPackage as EA.Package
 	set targetPackage = selectPackage()
@@ -55,7 +58,7 @@ function transformToJSON (package)
 		exit function
 	end if
 	dim userIsSure
-	userIsSure = Msgbox("Do you really want to transform package '" & package.Name & "' to target package '" & targetPackage.Name &  "'?", vbYesNo+vbQuestion, "Transform to JSON?")
+	userIsSure = Msgbox("Do you really want to transform package '" & package.Name & "' to target package '" & targetPackage.Name &  "'?", vbYesNo+vbQuestion, "Transform to XSD?")
 	if not userIsSure = vbYes then
 		Repository.WriteOutput outPutName, now() & " Script cancelled by user", 0
 		exit function
@@ -64,36 +67,39 @@ function transformToJSON (package)
 	'create a copy of this package, and then transform that package to JSON
 	dim clonedPackage as EA.Package
 	set clonedPackage = package.Clone()
-	clonedPackage.Name = clonedPackage.Name & "-JSON"
+	clonedPackage.Name = clonedPackage.Name & "-XSD"
 	clonedPackage.ParentID = targetPackage.PackageID
 	clonedPackage.Update
 	'convert to JSON profile
-	convertPackageToJSONProfile clonedPackage, true
+	convertPackageToXSDProfile clonedPackage, true
 end function
 
-function convertPackageToJSONProfile(package, userConfirmed)
+function convertPackageToXSDProfile (package, userConfirmed)
 	if not userConfirmed then
 		dim userIsSure
-		userIsSure = Msgbox("Do you really want to transform package '" & package.Name & "' to JSON schema?", vbYesNo+vbQuestion, "Transform to JSON?")
+		userIsSure = Msgbox("Do you really want to transform package '" & package.Name & "' to XSD schema?", vbYesNo+vbQuestion, "Transform to XSD?")
 			if not userIsSure = vbYes then
 				Repository.WriteOutput outPutName, now() & " Script cancelled by user", 0
 			exit function
 		end if
 	end if
+	'set package stereotype
+	setPackageSteretoypes package
+	'get packageTreeID to get a list of all classes
 	dim packageTreeIDString
 	packageTreeIDString = getPackageTreeIDString(package)
 	dim superclasses
 	'get the superClasses and remember the inheritance strategy
 	set superclasses = getSuperclasses(package, packageTreeIDString)
-	'convert the classes to JSON profile
-	convertPackageToJSONProfileElements package
+	'convert the classes to XSD profile
+	convertPackageToXSDProfileElements package
 	'convert the specializations
 	dim element
 	for each element in superclasses
 		convertSpecializations element, packageTreeIDString
 	next
 	'set to camelCase
-	convertPackageToCamelCase package
+	'convertPackageToCamelCase package
 	'reset packageTreeIDString
 	packageTreeIDString = getPackageTreeIDString(package)
 	'delete schema object
@@ -102,6 +108,17 @@ function convertPackageToJSONProfile(package, userConfirmed)
 	deleteRelations packageTreeIDString
 	'add attribute dependencies
 	addAttributeDependencies packageTreeIDString
+end function
+
+function setPackageSteretoypes(package)
+	'set it for the current package
+	package.StereotypeEx = packageStereotype
+	package.Update
+	'process subPackages
+	dim subPackage as EA.Package
+	for each subPackage in package.Packages
+		setPackageSteretoypes subPackage
+	next
 end function
 
 function deleteRelations(packageTreeIDString)
@@ -290,6 +307,7 @@ function moveUsingAttributes(source, target)
 	dim attribute as EA.Attribute
 	for each attribute in results
 		attribute.ClassifierID = target.ElementID
+		attribute.Type = target.Name
 		attribute.Update
 	next
 end function
@@ -310,7 +328,7 @@ function oneOf(element, subclasses)
 		dim ownerPackage as EA.Package
 		set ownerPackage = Repository.GetPackageByID(element.packageID)
 		dim oneOfClass as EA.Element
-		set oneOfClass = ownerPackage.Elements.AddNew(element.Name & "OneOf", "JSON::JSON_Element")
+		set oneOfClass = ownerPackage.Elements.AddNew(element.Name & "OneOf", choiceStereotype)
 		oneOfClass.Update
 		'add to diagrams
 		addToSameDiagrams element, oneOfClass
@@ -320,13 +338,12 @@ function oneOf(element, subclasses)
 		'if there is only one subclass, we don't need the oneOfClass, but simply redirect to the subClass
 		set oneOfClass = subClasses(0)
 	end if
-	'addd attribute in main element
-	dim oneOfAttribute as EA.Attribute
-	set oneOfAttribute = element.Attributes.AddNew(oneOfClass.Name, oneOfClass.Name)
-	oneOfAttribute.stereotypeEx = attributeStereotype
-	oneOfAttribute.ClassifierID = oneOfClass.ElementID
-	oneOfAttribute.Visibility = "Private"
-	oneOfAttribute.Update
+	'addd association in main element
+	dim oneOfAssociation as EA.Connector
+	set oneOfAssociation = element.Connectors.AddNew("Association", "")
+	oneOfAssociation.SupplierID = oneOfClass.ElementID
+	oneOfAssociation.SupplierEnd.Cardinality = "1..1"
+	oneOfAssociation.Update
 	'redirect incoming associations to subclasses to the main class
 	 redirectIncomingAssociations element, subClasses
 end function
@@ -446,6 +463,7 @@ function makeOneOf(element, subClasses)
 		for each attribute in results
 			'redirect type to subclass
 			attribute.ClassifierID = subClass.ElementID
+			attribute.Type = subClass.Name
 			attribute.Update
 		next
 		'delete element
@@ -459,9 +477,11 @@ function makeOneOf(element, subClasses)
 		for each subClass in SubClasses
 			set attribute = element.Attributes.AddNew(subClass.Name, subClass.Name)
 			attribute.StereotypeEx = attributeStereotype
-			attribute.Visibility = "Private"
+			attribute.Visibility = "Public"
 			attribute.ClassifierID = subClass.ElementID
+			attribute.Type = subclass.Name
 			attribute.Update
+			setTagValue attribute, "anonymousType", "true"
 		next
 		dim addPostFix
 		'add OneOf postfix
@@ -537,12 +557,12 @@ end function
 
 
 
-function convertPackageToJSONProfileElements(package)
+function convertPackageToXSDProfileElements(package)
 	Repository.WriteOutput outPutName, now() & " Processing package '" & package.Name &"'", 0
 	dim element as EA.Element
 	'convert elements
 	for each element in package.Elements
-		convertElementToJSONProfile element
+		convertElementToXSDProfile element
 	next
 	'convert diagrams
 	dim diagram as EA.Diagram
@@ -562,11 +582,11 @@ function convertPackageToJSONProfileElements(package)
 	'process subPackages
 	dim subPackage as EA.Package
 	for each subPackage in package.Packages
-		convertPackageToJSONProfileElements subPackage
+		convertPackageToXSDProfileElements subPackage
 	next
 end function
 
-function convertElementToJSONProfile(element)
+function convertElementToXSDProfile(element)
 	Repository.WriteOutput outPutName, now() & " Processing element '"& element.Name &"'", 0
 	dim targetStereo
 	targetStereo = ""
@@ -575,17 +595,19 @@ function convertElementToJSONProfile(element)
 		case "class"
 			if element.Stereotype = "LDM_Message" then
 				updateElementStereotype element, messageStereotype
-				'set default schema version
-				setTagValue element, "schema", defaultSchemaVersion
 			else
 				updateElementStereotype element, classStereotype
 			end if
 		case "datatype"
+			element.Type = "Class"
+			element.Update
+			set element = Repository.GetElementByID(element.ElementID)
 			updateElementStereotype element, datatypeStereotype
-			addStringInheritanceToDateAndTime(element)
+			updateToBaseXSDTypes element
 			exit function
 		case "enumeration"
 			updateElementStereotype element, enumerationStereotype
+			switchNameAndAliasForEnumerations element
 	end select
 	if element.Type = "Class"  _
 	  or element.Type = "DataType" then
@@ -600,54 +622,93 @@ function convertElementToJSONProfile(element)
 			end if
 			if attribute.FQStereotype <> attributeStereotype then
 				attribute.StereotypeEx = attributeStereotype
+				attribute.Visibility = "Public"
 				attribute.Update
+				setTagValue attribute, "anonymousType", "true"
 			end if
 		next
 		'convert associations
-		convertAssociationsToJSON element, attributesDictionary
+		convertAssociationsToXSD element, attributesDictionary
 	end if
 end function
 
-function addStringInheritanceToDateAndTime(element)
-	if lcase(element.Name) = "date" _
-	  or lcase(element.Name) = "datetime" _
-	  or lcase(element.Name) = "time" then
-		'find string datatype
-		dim sqlGetData
-		sqlGetData = "select o.Object_ID from t_object o    " & vbNewLine & _
-						" where o.Object_Type = 'Datatype'     " & vbNewLine & _
-						" and o.Name = 'String'                " & vbNewLine & _
-						" and o.Package_ID = "  & element.PackageID
-		dim results
-		set results = getElementsFromQuery(sqlGetData)
-		dim stringDataType as EA.Element
-		if results.Count > 0 then
-			set stringDataType = results(0)
-		else
-			dim package as EA.Package
-			set package = Repository.GetPackageByID(element.PackageID)
-			set stringDataType = package.Elements.AddNew("String", datatypeStereotype)
-			stringDataType.Update
+function switchNameAndAliasForEnumerations(element)
+	dim attribute
+	for each attribute in element.Attributes
+		if len(attribute.Alias) > 0 then
+			dim temp
+			temp = attribute.Alias
+			attribute.Alias = attribute.Name
+			attribute.Name = temp
+			attribute.Update
 		end if
-		'set generalization to stringDatatype
-		dim connector as EA.Connector
-		dim found
-		found = false
-		for each connector in element.Connectors
-			if connector.Type = "Generalization" _
-			  and connector.SupplierID = stringDataType.ElementID then
-				found = true
-				exit for
-			end if
-		next
-		'create if needed
-		if not found then
-			dim generalization as EA.Connector
-			set generalization = element.Connectors.AddNew("", "Generalization")
-			generalization.SupplierID = stringDataType.ElementID
-			generalization.Update
-		end if
+	next
+end function
+
+
+function updateToBaseXSDTypes(datatype)
+	'check if there is a base XSD type with the same name
+	dim baseType
+	set baseType = getBaseXSDType(datatype.Name)
+	if baseType is nothing then
+		exit function
 	end if
+	'replace all attributes that use this datatype with the xsdBaseType
+	dim usingAttributes
+	set usingAttributes = getUsingAttributes(datatype)
+	dim attribute as EA.Attribute
+	for each attribute in usingAttributes
+		attribute.ClassifierID = baseType.ElementID
+		attribute.Type = baseType.Name
+		attribute.Update
+	next
+	'redirect all generalizations to the base XSD type
+	dim generalizations
+	set generalizations = getUsingGeneralizations(datatype)
+	dim generalization as EA.Connector
+	for each generalization in generalizations
+		generalization.SupplierID = baseType.ElementID
+		generalization.Update
+	next
+	'delete the datatype
+	deleteElement datatype
+end function
+
+function getUsingGeneralizations(datatype)
+	dim sqlGetData
+	sqlGetData = "select c.Connector_ID from t_connector c     " & vbNewLine & _
+				" where c.Connector_Type = 'Generalization'   " & vbNewLine & _
+				" and c.End_Object_ID = " & datatype.ElementID
+	dim result
+	set result = getConnectorsFromQuery(sqlGetData)
+	'return
+	set getUsingGeneralizations = result
+end function
+
+function getUsingAttributes(datatype)
+	dim sqlGetData
+	sqlGetData = "select a.ID from t_attribute a where a.Classifier = " & datatype.ElementID
+	dim result
+	set result = getAttributesFromQuery(sqlGetData)
+	set getUsingAttributes = result
+end function
+
+function getBaseXSDType(typeName)
+	dim baseType as EA.Element
+	set baseType = nothing
+	dim sqlGetData
+	sqlGetData = "select o.Object_ID from t_object o                                           " & vbNewLine & _
+				" inner join t_package p on p.Package_ID = o.Package_ID                        " & vbNewLine & _
+				" 					and p.ea_guid = '" & baseXSDTypesPackageGUID & "'          " & vbNewLine & _
+				" where o.Stereotype = 'XSDsimpleType'                                         " & vbNewLine & _
+				" and o.name = '" & typeName & "'                                              "
+	dim result
+	set result = getElementsFromQuery(sqlGetData)
+	if result.Count > 0 then
+		set baseType = result(0)
+	end if
+	'retunr
+	set getBaseXSDType = baseType
 end function
 
 function convertElementToCamelCase(element)
@@ -689,7 +750,7 @@ function getCamelCaseName(name)
 	getCamelCaseName = camelCaseName
 end function
 
-function convertAssociationsToJSON(element, attributesDictionary)
+function convertAssociationsToXSD(element, attributesDictionary)
 	'convert associations
 	dim connector as EA.Connector
 	dim i
@@ -729,9 +790,10 @@ function convertAssociationsToJSON(element, attributesDictionary)
 				if attribute.UpperBound <> "1" then
 					attribute.Name = attribute.Name & "List"
 				end if
-				attribute.Visibility = "Private"
+				attribute.Visibility = "Public"
 				attribute.Notes = connector.Notes
 				attribute.Update
+				setTagValue attribute, "anonymousType", "true"
 				'add to dictionary
 				attributesDictionary.Add attributeName, attribute
 			end if

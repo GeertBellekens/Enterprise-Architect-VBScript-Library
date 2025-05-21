@@ -9,7 +9,6 @@
 ' Author: Geert Bellekens
 ' Purpose: Contains the enums missed by EAConstants-VBScript
 ' Date: 2017-10-20
-' EA-Matic
 '
 ' Version Control Status
 ' From http://www.sparxsystems.com/enterprise_architect_user_guide/13.5/automation/package_2.html

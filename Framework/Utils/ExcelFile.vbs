@@ -9,62 +9,18 @@
 !INC Utils.Include
 
 const xlCalculationAutomatic	= -4105	'Excel controls recalculation.
-const xlCalculationManual		= -4135	'Calculation is done when the user requests it.
-const xlCenter 					= -4108
-const xlLeft 					= -4131
-const xlBelow 					= 1
-const xlAbove 					= 0
-'vertical alignment values
-const xlVAlignBottom 			= -4107	'Bottom
-const xlVAlignCenter	 		= -4108	'Center
-const xlVAlignDistributed 		= -4117	'Distributed
-const xlVAlignJustify 			= -4130	'Justify
-const xlVAlignTop 				= -4160	'Top
-'XlFormatConditionType 
-const xlAboveAverageCondition	= 12 'Above average condition
-const xlBlanksCondition			= 10 'Blanks condition
-const xlCellValue				= 1	 'Cell value
-const xlColorScale				= 3	 'Color scale
-const xlDataBar					= 4	 'DataBar
-const xlErrorsCondition			= 16 'Errors condition
-const xlExpression				= 2	 'Expression
-const xlIconSet					= 6	 'Icon set
-const xlNoBlanksCondition		= 13 'No blanks condition
-const xlNoErrorsCondition		= 17 'No errors condition
-const xlTextString				= 9	 'Text string
-const xlTimePeriod				= 11 'Time period
-const xlTop10					= 5	 'Top 10 values
-const xlUniqueValues			= 8	 'Unique values
-'XlFormatConditionOperator 
-const xlBetween		 = 1	'Between. Can be used only if two formulas are provided.
-const xlEqual		 = 3	'Equal.
-const xlGreater		 = 5	'Greater than.
-const xlGreaterEqual = 7	'Greater than or equal to.
-const xlLess		 = 6	'Less than.
-const xlLessEqual	 = 8	'Less than or equal to.
-const xlNotBetween	 = 2	'Not between. Can be used only if two formulas are provided.
-const xlNotEqual	 = 4	'Not equal.
-'XlWindowState
-const xlMaximized	 = -4137	'Maximized
-const xlMinimized	 = -4140	'Minimized
-const xlNormal		 = -4143	'Normal
-'XlYesNoGuess
-const xlGuess = 0
-const xlYes = 1
-const xlNo = 2
-'XlSortOrientation 
-const xlSortColumns = 1
-const xlSortRows = 2
-'XlSortOn 
-const xlSortOnCellColor = 1
-const xlSortOnFontColor = 2
-const xlSortOnIcon = 3
-const xlSortOnValues = 0
-'XlSortOrder 
-const xlAscending = 1
-const xlDescending = 2
-const xlManual = -4135
-
+const xlCalculationManual	= -4135	'Calculation is done when the user requests it.
+const xlCenter = -4108
+const xlLeft = -4131
+const xlBelow = 1
+const xlAbove = 0
+const xlUnderlineStyleSingle = 2
+const xlUnderlineStyleNone = -4142	
+const xlContinuous = 1
+const xlThin = 2
+const xlNone = -4142
+const xlEdgeBottom = 9
+const xlOpenXMLWorkbookMacroEnabled	= 52
 
 
 Class ExcelFile
@@ -77,6 +33,7 @@ Class ExcelFile
 	Private Sub Class_Initialize
 		m_FileName = ""
 		set m_ExcelApp = CreateObject("Excel.Application")
+		m_ExcelApp.DisplayAlerts = false 'turn off alerts
 		set m_WorkBook = nothing
 		m_isExisting = false
 	End Sub
@@ -93,17 +50,51 @@ Class ExcelFile
 		set worksheets = m_WorkBook.Sheets
 	end property
 	
-	public function freezePanes(ws, row, column)
-		'select the worksheet
-		ws.Activate
-		m_ExcelApp.ActiveWindow.WindowState = xlMaximized
-		m_ExcelApp.ActiveWindow.SplitRow = row
-		m_ExcelApp.ActiveWindow.SplitColumn = column
-		m_ExcelApp.ActiveWindow.FreezePanes = true
+	public function copyWorksheet(fileName, sheetName, targetSheet)
+		dim copyWorkbook
+		set copyWorkbook = m_ExcelApp.Workbooks.Open(fileName)
+		dim copySheet
+		set copySheet = nothing
+		dim sheet
+		for each sheet in copyWorkbook.Sheets
+			if lcase(sheet.Name) = lcase(sheetName) then
+				set copySheet = sheet
+				exit for
+			end if
+		next
+		'exit if not found
+		if copySheet is nothing then
+			Repository.WriteOutput outPutName, now() & " ERROR: could not find sheet " & sheetName & " in workbook " & fileName, 0
+			copyWorkbook.Close
+			exit function
+		end if
+		'find existing BusinessRulesSheet in this workbook
+		dim businessRulesSheet
+		dim currentSheet
+		dim previousSheet
+		set previousSheet = nothing 'initialize
+		for each currentSheet in me.worksheets
+			if lcase(trim(currentSheet.Name)) = lcase(targetSheet) then
+				currentSheet.Delete
+				exit for
+			else
+				set previousSheet = currentSheet
+			end if
+		next
+		if previousSheet is nothing then
+			set previousSheet = me.worksheets(1)
+		end if
+		'copy the business rules sheet after the previous sheet
+		copySheet.Copy , previousSheet
+		'rename sheet
+		dim newSheet
+		set newSheet = me.getTab(copySheet.Name)
+		newSheet.Name = targetSheet
+		'close the copy workbook again
+		copyWorkbook.Close
 	end function
 	
-	
-	private function createNewTab(tabName,beforeSheetIndex)
+	private function createNewTab(tabName)
 		'check if the workbook has been created already
 		if m_WorkBook is nothing then
 			set m_WorkBook = m_ExcelApp.Workbooks.Add()
@@ -113,34 +104,71 @@ Class ExcelFile
 		dim currentWs
 		'check if it exists
 		for each currentWs in m_WorkBook.Sheets
-			if currentWs.Name = tabName then
+			if lcase(currentWs.Name) = lcase(tabName) then
 				set ws = currentWs
 				exit for
 			end if
 		next
+		'no exact match, check if a sheet exists with template name
+		if ws is nothing then
+			dim tabNameSuffix
+			tabNameSuffix = lcase(getSuffix(tabName))
+			for each currentWs in m_WorkBook.Sheets
+				if left(currentWs.Name, 1) = "%" then
+					'compare suffixes
+					dim wsSuffix
+					wsSuffix = lcase(getSuffix(currentWs.Name))
+					if wsSuffix = tabNameSuffix then
+						set ws = currentWs
+						'rename the tab
+						ws.Name = tabName
+						exit for
+					end if
+				end if
+			next
+		end if
 		'if not exist yet then create
 		if ws is nothing then
-			'check the beforeIndex. In -1 then add in the back
-			if beforeSheetIndex > 0 and beforeSheetIndex <= m_Workbook.Sheets.Count then
-				Set ws = m_WorkBook.Sheets.Add(m_Workbook.Sheets(beforeSheetIndex)) 'add before the given sheetIndex
-			else
-				Set ws = m_WorkBook.Sheets.Add(,m_Workbook.Sheets(m_Workbook.Sheets.Count)) 'add after the last one
-			end if
-			ws.Name = tabName
+			Set ws = m_WorkBook.Sheets.Add()
+			ws.Name = right(tabName, 31)
 		end if
 		'return
 		set createNewTab = ws
 	end function 
-		
+	'return the sheet with the given name (case insensitive
+	public function getTab(tabName)
+		set getTab = nothing
+		dim sheet
+		for each sheet in me.worksheets
+			if lcase(sheet.Name) = lcase(tabName) then
+				set getTab = sheet
+				exit function
+			end if
+		next
+	end function
+	
+	private function getSuffix(stringValue)
+		dim suffix
+		suffix = ""
+		dim rev
+		rev = StrReverse(stringValue)
+		dim i
+		i = instr(rev,"_")
+		if i > 1 then
+			suffix = StrReverse(left(rev, i -1))
+		end if
+		getSuffix = suffix
+	end function
+	
 	'public operations
 	'create a tab with the given name. The contents should parameter should be a two dimensional array
 	'anything int he contents that starts with "=" will be interpreted as a formula
-	public Function createTabWithFormulas(tabName, contents,formatAsTable, tableStyle, beforeSheetIndex)
+	public Function createTabWithFormulas(tabName, contents,formatAsTable, tableStyle)
 		'turn off automatic calculation
 		m_ExcelApp.Calculation = xlCalculationManual
 		'create the tab
 		Dim ws
-		set ws = createNewTab(tabName,beforeSheetIndex)
+		set ws = createNewTab(tabName)
 		'fill the contents
 		'loop content
 		dim i
@@ -162,44 +190,38 @@ Class ExcelFile
 		if formatAsTable then
 			formatSheetAsTable ws, targetRange, tableStyle
 		end if
-		'set autofit
-		targetRange.Columns.Autofit
-		targetRange.Rows.Autofit
 		'turn on automatic calculation
 		m_ExcelApp.Calculation = xlCalculationAutomatic
 	end function
 	'public operations
 	'create a tab with the given name. The contents should parameter should be a two dimensional array
 	public Function createTab(tabName, contents,formatAsTable, tableStyle)
-		'return 
-		set createTab = createTabAtIndex(tabName, contents,formatAsTable, tableStyle, -1)
+		createTabWithOffset tabName, contents,formatAsTable, tableStyle, 1, 1
 	end function
 	
-	public function createTabAtIndex(tabName, contents,formatAsTable, tableStyle, beforeSheetIndex)
+	public Function createTabWithOffset(tabName, contents,formatAsTable, tableStyle, startRow, startColumn)
 		'create the tab
 		Dim ws
-		set ws = createNewTab(tabName,beforeSheetIndex)
+		set ws = createNewTab(tabName)
+		'Clear the existing contents
+		dim lastRow
+		lastRow = ws.UsedRange.Row + ws.UsedRange.Rows.Count
+		dim clearRange
+		set clearRange = ws.Range(ws.Cells(startRow,startColumn), ws.Cells(lastRow, Ubound(Contents,2) + startColumn))
+		clearRange.ClearContents
 		'fill the contents
 		dim targetRange
-		set targetRange = ws.Range(ws.Cells(1,1), ws.Cells(Ubound(contents,1) +1, Ubound(Contents,2) +1))
+		set targetRange = ws.Range(ws.Cells(startRow,startColumn), ws.Cells(Ubound(contents,1) + startRow, Ubound(Contents,2) + startColumn))
 		targetRange.Value2 = contents
 		'format as table if needed
 		if formatAsTable then
 			formatSheetAsTable ws, targetRange, tableStyle
 		end if
 		'set autofit
+		set targetRange = ws.Range(ws.Cells(1,startColumn), ws.Cells(Ubound(contents,1) + startRow, Ubound(Contents,2) + startColumn))
 		targetRange.Columns.Autofit
-		targetRange.Rows.Autofit
-		'return 
-		set createTabAtIndex = ws
-	end function
-	
-	public function deleteTabAtIndex(index)
-		if m_Workbook.Sheets.Count >= index then
-			m_ExcelApp.DisplayAlerts = False
-			m_Workbook.Sheets(index).Delete
-			m_ExcelApp.DisplayAlerts = True
-		end if
+		'return sheet
+		set createTabWithOffset = ws
 	end function
 		
 	public function formatSheetAsTable(worksheet, targetRange, tableStyle)
@@ -222,10 +244,7 @@ Class ExcelFile
 		me.FileName = project.GetFileNameDialog ("", "Excel Files|*.xls;*.xlsx;*.xlsm|Excel Templates|*.xlt;*.xltx;*.xltm", 1, 0 ,"", 0) 'save as with overwrite prompt: OFN_OVERWRITEPROMPT
 		Dim fso
 		Set fso = CreateObject("Scripting.FileSystemObject")
-		'return default false
-		openUserSelectedFile = false
 		if fso.FileExists(me.FileName) then
-			openUserSelectedFile = true 'file selected
 			'check the extension
 			dim extension
 			extension = lcase(fso.GetExtensionName(me.FileName))
@@ -254,57 +273,12 @@ Class ExcelFile
 		me.FileName = ""
 	end function
 	
-	public function formatRange (range, backColor, fontColor, fontName, fontSize, bold, horizontalAlignment)
-		if backColor <> "default" then 
-			range.Interior.Color = backColor 
-		end if
-		if fontColor <> "default" then
-			range.Font.Color = fontColor
-		end if
-		if fontName <> "default" then
-			range.Font.Name = fontName
-		end if
-		if fontSize <> "default" then
-			range.Font.Size = fontSize
-		end if
-		if horizontalAlignment <> "default" then
-			range.HorizontalAlignment = horizontalAlignment
-		end if
-	end function
-	
-	public function hideColumn(sheet, columnNumber)
-		sheet.Columns(columnNumber).Hidden = true
-	end function
-	
-	public function setVerticalAlignment(range, verticalAlignment)
-		range.VerticalAlignment = verticalAlignment
-	end function
-	
 	public function getContents(sheet)
 		getContents = sheet.UsedRange.Value2
 	end function
 	
-	 'Returns the data in from the sheet with the given name as a 2 dimensional array
-	public function getData(sheetname)
-		dim sheet
-		for each sheet in me.worksheets
-			'return data for first sheet if sheetName is empty
-			if len(sheetName) = 0 then
-				getData = sheet.UsedRange.Value2
-			end if
-			'find sheet with the given name
-			if sheet.Name = sheetname then
-				getData = sheet.UsedRange.Value2
-				exit for
-			end if
-		next
-	end function 
-
-	
-	public function addConditionalFormatting(range, formattingType, operator , formula1, formula2, backColor)
-		dim formatting
-		set formatting = range.FormatConditions.Add(formattingType, operator , formula1, formula2)
-		formatting.Interior.Color = backColor
+	public function ungroupAll(sheet)
+		sheet.UsedRange.ClearOutline
 	end function
 	
 	public Function save()
@@ -325,16 +299,18 @@ Class ExcelFile
 			if fso.FileExists(me.FileName) then
 				fso.DeleteFile me.FileName
 			end if
-			'save the workbook at the given filename
-			m_WorkBook.Saveas me.FileName
+			'check if the extension is xlsm
+			if lcase(right(me.FileName,5)) = ".xlsm" then
+				m_WorkBook.Saveas me.FileName, xlOpenXMLWorkbookMacroEnabled
+			else
+				'save the workbook at the given filename
+				m_WorkBook.Saveas me.FileName
+			end if
 		end if
 		'make excel visible
 		m_ExcelApp.visible = True
 		m_ExcelApp.WindowState = -4137 'xlMaximized
 	end function
 	
-	public Function quit()
-		m_ExcelApp.Quit
-	end function
 	
 end Class
