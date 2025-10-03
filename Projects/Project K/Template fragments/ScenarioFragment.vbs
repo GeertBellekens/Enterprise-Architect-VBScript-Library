@@ -152,16 +152,15 @@ function addScenarioContents(xmlDom, xmlData, scenario)
 		exit function
 	end if
 	'loop steps
-	dim stepNodes
-	set stepNodes = scenarioXML.SelectNodes("//step")
-	dim stepNode
-	for each stepNode in stepNodes
-		'add details for each step
-		addRow xmlDOM, xmlData, stepNode, scenarioXML
+	dim combinedSteps
+	set combinedSteps = scenario.getCombinedScenariosteps()
+	dim scenarioStep
+	for each scenarioStep in combinedSteps
+		addRow xmlDOM, xmlData, scenarioStep, scenario
 	next
 end function
 
-function addRow(xmlDOM, xmlData, stepNode, scenarioXML)
+function addRow(xmlDOM, xmlData, scenarioStep, scenario)
 	
 	dim xmlRow
 	set xmlRow = xmlDOM.createElement( "Row" )
@@ -170,37 +169,37 @@ function addRow(xmlDOM, xmlData, stepNode, scenarioXML)
 	'Step number
 	dim xmlStep
 	set xmlStep = xmlDOM.createElement( "step" )	
-	xmlStep.text = stepNode.GetAttribute("level")
+	xmlStep.text = scenarioStep.Level
 	xmlRow.appendChild xmlStep
 	
 	'Step Name
 	dim xmlName
 	set xmlName = xmlDOM.createElement( "name" )	
-	xmlName.text = stepNode.GetAttribute("name")
+	xmlName.text = scenarioStep.Name
 	xmlRow.appendChild xmlName
 	
 	'Uses Name
 	dim xmlUses
 	set xmlUses = xmlDOM.createElement( "uses" )	
-	xmlUses.text = stepNode.GetAttribute("uses")
+	xmlUses.text = scenarioStep.Uses
 	xmlRow.appendChild xmlUses
 	
 	'Requirement constraints
 	dim xmlConstraints
 	set xmlConstraints = xmlDOM.createElement("constraints")	
-	xmlConstraints.text = getConstraintsText(xmlUses.text, scenarioXML)
+	xmlConstraints.text = getConstraintsText(scenarioStep.Uses, scenario.XmlDom)
 	xmlRow.appendChild xmlConstraints
 	
 	'Expected Results
 	dim xmlResult
 	set xmlResult = xmlDOM.createElement( "result" )	
-	xmlResult.text = stepNode.GetAttribute("result")
+	xmlResult.text = scenarioStep.Result
 	xmlRow.appendChild xmlResult
 
 	'State
 	dim xmlState
 	set xmlState = xmlDOM.createElement( "state" )	
-	xmlState.text = stepNode.GetAttribute("state")
+	xmlState.text = scenarioStep.State
 	xmlRow.appendChild xmlState
 	
 	

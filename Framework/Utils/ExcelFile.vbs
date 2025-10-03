@@ -284,23 +284,6 @@ Class ExcelFile
 		getContents = sheet.UsedRange.Value2
 	end function
 	
-	 'Returns the data in from the sheet with the given name as a 2 dimensional array
-	public function getData(sheetname)
-		dim sheet
-		for each sheet in me.worksheets
-			'return data for first sheet if sheetName is empty
-			if len(sheetName) = 0 then
-				getData = sheet.UsedRange.Value2
-			end if
-			'find sheet with the given name
-			if sheet.Name = sheetname then
-				getData = sheet.UsedRange.Value2
-				exit for
-			end if
-		next
-	end function 
-
-	
 	public function addConditionalFormatting(range, formattingType, operator , formula1, formula2, backColor)
 		dim formatting
 		set formatting = range.FormatConditions.Add(formattingType, operator , formula1, formula2)

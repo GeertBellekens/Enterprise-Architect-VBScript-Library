@@ -4,6 +4,7 @@ option explicit
 
 !INC Local Scripts.EAConstants-VBScript
 !INC Wrappers.Include
+!INC Conversion.Transformation utils
 
 '
 ' Script Name: Transform to XML Schema
@@ -11,6 +12,8 @@ option explicit
 ' Purpose: Transforms the current package into a new package, transforming the stereotypes
 ' Date: 2025-05-16
 '
+
+const generateAttributeDependencies = false 'set to true in order to generate attribute dependencies
 
 const outPutName = "Transform to XSD"
 const packageStereotype = "UML Profile for XSD Schema::XSDschema"
@@ -22,7 +25,6 @@ const datatypeStereotype = "UML Profile for XSD Schema::XSDsimpleType"
 const messageStereotype = "UML Profile for XSD Schema::XSDtopLevelElement"
 const baseXSDTypesPackageGUID = "{9047E8CB-6D6A-47ec-82B9-16FA22D288D1}"
 
-'TODO Enumeraties switchen
 
 sub main
 	'create output tab
@@ -41,8 +43,6 @@ sub main
 		'first clone, and then convert
 		transformToXSD package
 	end if
-	'reload package
-	Repository.ReloadPackage package.PackageID
 	'let the user know it is finished
 	Repository.WriteOutput outPutName, now() & " Finished " & outPutName & " for package '"& package.Name &"'", 0
 end sub
@@ -70,8 +70,9 @@ function transformToXSD (package)
 	clonedPackage.Name = clonedPackage.Name & "-XSD"
 	clonedPackage.ParentID = targetPackage.PackageID
 	clonedPackage.Update
-	'convert to JSON profile
+	'convert to XSD profile
 	convertPackageToXSDProfile clonedPackage, true
+
 end function
 
 function convertPackageToXSDProfile (package, userConfirmed)
@@ -88,6 +89,8 @@ function convertPackageToXSDProfile (package, userConfirmed)
 	'get packageTreeID to get a list of all classes
 	dim packageTreeIDString
 	packageTreeIDString = getPackageTreeIDString(package)
+	'remove any ignoreXSD classes
+	removeIgnoredClasses(packageTreeIDString)
 	dim superclasses
 	'get the superClasses and remember the inheritance strategy
 	set superclasses = getSuperclasses(package, packageTreeIDString)
@@ -107,7 +110,90 @@ function convertPackageToXSDProfile (package, userConfirmed)
 	'delete all associations and generalizations
 	deleteRelations packageTreeIDString
 	'add attribute dependencies
-	addAttributeDependencies packageTreeIDString
+	if generateAttributeDependencies then
+		addAttributeDependencies packageTreeIDString
+	end if
+	'order attributes and associations
+	orderAttributesAndAssociations packageTreeIDString
+	'reload package
+	Repository.ReloadPackage package.PackageID
+end function
+
+function orderAttributesAndAssociations(packageTreeIDString)
+	'infrom user
+	Repository.WriteOutput outPutName, now() & " Ordering attributes and associations", 0
+	'get the id's and order numbers of all attributes and associations in this package
+	dim sqlGetData
+	sqlGetData = "select a.id, a.itemType                                                                              " & vbNewLine & _
+				" , ROW_NUMBER() OVER (                                                                               " & vbNewLine & _
+				"         PARTITION BY a.Object_ID                                                                    " & vbNewLine & _
+				"         ORDER BY a.Name                                                                             " & vbNewLine & _
+				"     ) AS sequenceNumber                                                                             " & vbNewLine & _
+				" from                                                                                                " & vbNewLine & _
+				" (                                                                                                   " & vbNewLine & _
+				" 	select o.name as className, a.Object_ID, a.name, a.id, 'Attribute' as itemType                    " & vbNewLine & _
+				" 	from t_attribute a                                                                                " & vbNewLine & _
+				" 	inner join t_object o on o.Object_ID = a.Object_ID                                                " & vbNewLine & _
+				" 	where a.Stereotype = 'XSDElement'                                                                 " & vbNewLine & _
+				" 	and o.Package_ID in (" & packageTreeIDString & ")                                                 " & vbNewLine & _
+				" 	union                                                                                             " & vbNewLine & _
+				" 	select o.name as className, o.Object_ID, '_' + oe.Name, c.Connector_ID, 'Connector' as itemType   " & vbNewLine & _
+				" 	from t_connector c                                                                                " & vbNewLine & _
+				" 	inner join t_object o on o.Object_ID = c.Start_Object_ID                                          " & vbNewLine & _
+				" 	inner join t_object oe on oe.Object_ID = c.End_Object_ID                                          " & vbNewLine & _
+				" 	where c.Connector_Type = 'Association'                                                            " & vbNewLine & _
+				" 	and c.StyleEx like '%alias=choice;%'                                                              " & vbNewLine & _
+				" 	and o.Package_ID in (" & packageTreeIDString & ")                                                 " & vbNewLine & _
+				" ) a                                                                                                 "
+	dim result
+	set result = getArrayListFromQuery(sqlGetData)
+	dim row
+	for each row in result
+		dim itemID
+		itemID = Clng(row(0))
+		dim itemType
+		itemType = row(1)
+		dim sequenceNumber
+		sequenceNumber = row(2)
+		if itemType = "Attribute" then
+			setAttributeXSDPosition itemID, sequenceNumber
+		else
+			setConnectorXSDPosition itemID, sequenceNumber
+		end if
+	next
+end function
+
+function setAttributeXSDPosition(attributeID, position)
+	dim attribute as EA.Connector
+	set attribute = Repository.GetAttributeByID(attributeID)
+	'set the tagged value for the position
+	setTagValue attribute, "position", position
+end function
+
+function setConnectorXSDPosition(connectorID, position)
+	dim connector as EA.Connector
+	set connector = Repository.GetConnectorByID(connectorID)
+	'set the tagged value on the source role
+	dim positionTag as EA.TaggedValue
+	set positionTag = getExistingOrNewTaggedValue(connector.ClientEnd, "position")
+	positionTag.Value = position
+	positionTag.Update
+end function
+
+function removeIgnoredClasses(packageTreeIDString)
+	'delete all classes that have tagged value IgnoreXSD = true
+	dim sqlGetData
+	sqlGetData = "select o.Object_ID from t_object o                                " & vbNewLine & _
+				" inner join t_objectproperties tv on tv.Object_ID = o.Object_ID   " & vbNewLine & _
+				" where tv.Property = 'IgnoreXSD'                                  " & vbNewLine & _
+				" and tv.Value = 'true'                                            " & vbNewLine & _
+				" and o.Package_ID in (" & packageTreeIDString & ")                "
+	dim results
+	set results = getElementsFromQuery(sqlGetData)
+	dim element
+	for each element in results
+		deleteElement element
+	next
 end function
 
 function setPackageSteretoypes(package)
@@ -127,7 +213,10 @@ function deleteRelations(packageTreeIDString)
 	sqlGetData = "select o.Object_ID, c.Connector_ID from t_connector c                         " & vbNewLine & _
 				" inner join t_object o on o.Object_ID = c.Start_Object_ID                     " & vbNewLine & _
 				"                     and o.Object_Type = 'Class'                              " & vbNewLine & _
+				" inner join t_object o2 on o2.Object_ID = c.End_Object_ID                     " & vbNewLine & _
 				" where c.Connector_Type in ('Generalization', 'Aggregation', 'Association')   " & vbNewLine & _
+				" and isnull(o.stereotype, '') <> 'xsdTopLevelElement'                         " & vbNewLine & _
+				" and isnull(c.styleEx, '') not like '%alias=choice;%'                         " & vbNewLine & _
 				" and o.Package_ID in (" & packageTreeIDString & ")                            " & vbNewLine & _
 				" order by 1                                                                   "
 	'delete all of them
@@ -150,6 +239,8 @@ function deleteRelations(packageTreeIDString)
 		end if
 		dim connectorID
 		connectorID = Clng(row(1))
+		'make sure we have the last connectors collection
+		owner.Connectors.Refresh
 		'loop connectors and delete the one that corresponds to the id
 		dim i
 		for i = owner.Connectors.Count -1 to 0 step -1
@@ -160,45 +251,6 @@ function deleteRelations(packageTreeIDString)
 				exit for
 			end if
 		next
-	next
-end function
-
-function addAttributeDependencies(packageTreeIDString)
-	'get all attributes that don't have a corresponding dependency
-	dim sqlGetData
-	sqlGetData = "select a.ID, a.Object_ID from t_attribute a                           " & vbNewLine & _
-				" inner join t_object o on o.Object_ID = a.Object_ID      " & vbNewLine & _
-				" inner join t_object o2 on o2.Object_ID = a.Classifier   " & vbNewLine & _
-				" where not exists                                        " & vbNewLine & _
-				" 	(select c.Connector_ID                                " & vbNewLine & _
-				" 	from t_connector c                                    " & vbNewLine & _
-				" 	where c.Name = a.Name                                 " & vbNewLine & _
-				" 	and c.Start_Object_ID = a.Object_ID                   " & vbNewLine & _
-				" 	and c.Connector_Type = 'Dependency'                   " & vbNewLine & _
-				" 	)                                                     " & vbNewLine & _
-				" and o.Package_ID in (" & packageTreeIDString & ")       " & vbNewLine & _
-				" order by a.Object_ID                                    "
-	'loop attributes and and add the dependency
-	dim attributes
-	set attributes = getAttributesFromQuery(sqlGetdata)
-	dim attribute as EA.Attribute
-	dim owner as EA.Element
-	'get the first owner
-	set owner = nothing
-	for each attribute in attributes
-		if owner is nothing then
-			set owner = Repository.GetElementByID(attribute.ParentID)
-			Repository.WriteOutput outPutName, now() & " Adding attribute dependencies for '" & owner.Name &"'", 0
-		end if
-		if owner.ElementID <> attribute.ParentID then
-			set owner = Repository.GetElementByID(attribute.ParentID)
-			Repository.WriteOutput outPutName, now() & " Adding attribute dependencies for '" & owner.Name &"'", 0
-		end if
-		dim dependency as EA.Connector
-		set dependency = owner.Connectors.AddNew(attribute.Name, "Dependency")
-		dependency.SupplierEnd.Cardinality = attribute.LowerBound & ".." & attribute.UpperBound
-		dependency.SupplierID = attribute.ClassifierID
-		dependency.Update
 	next
 end function
 
@@ -340,9 +392,10 @@ function oneOf(element, subclasses)
 	end if
 	'addd association in main element
 	dim oneOfAssociation as EA.Connector
-	set oneOfAssociation = element.Connectors.AddNew("Association", "")
+	set oneOfAssociation = element.Connectors.AddNew("", "Association")
 	oneOfAssociation.SupplierID = oneOfClass.ElementID
 	oneOfAssociation.SupplierEnd.Cardinality = "1..1"
+	oneOfAssociation.Alias = "choice"
 	oneOfAssociation.Update
 	'redirect incoming associations to subclasses to the main class
 	 redirectIncomingAssociations element, subClasses
@@ -471,8 +524,6 @@ function makeOneOf(element, subClasses)
 	else
 		'delete all attributes
 		deleteAllAttributes element
-		'set oneOf 
-		setTagValue element, "compositionType", "oneOf"
 		'create the attributes for the subclasses
 		for each subClass in SubClasses
 			set attribute = element.Attributes.AddNew(subClass.Name, subClass.Name)
@@ -498,7 +549,64 @@ function makeOneOf(element, subClasses)
 			element.Name = element.Name & "OneOf"
 			element.Update
 		end if
+		'set xsdChoice stereotype
+		element.StereotypeEx = choiceStereotype
+		element.Update
+		'create the complex type if needed
+		if hasUsingAttributesAsClassifier(element) then
+			dim package
+			dim complexType
+			set complexType = createComplexTypeForOneOf(element)
+			'add replace the using attributes
+			replaceUsingAttributesClassifier element, complexType
+		end if
 	end if
+end function
+
+function createComplexTypeForOneOf(element)
+	dim package as EA.Package
+	set package = Repository.GetPackageByID(element.PackageID)
+	dim complexType as EA.Element
+	set complexType = package.Elements.AddNew(element.Name & "Type", classStereotype)
+	complexType.Update
+	'add to same diagrams
+	addToSameDiagrams element, complexType
+	'create association to choice element
+	dim oneOfAssociation as EA.Connector
+	set oneOfAssociation = complexType.Connectors.AddNew("", "Association")
+	oneOfAssociation.SupplierID = element.ElementID
+	oneOfAssociation.SupplierEnd.Cardinality = 1 & ".." & 1
+	oneOfAssociation.Alias = "choice"
+	oneOfAssociation.Update
+	'return 
+	set createComplexTypeForOneOf = complexType
+end function
+
+function hasUsingAttributesAsClassifier(element)
+	dim sqlGetData
+	sqlGetData = "select a.ID from t_attribute a    " & vbNewLine & _
+					" where a.Classifier = " & element.ElementID
+	dim result
+	set result = getArrayListFromQuery(sqlGetData)
+	if result.Count = 0 then
+		hasUsingAttributesAsClassifier = false
+	else
+		hasUsingAttributesAsClassifier = true
+	end if
+end function
+
+function replaceUsingAttributesClassifier(element, complexType)
+	dim sqlGetData
+	sqlGetData = "select a.ID from t_attribute a    " & vbNewLine & _
+					" where a.Classifier = " & element.ElementID
+	dim attributes
+	set attributes = getAttributesFromQuery(sqlGetdata)
+	dim attribute as EA.Attribute
+	for each attribute in attributes
+		attribute.ClassifierID = complexType.ElementID
+		attribute.Type = complexType.Name
+		attribute.Update
+	next
 end function
 
 function deleteAllAttributes(element)
@@ -594,7 +702,7 @@ function convertElementToXSDProfile(element)
 	select case lcase(element.Type)
 		case "class"
 			if element.Stereotype = "LDM_Message" then
-				updateElementStereotype element, messageStereotype
+				convertRootElement element
 			else
 				updateElementStereotype element, classStereotype
 			end if
@@ -611,6 +719,11 @@ function convertElementToXSDProfile(element)
 	end select
 	if element.Type = "Class"  _
 	  or element.Type = "DataType" then
+		'remove abstract property
+		if element.Abstract then
+			element.Abstract = false
+			element.Update
+		end if
 		'create attributesDictionary
 		dim attributesDictionary
 		set attributesDictionary = CreateObject("Scripting.Dictionary")
@@ -632,6 +745,31 @@ function convertElementToXSDProfile(element)
 	end if
 end function
 
+function convertRootElement(element)
+	dim package
+	set package = Repository.GetPackageByID(element.PackageID)
+	'set version on package
+	setTagValue package.Element, "version", element.Version
+	'set targetNamespace on package
+	dim targetNameSpace
+	targetNameSpace = getTaggedValueValue(element, "targetNamespace")
+	setTagValue package.Element, "targetNamespace", targetNameSpace
+	setTagValue package.Element, "defaultNamespace", targetNameSpace
+	'create a xsdTopLevelElement with the same name as the message element
+	dim topLevelElement as EA.Element
+	set topLevelElement  = package.Elements.AddNew(element.Name, messageStereotype)
+	topLevelElement.Update
+	'add to diagrams
+	addToSameDiagrams element, topLevelElement
+	'set the xsdComplexType stereotype 
+	updateElementStereotype element, classStereotype
+	'add generalization from xsdTopLevelElement to complex type
+	dim generalization as EA.Connector
+	set generalization = topLevelElement.Connectors.AddNew("", "Generalization")
+	generalization.SupplierID = element.ElementID
+	generalization.Update
+end function
+
 function switchNameAndAliasForEnumerations(element)
 	dim attribute
 	for each attribute in element.Attributes
@@ -640,6 +778,7 @@ function switchNameAndAliasForEnumerations(element)
 			temp = attribute.Alias
 			attribute.Alias = attribute.Name
 			attribute.Name = temp
+			attribute.Notes = attribute.Alias 'set annotation for XSD
 			attribute.Update
 		end if
 	next
@@ -768,11 +907,21 @@ function convertAssociationsToXSD(element, attributesDictionary)
 				set sourceElement = Repository.GetElementByID(connector.ClientID)
 				set targetElement = element
 			end if
+			'set multiplicity
+			dim multiplicity
+			multiplicity = getMultiplicityFromCardinality(connector.SupplierEnd.Cardinality)
+			dim lowerBound 
+			lowerBound = multiplicity(0)
+			dim upperBound
+			upperBound = multiplicity(1)
 			'create attribute
 			dim attributeName
 			attributeName = connector.SupplierEnd.Role
 			if len(attributeName) = 0 then
 				attributeName  = targetElement.Name
+			end if
+			if upperBound <> "1" then
+				attributeName = attributeName & "List"
 			end if
 			'check if attribute doesn't exist yet
 			if not attributesDictionary.Exists(attributeName) then
@@ -781,26 +930,63 @@ function convertAssociationsToXSD(element, attributesDictionary)
 				dim attribute
 				set attribute = sourceElement.Attributes.AddNew(attributeName, targetElement.Name)
 				attribute.StereotypeEx = attributeStereotype
-				attribute.ClassifierID = targetElement.ElementID
-				'set multiplicity
-				dim multiplicity
-				multiplicity = getMultiplicityFromCardinality(connector.SupplierEnd.Cardinality)
-				attribute.lowerBound = multiplicity(0)
-				attribute.UpperBound = multiplicity(1)
-				if attribute.UpperBound <> "1" then
-					attribute.Name = attribute.Name & "List"
-				end if
 				attribute.Visibility = "Public"
 				attribute.Notes = connector.Notes
+				attribute.lowerBound = multiplicity(0)
+				if upperBound <> "1" then
+					'create complextype for list element
+					dim listObject as EA.Element
+					dim package as EA.Package
+					set package = Repository.GetPackageByID(element.PackageID)
+					set listObject = createListObject(attributeName, package, sourceElement, targetElement, multiplicity)
+					'set type on main attribute
+					attribute.ClassifierID = listObject.ElementID
+					attribute.Type = listObject.Name
+				else
+					attribute.UpperBound = multiplicity(1)
+					attribute.ClassifierID = targetElement.ElementID
+				end if
+				'save the atribute
 				attribute.Update
+				'set anonymousType property
 				setTagValue attribute, "anonymousType", "true"
 				'add to dictionary
-				attributesDictionary.Add attributeName, attribute
+				attributesDictionary.Add attribute.Name, attribute
 			end if
-			'delete association? or transform into dependency? or leave it?
-			'element.Connectors.DeleteAt i, false
 		end if
 	next
+end function
+
+function createListObject(name, package, sourceElement, targetElement, multiplicity)
+	dim listObject as EA.Element
+	set listObject = nothing
+	dim sqlGetData
+	sqlGetData = "select o.Object_ID from t_object o       " & vbNewLine & _
+				" where o.Stereotype = 'xsdComplexType'   " & vbNewLine & _
+				" and o.Package_ID = " & package.PackageID  & vbNewLine & _
+				" and o.name = '" & name & "'             "
+	dim result
+	set result = getElementsFromQuery(sqlGetData)
+	if result.Count > 0 then
+		set listObject = result(0)
+	else
+		set listObject = package.Elements.AddNew(name, classStereotype)
+		listObject.update
+		'add to diagram
+		addToSameDiagrams sourceElement, listObject
+		'add attribute to target
+		dim targetAttribute as EA.Attribute
+		set targetAttribute = listObject.Attributes.AddNew(targetElement.Name, targetElement.Name)
+		targetAttribute.StereotypeEx = attributeStereotype
+		targetAttribute.ClassifierID = targetElement.ElementID
+		targetAttribute.lowerBound = "1"
+		targetAttribute.UpperBound = multiplicity(1)
+		targetAttribute.Update
+		'set anonymousType
+		setTagValue targetAttribute, "anonymousType", "true"
+	end if
+	'return
+	set createListObject = listObject
 end function
 
 function getMultiplicityFromCardinality(cardinality)
@@ -850,3 +1036,22 @@ function updateElementStereotype(element, targetStereotype)
 end function
 
 main
+'test
+
+'sub test
+'	'create output tab
+'	Repository.CreateOutputTab outPutName
+'	Repository.ClearOutput outPutName
+'	Repository.EnsureOutputVisible outPutName
+'	'get the selected package
+'	dim package as EA.Package
+'	set package = Repository.GetTreeSelectedPackage()
+'	'let the user know we started
+'	Repository.WriteOutput outPutName, now() & " Starting " & outPutName & " for package '"& package.Name &"'", 0
+'	dim packageTreeIDString
+'	packageTreeIDString = getPackageTreeIDString(package)
+'	'order attributes
+'	orderAttributesAndAssociations packageTreeIDString
+'	'let the user know it is finished
+'	Repository.WriteOutput outPutName, now() & " Finished " & outPutName & " for package '"& package.Name &"'", 0
+'end sub

@@ -4,7 +4,7 @@ option explicit
 
 !INC Local Scripts.EAConstants-VBScript
 !INC Wrappers.Include
-
+!INC Conversion.Transformation utils
 '
 ' Script Name: Transform to JSON
 ' Author: Geert Bellekens
@@ -82,6 +82,8 @@ function convertPackageToJSONProfile(package, userConfirmed)
 	end if
 	dim packageTreeIDString
 	packageTreeIDString = getPackageTreeIDString(package)
+	'remove any ignoreJSON classes
+	removeIgnoredClasses(packageTreeIDString)
 	dim superclasses
 	'get the superClasses and remember the inheritance strategy
 	set superclasses = getSuperclasses(package, packageTreeIDString)
@@ -102,6 +104,22 @@ function convertPackageToJSONProfile(package, userConfirmed)
 	deleteRelations packageTreeIDString
 	'add attribute dependencies
 	addAttributeDependencies packageTreeIDString
+end function
+
+function removeIgnoredClasses(packageTreeIDString)
+	'delete all classes that have tagged value IgnoreXSD = true
+	dim sqlGetData
+	sqlGetData = "select o.Object_ID from t_object o                                " & vbNewLine & _
+				" inner join t_objectproperties tv on tv.Object_ID = o.Object_ID   " & vbNewLine & _
+				" where tv.Property = 'IgnoreJSON'                                 " & vbNewLine & _
+				" and tv.Value = 'true'                                            " & vbNewLine & _
+				" and o.Package_ID in (" & packageTreeIDString & ")                "
+	dim results
+	set results = getElementsFromQuery(sqlGetData)
+	dim element
+	for each element in results
+		deleteElement element
+	next
 end function
 
 function deleteRelations(packageTreeIDString)
@@ -143,45 +161,6 @@ function deleteRelations(packageTreeIDString)
 				exit for
 			end if
 		next
-	next
-end function
-
-function addAttributeDependencies(packageTreeIDString)
-	'get all attributes that don't have a corresponding dependency
-	dim sqlGetData
-	sqlGetData = "select a.ID, a.Object_ID from t_attribute a                           " & vbNewLine & _
-				" inner join t_object o on o.Object_ID = a.Object_ID      " & vbNewLine & _
-				" inner join t_object o2 on o2.Object_ID = a.Classifier   " & vbNewLine & _
-				" where not exists                                        " & vbNewLine & _
-				" 	(select c.Connector_ID                                " & vbNewLine & _
-				" 	from t_connector c                                    " & vbNewLine & _
-				" 	where c.Name = a.Name                                 " & vbNewLine & _
-				" 	and c.Start_Object_ID = a.Object_ID                   " & vbNewLine & _
-				" 	and c.Connector_Type = 'Dependency'                   " & vbNewLine & _
-				" 	)                                                     " & vbNewLine & _
-				" and o.Package_ID in (" & packageTreeIDString & ")       " & vbNewLine & _
-				" order by a.Object_ID                                    "
-	'loop attributes and and add the dependency
-	dim attributes
-	set attributes = getAttributesFromQuery(sqlGetdata)
-	dim attribute as EA.Attribute
-	dim owner as EA.Element
-	'get the first owner
-	set owner = nothing
-	for each attribute in attributes
-		if owner is nothing then
-			set owner = Repository.GetElementByID(attribute.ParentID)
-			Repository.WriteOutput outPutName, now() & " Adding attribute dependencies for '" & owner.Name &"'", 0
-		end if
-		if owner.ElementID <> attribute.ParentID then
-			set owner = Repository.GetElementByID(attribute.ParentID)
-			Repository.WriteOutput outPutName, now() & " Adding attribute dependencies for '" & owner.Name &"'", 0
-		end if
-		dim dependency as EA.Connector
-		set dependency = owner.Connectors.AddNew(attribute.Name, "Dependency")
-		dependency.SupplierEnd.Cardinality = attribute.LowerBound & ".." & attribute.UpperBound
-		dependency.SupplierID = attribute.ClassifierID
-		dependency.Update
 	next
 end function
 
