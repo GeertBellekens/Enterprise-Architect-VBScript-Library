@@ -32,11 +32,6 @@
 	const tvxml_minLength = "minLength"
 	const tvxml_totalDigits = "totalDigits"
 	const tvxml_whiteSpace = "whiteSpace"
-	
-'static dictionary of mapping targets that have been loaded
-dim mappingTargetsLoaded
-set mappingTargetsLoaded = nothing
-
 
 Class MessageNode 
 
@@ -48,6 +43,7 @@ Class MessageNode
 	Private m_ParentNode
 	Private m_ChildNodes
 	Private m_SourceAttribute
+	Private m_SourceAssociationEnd
 	Private m_SourceAssociation
 	Private m_SourceElement
 	Private m_mappingPath
@@ -74,6 +70,7 @@ Class MessageNode
 		set m_ChildNodes = CreateObject("System.Collections.ArrayList")
 		set m_mappingPath = nothing
 		set m_SourceAttribute = nothing
+		set m_SourceAssociationEnd = nothing
 		set m_SourceAssociation = nothing
 		set m_SourceElement = nothing
 		set m_ValidationRules = CreateObject("System.Collections.ArrayList")
@@ -88,9 +85,6 @@ Class MessageNode
 		set m_Mappings = nothing
 		set m_Choices = nothing
 		m_MappingPathString = ""
-		if mappingTargetsLoaded is nothing then
-			set mappingTargetsLoaded = CreateObject("Scripting.Dictionary")
-		end if
 	End Sub
 	
 	'public properties
@@ -123,15 +117,15 @@ Class MessageNode
 	' Notes property.
 	Public Property Get Notes
 		if not me.SourceAttribute is nothing then
-			Notes = me.SourceAttribute("Notes")
-		elseif not me.SourceAssociation is nothing then
-			if len (me.SourceAssociation("DestRoleNote")) > 0 then
-				Notes = me.SourceAssociation("DestRoleNote")
+			Notes = me.SourceAttribute.Notes
+		elseif not me.SourceAssociationEnd is nothing then
+			if len (me.SourceAssociationEnd.Notes) > 0 then
+				Notes = me.SourceAssociationEnd.Notes
 			else 
-				Notes = me.SourceAssociation("Notes")
+				Notes = me.SourceAssociation.Notes
 			end if
 		elseif not me.SourceElement is nothing then
-			Notes = me.SourceElement("Note")
+			Notes = me.SourceElement.Notes
 		else
 			Notes = ""
 		end if
@@ -148,21 +142,21 @@ Class MessageNode
 	' ElementID property.
 	Public Property Get ElementID
 		if not me.TypeElement is nothing then
-			ElementID = me.TypeElement.Item("Object_ID")
+			ElementID = me.TypeElement.ElementID
 		else
 			ElementID = 0
 		end if
 	End Property
 
-	' NameOfType property
-	Public Property Get NameOfType
+	' TypeName property
+	Public Property Get TypeName
 		if not me.TypeElement is nothing then
-			NameOfType = me.TypeElement.Name
+			TypeName = me.TypeElement.Name
 		else
-			NameOfType = m_TypeName
+			TypeName = m_TypeName
 		end if 
 	End Property
-	Public Property Let NameOfType(value)
+	Public Property Let TypeName(value)
 		m_TypeName = value
 		'if the typename if different from the TypeElement name then we remove the type Element
 		if not me.TypeElement is nothing then
@@ -206,9 +200,9 @@ Class MessageNode
 		if not me.SourceElement is nothing then
 			returnedMultiplicity = m_Multiplicity
 		elseif not me.sourceAttribute is nothing then
-			returnedMultiplicity = determineMultiplicity(me.sourceAttribute.LowerBound, me.sourceAttribute.UpperBound, "1", "1")
-		elseif not me.sourceAssociation is nothing then
-			returnedMultiplicity = me.sourceAssociation.DestCard
+			returnedMultiplicity = determineMultiplicity(me.sourceAttribute.LowerBound,me.sourceAttribute.UpperBound, "1", "1")
+		elseif not me.sourceAssociationEnd is nothing then
+			returnedMultiplicity = sourceAssociationEnd.Cardinality
 		end if
 		'return the actual value
 		Multiplicity = returnedMultiplicity
@@ -254,7 +248,13 @@ Class MessageNode
 		set m_SourceAttribute = value
 	End Property
 
-
+	' SourceAssociationEnd property.
+	Public Property Get SourceAssociationEnd
+		set SourceAssociationEnd = m_SourceAssociationEnd
+	End Property
+	Public Property Let SourceAssociationEnd(value)
+		set m_SourceAssociationEnd = value
+	End Property
 	
 	' SourceAssociation property.
 	Public Property Get SourceAssociation
@@ -367,7 +367,7 @@ Class MessageNode
 			set m_Mappings = CreateObject("System.Collections.ArrayList")
 		end if
 		'get the maping tagged values and create mappings for them
-		dim taggedValue
+		dim taggedValue as EA.TaggedValue
 		dim taggedValues
 		set taggedValues = getSourcetaggedValues()
 		dim mapping
@@ -402,27 +402,15 @@ Class MessageNode
 			if not mapping.Target is nothing then
 				Repository.WriteOutput outPutName, now() & " Adding mapping from '" & me.Name & "' to '" & mapping.Target.Name & "'", 0
 				m_Mappings.Add mapping
-				'check if the target is already loaded in the cache. If not load the whole package
-				loadMappingSetTarget mapping
 			else
 				Repository.WriteOutput outPutName, now() & " ERROR: Mapping target missing on '" & me.Name, 0
 			end if
 		end if
 	end function
 	
-	private function loadMappingSetTarget (mapping)
-		if not mappingTargetsLoaded.Exists(mapping.MappingsetTargetGUID) then
-			Repository.WriteOutput outPutName, now() & " Loading mapping target model with GUID '" & mapping.MappingsetTargetGUID & "'", 0
-			'load mapping target package
-			loadAllPackageContentsForPackageGUID mapping.MappingsetTargetGUID
-			'register the target loaded
-			mappingTargetsLoaded.Add mapping.MappingsetTargetGUID, mapping.MappingsetTargetGUID
-		end if
-	end function
-	
 	private function getChoices()
 		dim tags
-		dim tag
+		dim tag as EA.TaggedValue
 		set tags = getSourcetaggedValues()
 		dim choices
 		set choices = CreateObject("System.Collections.ArrayList")
@@ -437,10 +425,10 @@ Class MessageNode
 					'remove spaces
 					choiceGUID = trim(choiceGUID)
 					'first try attribute
-					set choiceObject = getEAAttributeForGUID(choiceGUID)
+					set choiceObject = Repository.GetAttributeByGuid(choiceGUID)
 					'then try connector
 					if choiceObject is nothing then	
-						set choiceObject = getEAConnectorForGUID(choiceGUID)
+						set choiceObject = Repository.GetConnectorByGuid(choiceGUID)
 					end if
 					if not choiceObject is nothing then
 						choices.Add choiceObject
@@ -466,7 +454,7 @@ Class MessageNode
 		elseif not me.SourceAssociation is nothing then
 			set item = me.SourceAssociation
 			'get also the element linked with the association
-			set linkedItem = getEAElementForElementID(me.SourceAssociation.SupplierID)
+			set linkedItem = Repository.GetElementByID(me.SourceAssociation.SupplierID)
 		elseif not me.SourceElement is nothing then
 			set item = me.SourceElement
 		end if
@@ -533,7 +521,7 @@ Class MessageNode
 	end function
 	
 	'public functions
-	public function intitializeWithSource(source,in_multiplicity,in_validationRule,in_parentNode)
+	public function intitializeWithSource(source,sourceConnector,in_multiplicity,in_validationRule,in_parentNode)
 		'set validationRule
 		if not in_validationRule is nothing then
 			me.ValidationRule = in_validationRule
@@ -542,16 +530,14 @@ Class MessageNode
 		if not in_parentNode is nothing then
 			me.ParentNode = in_parentNode
 		end if
-		'source can be either EAElement, EAAttribute, or EAConnector
-		dim sourceType
-		sourceType = source.ObjectType
-		select case sourceType
-			case "EAElement"
+		'check if source is Element, Atttribute, or AssociationEnd
+		select case source.ObjectType
+			case otElement
 				setElementNode source,in_multiplicity
-			case "EAAttribute"
+			case otAttribute
 				setAttributeNode source
-			case "EAConnector"
-				setConnectorNode source
+			case otConnectorEnd
+				setConnectorEndNode source,sourceConnector
 		end select
 		Repository.WriteOutput outPutName, now() & " Processing node '" & me.Name & "'", 0
 		'set the isLeafNode property
@@ -565,7 +551,7 @@ Class MessageNode
 	'set the source node in case the source is an element
 	private function setElementNode(source,in_multiplicity)
 		me.SourceElement = source
-		me.Name = source("Name")
+		me.Name = source.Name
 		me.TypeElement = source
 		me.Multiplicity = in_multiplicity
 	end function
@@ -574,7 +560,7 @@ Class MessageNode
 	private function setAttributeNode(source)
 		me.SourceAttribute = source
 		'set the order
-		me.Order = getSequencingKey(source) 'TODO
+		me.Order = getSequencingKey(source)
 		'set the name
 		me.Name = source.Name
 		'remove any underscores from the name in case of MIG6
@@ -582,63 +568,64 @@ Class MessageNode
 			me.Name = Replace(me.Name, "_","")
 		end if
 		'set the type
-		dim attributeTypeObject
-		set attributeTypeObject = source.TypeElement
-		if attributeTypeObject is nothing then
-			me.NameOfType = source("Type")
-		else
+		dim attributeTypeObject as EA.Element
+		set attributeTypeObject = nothing
+		if source.ClassifierID > 0 then
+			set attributeTypeObject = Repository.GetElementByID(source.ClassifierID)
 			'if the attributeTypeObject is a «BDT» then we get the attribute with stereotype «CON» and name "content" and use it's type as the typeElement
-			if attributeTypeObject("Stereotype") = "BDT" then
+			if attributeTypeObject.Stereotype = "BDT" then
 				'get the content attribute
-				dim conAttribute
+				dim conAttribute as EA.Attribute
 				set conAttribute = nothing
-				for each conAttribute in attributeTypeObject.Attributes.Items
-					if conAttribute("Stereotype") = "CON" _
-					  and conAttribute("Name") = "content" then
+				for each conAttribute in attributeTypeObject.Attributes
+					if conAttribute.Stereotype = "CON" _
+					  and conAttribute.Name = "content" then
 						exit for
 					end if
 				next
 				if not conAttribute is nothing then
 					'get the facets from the conAttribute as well
-					getFacets conAttribute 'TODO
-					dim conTypeObject 
-					set conTypeObject = conAttribute.TypeElement
-					if not conTypeObject is nothing then
+					getFacets conAttribute
+					if conAttribute.ClassifierID > 0 then
+						dim conTypeObject as EA.Element
+						set conTypeObject = Repository.GetElementByID(conAttribute.ClassifierID)
 						'check for directXSD types
-						me.BaseTypeElement = getBaseType(attributeTypeObject, conTypeObject) 'TODO
+						me.BaseTypeElement = getBaseType(attributeTypeObject, conTypeObject)
 						me.TypeElement = attributeTypeObject
 					else
 						me.TypeElement = attributeTypeObject
-						me.BaseTypeName = conAttribute("Type")
+						me.BaseTypeName = conAttribute.Type
 					end if
 				else
 					'content attribute not found, set error
-					me.NameOfType = "Error: BDT " & attributeTypeObject("Name") & " has no content attribute"
+					me.TypeName = "Error: BDT " & attributeTypeObject & " has no content attribute"
 				end if
 			else
 				'regular attribute
 				me.TypeElement = attributeTypeObject
 				'find the parent class (not for enumerations)
-				if not (me.TypeElement.ElementType = "Enumeration" _
+				if not (me.TypeElement.Type = "Enumeration" _
 					or lcase(me.TypeElement.Stereotype) = "enumeration") then
-					dim parentClass
-					for each parentClass in attributeTypeObject.BaseClasses.Items
+					dim parentClass as EA.Element
+					for each parentClass in attributeTypeObject.BaseClasses
 						me.BaseTypeElement = parentClass
 						exit for 'return immediate
 					next
 				end if
 			end if
+		else
+			me.TypeName = source.Type
 		end if
 		'get the facets
 		getFacets source
 		'set the mapped BusinessAttributes
 		if me.MessageType = msgMIG6 then 'only applicable for custom ordering
-			dim taggedValue
+			dim taggedValue as EA.AttributeTag
 			'find the tagged values with name mappedBusinessAttribute
 			for each taggedValue in source.TaggedValues
 				if lcase(taggedValue.Name) = "mappedbusinessattribute" then
-					dim businessAttribute
-					set businessAttribute = getEAAttributeForGUID(taggedValue.Value)
+					dim businessAttribute as EA.Attribute
+					set businessAttribute = Repository.GetAttributeByGuid(taggedValue.Value)
 					if not businessAttribute is nothing then
 						MappedBusinessAttributes.Add businessAttribute
 					end if
@@ -653,16 +640,16 @@ Class MessageNode
 		'figure out of the attributeTypeObject has tagged value with name "directXSDType" and value "true"
 		dim isDirectXSDType
 		isDirectXSDType = false
-		dim tv
+		dim tv as EA.TaggedValue
 		for each tv in attributeTypeObject.TaggedValues
-			if lcase(tv("Name")) = "directxsdtype" _
-			and lcase(tv("Value")) = "true" then
+			if lcase(tv.Name) = "directxsdtype" _
+			and lcase(tv.Value) = "true" then
 				isDirectXSDType = true
 			end if
 		next
 		if isDirectXSDType then
 			'find the parent class
-			dim parentClass
+			dim parentClass as EA.Element
 			for each parentClass in attributeTypeObject.BaseClasses
 				set getBaseType = parentClass
 				exit for 'return immediate
@@ -680,18 +667,17 @@ Class MessageNode
 	end function
 	
 	private function getXMLFacets(sourceAttribute)
-		dim tv
+		dim tv as EA.TaggedValue
 		'first loop the facets of the datatype
-		dim datatype
-		set datatype = sourceAttribute.TypeElement
-		if not datatype is nothing then
+		dim datatype as EA.Element
+		if sourceAttribute.ClassifierID > 0 then
+			set datatype = Repository.GetElementByID(sourceAttribute.ClassifierID)
 			for each tv in datatype.TaggedValues
 				if len(tv.Value) > 0 then
 					setXMLFacet tv.Name, tv.Value
 				end if
 			next
 		end if
-		
 		'first loop the standard facets
 		for each tv in sourceAttribute.TaggedValues
 			setXMLFacet tv.Name, tv.Value
@@ -714,16 +700,16 @@ Class MessageNode
 	
 	private function getJSONFacets(sourceAttribute)
 		'check if uniqueItems should true
-		if sourceAttribute("UpperBound") <> "1" _
-			and sourceAttribute("AllowDuplicates") = "0" then
+		if sourceAttribute.UpperBound <> "1" _
+			and sourceAttribute.AllowDuplicates = false then
 			me.Facets.Item("uniqueItems") = "true"
 		end if
 		dim tv as EA.TaggedValue
 		'first loop the facets of the datatype
 		'TODO facets of the parent datatype?
 		dim datatype as EA.Element
-		set datatype = sourceAttribute.TypeElement
-		if datatype is not null then
+		if sourceAttribute.ClassifierID > 0 then
+			set datatype = Repository.GetElementByID(sourceAttribute.ClassifierID)
 			processDatatypeFacets datatype
 		end if
 		'then the facets of the attribute
@@ -734,7 +720,7 @@ Class MessageNode
 	
 	function processDatatypeFacets(datatype)
 		'first do the base datatypes
-		dim baseDataType 
+		dim baseDataType as EA.Element
 		for each baseDataType  in dataType.BaseClasses
 			processDatatypeFacets baseDataType
 		next
@@ -743,7 +729,7 @@ Class MessageNode
 	end function
 	
 	function processJsonFacetTags(item)
-		dim tv
+		dim tv as EA.TaggedValue
 		for each tv in item.TaggedValues
 			if len(tv.Value) > 0 then
 				select case lcase(tv.Name)
@@ -780,15 +766,21 @@ Class MessageNode
 	end function
 	
 	'set the source in case of a connectorEnd
-	private function setConnectorNode(sourceConnector)
+	private function setConnectorEndNode(source,sourceConnector)
+		me.SourceAssociationEnd = source
 		me.SourceAssociation = sourceConnector
 		'set the order
 		me.Order = getSequencingKey(sourceConnector)
 		dim endObject as EA.Element
-		set endObject = getEAElementForElementID(sourceConnector("End_Object_ID"))
+		'get the end object 
+		if source.End = "Supplier" then
+			set endObject = Repository.GetElementByID(sourceConnector.SupplierID)
+		else
+			set endObject = Repository.GetElementByID(sourceConnector.ClientID)
+		end if
 		'set the name = name of role + name of end object + remove underscores
-		if len(sourceConnector("DestRole")) > 0 then
-			me.Name = sourceConnector("DestRole") & endObject.Name
+		if len(source.Role) > 0 then
+			me.Name = source.Role & endObject.Name
 			me.Name = Replace(me.Name, "_","")
 		else
 			'use the end object name as rolename
@@ -870,7 +862,7 @@ Class MessageNode
 	end function
 	
 	'gets the output format for this node and its childnodes
-	public function getOutput(current_order,currentPath,messageDepth, includeRules)
+	public function getOuput(current_order,currentPath,messageDepth, includeRules)
 		'create the output
 		dim nodeOutputList
 		set nodeOutputList = CreateObject("System.Collections.ArrayList")
@@ -901,11 +893,11 @@ Class MessageNode
 		dim childNode
 		for each childNode in me.ChildNodes
 			dim childOutPut
-			set childOutPut = childNode.getOutput(current_order,myCurrentPath,messageDepth, includeRules)
+			set childOutPut = childNode.getOuput(current_order,myCurrentPath,messageDepth, includeRules)
 			nodeOutputList.AddRange(childOutPut)
 		next
 		'return list
-		set getOutput = nodeOutputList
+		set getOuput = nodeOutputList
 	end function
 	
 
@@ -928,7 +920,7 @@ Class MessageNode
 		'then add the other fields
 		currentNodeList.Add me.Multiplicity
 		'Add the name of the type 
-		currentNodeList.Add me.NameOfType
+		currentNodeList.Add me.TypeName
 		'Add base type
 		currentNodeList.Add me.BaseTypeName
 		'add constraints (choices + facets)
@@ -967,7 +959,7 @@ Class MessageNode
 						set target = mapping.target
 						dim targetType 
 						targetType = target.ObjectType
-						if targetType = "EAElement" then
+						if targetType = otElement then
 							if me.Mappings.Count > 1 then
 								'add newline if needed
 								if len(LDMClass) > 0 then
@@ -978,11 +970,11 @@ Class MessageNode
 							end if
 							'add className
 							LDMClass = LDMClass & target.Name
-						elseif targetType = "EAAttribute" then
+						elseif targetType = otAttribute then
 							dim owner as EA.Element
 							set owner = mapping.TargetParent
 							if owner is nothing then
-								set owner = getEAElementForElementID(target.ParentID)
+								set owner = Repository.GetElementByID(target.ParentID)
 							end if
 							if me.Mappings.Count > 1 then
 								'add newline if needed
@@ -1077,7 +1069,7 @@ Class MessageNode
 	private function getChoiceSpecification()
 		dim choiceSpec
 		choiceSpec = "" 'initialize empty string
-		dim choiceObject
+		dim choiceObject as EA.Connector
 		for each choiceObject in me.Choices
 			if len(choiceSpec) = 0 then
 				choiceSpec = "Choice group with ("
@@ -1085,20 +1077,20 @@ Class MessageNode
 				choiceSpec = choiceSpec & ", "
 			end if
 			'get name
-			if choiceObject.ObjectType = "EAAttribute" then
+			if choiceObject.ObjectType = otAttribute then
 				choiceSpec = choiceSpec & choiceObject.Name
 			else
 				'connector
-				dim endObject
-				set endObject = getEAElementForElementID(choiceObject("End_Object_ID"))
+				dim endObject as EA.Element
+				set endObject = Repository.GetElementByID(choiceObject.SupplierID)
 				dim connectorName
 				'set the name = name of role + name of end object + remove underscores
-				if len(choiceObject("DestRole")) > 0 then
-					connectorName = choiceObject("DestRole") & endObject("Name")
+				if len(choiceObject.SupplierEnd.Role) > 0 then
+					connectorName = choiceObject.SupplierEnd.Role & endObject.Name
 					connectorName= Replace(connectorName, "_","")
 				else
 					'use the end object name as rolename
-					connectorName = endObject("Name")
+					connectorName = endObject.Name
 				end if 
 				choiceSpec = choiceSpec & connectorName
 			end if
@@ -1130,7 +1122,7 @@ Class MessageNode
 				enumValuesDescription = ""
 				dim test as EA.Element
 				dim enumValue as EA.Attribute
-				for each enumValue in enumType.Attributes.Items
+				for each enumValue in enumType.Attributes
 					if len(enumValuesDescription) > 0 then
 						'add newline
 						enumValuesDescription = enumValuesDescription & vbNewLine
@@ -1169,13 +1161,13 @@ Class MessageNode
 		set getEnumType = nothing
 		'check if type element is enum
 		if not me.TypeElement is nothing then
-			if me.TypeElement.ElementType = "Enumeration" then
+			if me.TypeElement.Type = "Enumeration" then
 				set getEnumType = me.TypeElement
 			end if
 		end if
 		if getEnumType is nothing _ 
 		and not me.BaseTypeElement is nothing then
-			if me.BaseTypeElement.ElementType = "Enumeration" then
+			if me.BaseTypeElement.Type = "Enumeration" then
 				set getEnumType = me.BaseTypeElement
 			end if
 		end if
@@ -1196,22 +1188,13 @@ Class MessageNode
 		sqlGetParents = "select c.End_Object_ID as Object_ID from t_connector c			 "  & _
 						" where c.Connector_Type in ('Generalization','Generalisation')	 "  & _
 						" and c.Start_Object_ID =" & childElementID
-		dim parentIDs
-		set parentIDs = getFirstColumnArrayListFromQuery(sqlGetParents)
-		set directParents = getEAElementsForElementIDs(parentIDs)
+		set directParents = getElementsFromQuery(sqlGetParents)
 		'add the direct parent to the list of all parents
-		dim parent
-		for each parent in directParents.Items
-			allParents.Add(parent)
-		next
+		allParents.AddRange(directParents)
 		'loop the parent and get their parents
-		for each parent in directParents.Items
-			dim grandParents
-			set grandParents = getParents(parent)
-			dim grandParent
-			for each grandParent in grandParents
-				allParents.Add grandParent
-			next
+		dim parent
+		for each parent in directParents
+			allParents.AddRange(getParents(parent))
 		next
 		'return
 		set getParents = allParents
@@ -1229,32 +1212,36 @@ Class MessageNode
 	end function
 	private function loadAttributeChildNodes(currentElement)
 		set loadAttributeChildNodes = CreateObject("System.Collections.ArrayList")
-		dim ownerElement
+		dim ownerElementID
 		if not currentElement is nothing then
-			set ownerElement = currentElement
+			ownerElementID = currentElement.ElementID
 		else
-			set ownerElement = me.TypeElement
+			ownerElementID = me.ElementID
 		end if
-		'not for enums
-		if lcase(ownerElement.ElementType) = "enumeration" _
-		  or lcase(ownerElement.Stereotype) =  "enumeration" then
-			exit function
-		end if
+		'get attributes in the correct order (not for enum values
+		dim SQLGetAttributes
+		SQLGetAttributes = 	"select a.ID from (t_attribute a                             " & _
+							" inner join t_object o on a.Object_ID = o.Object_ID)        " & _
+							" where o.Object_Type <> 'Enumeration'                       " & _
+							" and (o.Stereotype is null or o.Stereotype <> 'Enumeration')" & _
+							" and a.Object_ID = " & ownerElementID & "                   " & _
+							" and (a.Stereotype is null or a.Stereotype <> 'CON')        " & _
+							" order by a.Pos, a.Name                                     "
+		dim attributes
+		set attributes = getattributesFromQuery(SQLGetAttributes)
 		'loop the attributes
-		dim attribute
-		for each attribute in ownerElement.Attributes.Items
-			if not lcase(attribute.Stereotype) = "con" then
-				'create the next messageNode
-				dim newMessageNode
-				set newMessageNode = new MessageNode
-				newMessageNode.Message = me.Message
-				'initialize
-				newMessageNode.intitializeWithSource attribute, "", nothing, me
-				'add to the childnodes list
-				me.ChildNodes.Add newMessageNode
-				'add to the output
-				loadAttributeChildNodes.Add newMessageNode
-			end if
+		dim attribute as EA.Attribute
+		for each attribute in attributes
+			'create the next messageNode
+			dim newMessageNode
+			set newMessageNode = new MessageNode
+			newMessageNode.Message = me.Message
+			'initialize
+			newMessageNode.intitializeWithSource attribute, nothing, "", nothing, me
+			'add to the childnodes list
+			me.ChildNodes.Add newMessageNode
+			'add to the output
+			loadAttributeChildNodes.Add newMessageNode
 		next
 	end function
 	
@@ -1272,37 +1259,41 @@ Class MessageNode
 	
 	private function loadAssociationChildNodes(currentElement)
 		set loadAssociationChildNodes = CreateObject("System.Collections.ArrayList")
-		dim ownerElement
+		dim ownerElementID
 		if not currentElement is nothing then
-			set ownerElement = currentElement
+			ownerElementID = currentElement.ElementID
 		else
-			set ownerElement = me.TypeElement
+			ownerElementID = me.ElementID
 		end if
-
+		'get associations
+		dim SQLAssociations
+		SQLAssociations = 	"select c.Connector_ID from (t_connector c " & _
+							" left join t_connectortag tv on (tv.ElementID = c.Connector_ID " & _
+							" 						and tv.Property = 'sequencingKey')) " & _
+							" where c.SourceIsAggregate > 0 " & _
+							" and c.Start_Object_ID = " & ownerElementID & "  " & _         
+							" order by tv.VALUE"
+		dim associations
+		set associations = getConnectorsFromQuery(SQLAssociations)
 		'loop the associations
-		dim association
-		for each association in ownerElement.associations.Items
-			if not association.SourceIsAggregate = "0" _
-			  and association.ClientID = ownerElement.ElementID then
-				'create the next messageNode
-				dim newMessageNode
-				set newMessageNode = new MessageNode
-				newMessageNode.Message = me.Message
-				'initialize
-				newMessageNode.intitializeWithSource association, "", nothing, me
-				'add to the childnodes list
-				me.ChildNodes.Add newMessageNode
-				'add to the output
-				loadAssociationChildNodes.Add newMessageNode
-			end if
+		dim association as EA.Connector
+		for each association in associations
+			'create the next messageNode
+			dim newMessageNode
+			set newMessageNode = new MessageNode
+			newMessageNode.Message = me.Message
+			'initialize
+			newMessageNode.intitializeWithSource association.SupplierEnd, association, "", nothing, me
+			'add to the childnodes list
+			me.ChildNodes.Add newMessageNode
+			'add to the output
+			loadAssociationChildNodes.Add newMessageNode
 		next
 	end function
 	
 	private function setIsLeafNode()
-		dim test
-		set test = me.TypeElement
 		if not me.TypeElement is nothing then
-			if me.TypeElement.Item("Object_Type") = "Enumeration"_
+			if me.TypeElement.Type = "Enumeration"_
 			OR me.TypeElement.Stereotype = "Enumeration" _
 			OR me.TypeElement.Stereotype = "XSDsimpleType" _
 			OR me.TypeElement.Stereotype = "PRIM" then
@@ -1311,8 +1302,8 @@ Class MessageNode
 			' a BDT is only a leafnode if it doesn't have any attributes except for the CON(tent)
 			elseif me.TypeElement.Stereotype = "BDT" then
 				m_IsLeafNode = true
-				dim attribute
-				for each attribute in me.TypeElement.Attributes.Items
+				dim attribute as EA.Attribute
+				for each attribute in me.TypeElement.Attributes
 					if attribute.Stereotype <> "CON" then
 						m_IsLeafNode = false
 					end if

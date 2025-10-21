@@ -75,12 +75,6 @@ Class TextFile
 	
 	'save the file
 	sub Save
-		if len(me.FileName) = 0 then
-			getUserSelectedFileName()
-		end if		
-		if len(me.FileName) = 0 then
-			exit sub 'if still no path, then stop trying to save
-		end if
 		Dim fso, MyFile
 		Set fso = CreateObject("Scripting.FileSystemObject")
 		'first make sure the directory exists
@@ -90,13 +84,6 @@ Class TextFile
 		MyFile.Write(Contents)
 		MyFile.close
 	end sub
-	
-	private Function getUserSelectedFileName()
-		dim selectedFileName
-		dim project
-		set project = Repository.GetProjectInterface()
-		me.fullPath = project.GetFileNameDialog ("", "Text files|*.txt;*.csv;*.sql|All files|*.*", 1, 2 ,"", 1) 'save as with overwrite prompt: OFN_OVERWRITEPROMPT
-	end function
 	
 	'delete the file
 	sub Delete

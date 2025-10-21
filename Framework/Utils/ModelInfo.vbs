@@ -286,6 +286,20 @@ end function
 
 
 
+'Returns the value of the tagged value with the given name (case insensitive)
+'If there is no tagged value with the given name, an empty string is returned
+'This function can be used with anything that can have tagged values
+function getTaggedValueValue(owner, taggedValueName)
+	dim taggedValue as EA.TaggedValue
+	getTaggedValueValue = ""
+	for each taggedValue in owner.TaggedValues
+		if lcase(taggedValueName) = lcase(taggedValue.Name) then
+			getTaggedValueValue = taggedValue.Value
+			exit for
+		end if
+	next
+end function
+
 function getOrCreateTaggedValue(owner,taggedValueName)
 	'Initialize
 	set getOrCreateTaggedValue = nothing

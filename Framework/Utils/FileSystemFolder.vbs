@@ -79,6 +79,27 @@ Class FileSystemFolder
 		Next
 		set SubFolders = result
 	End Property
+	
+	public function getFilesByExtension(extension)
+		dim fso, fsoFolder, files, file, result, v_textFile, ts
+		set result = CreateObject("System.Collections.ArrayList")
+		Set fso = CreateObject("Scripting.FileSystemObject")
+		if fso.FolderExists(me.FullPath) then
+			Set fsoFolder = fso.GetFolder(me.FullPath)			
+			Set files = fsoFolder.Files
+			For Each file in files
+				set v_textFile = new TextFile
+				v_textFile.Folder = me
+				v_textFile.FileName = file.Name
+				'add to list if the extension corresponds
+				if lcase(v_textFile.Extension) = lcase(extension) then
+					result.add v_textFile
+				end if
+			Next
+		end if
+		set getFilesByExtension = result
+	end function
+	
 	'let the user select a folder, optionally from a given starting path.
 	public function getUserSelectedFolder(startPath)
 		dim folder, shell

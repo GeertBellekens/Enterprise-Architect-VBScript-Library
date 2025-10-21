@@ -23,7 +23,6 @@ Class Mapping
 	private m_MappingLogics
 	private m_MappingPathString
 	private m_TargetParent
-	private m_mappingsetTargetGUID
 	
 	'constructor
 	Private Sub Class_Initialize
@@ -32,15 +31,10 @@ Class Mapping
 		m_IsEmpty = false
 		set m_MappingLogics = CreateObject("System.Collections.ArrayList")
 		m_MappingPathString = ""
-		m_mappingsetTargetGUID = ""
 		set m_TargetParent = nothing
 	End Sub
 	
 	'public properties
-	'MappingsetTargetGUID property.
-	Public Property Get MappingsetTargetGUID
-		MappingsetTargetGUID = m_mappingsetTargetGUID
-	End Property
 	
 	' Target property.
 	Public Property Get Target
@@ -86,11 +80,11 @@ Class Mapping
 		end if
 		'get target
 		if lcase(m_TaggedValue.Name) = lcase(linkedAttributeTag) then
-			set m_Target = getEAAttributeForGUID(m_TaggedValue.Value)
+			set m_Target = Repository.GetAttributeByGuid(m_TaggedValue.Value)
 		elseif lcase(m_TaggedValue.Name) = lcase(linkedAssociatonTag) then
-			set m_Target = getEAConnectorForGUID(m_TaggedValue.Value)
+			set m_Target = Repository.GetConnectorByGuid(m_TaggedValue.Value)
 		elseif lcase(m_TaggedValue.Name) = lcase(linkedElementTag) then
-			set m_Target = getEAElementForGUID(m_TaggedValue.Value)
+			set m_Target = Repository.GetElementByGuid(m_TaggedValue.Value)
 		end if
 		'get the details from the notes
 		if len(m_TaggedValue.Notes) = 0 then
@@ -99,15 +93,6 @@ Class Mapping
 		Dim xDoc 
 		Set xDoc = CreateObject("Microsoft.XMLDOM")
 		'Set xDoc = CreateObject("Msxml2.DOMDocument")
-		xDoc.LoadXML m_TaggedValue.Notes
-		
-		'get the target
-		dim targetNode 
-		set targetNode = xDoc.SelectSingleNode("//target")
-		if not targetNode is nothing then
-			m_mappingsetTargetGUID = targetNode.Text
-		end if
-		
 		'get the mappingPath
 		xDoc.LoadXML m_TaggedValue.Notes
 		dim sourcePathNode 
@@ -125,7 +110,7 @@ Class Mapping
 				'get the second last guid
 				dim parentGUID 
 				parentGUID = targetNodes(Ubound(targetNodes) -1)
-				set m_TargetParent = getEAElementForGUID(parentGUID)
+				set m_TargetParent = Repository.GetElementByGuid(parentGUID)
 			end if
 		end if
 		'get the IsEmpty Property
@@ -147,7 +132,7 @@ Class Mapping
 			dim contextNode
 			set contextNode = mappingLogicNode.SelectSingleNode("./context")
 			if not contextNode is nothing then
-				mappingLogic.Context = getEAElementForGUID(contextNode.Text)
+				mappingLogic.Context = Repository.GetElementByGuid(contextNode.Text)
 			end if
 			dim descriptionNode
 			set descriptionNode = mappingLogicNode.SelectSingleNode("./description")

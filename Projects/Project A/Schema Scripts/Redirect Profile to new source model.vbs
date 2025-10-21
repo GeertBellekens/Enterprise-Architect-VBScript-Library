@@ -48,16 +48,13 @@ function Main ()
 	xmlDom.appendChild schemaContent.documentElement
 '	'debug
 '	writefile "c:\\temp\\schemaContents.xml", xmlDom.xml
-	
-	dim successfull
-	successfull = redirectProfile(xmlDom)
-	
-'	'debug
-'	writefile "c:\\temp\\schemaContents_cleaned.xml", xmlDom.xml
-	if not successfull then
+	dim unresolvedItems
+	set unresolvedItems = redirectProfile(xmlDom)
+	if unresolvedItems is nothing then
 		Repository.WriteOutput outPutName, now() & " Script Cancelled", artifact.ElementID
 		exit function
 	end if
+	
 	'ask for permission to save schema content
 	dim userInput
 	userinput = MsgBox( "Save Changes to profile?", vbYesNo + vbQuestion, "Save Changes")
@@ -67,21 +64,61 @@ function Main ()
 		sqlUpdateSchema = "update t_document set StrContent = N'" & xmlDom.xml & "' where ElementID = '" & artifact.ElementGUID & "'"
 		Repository.Execute sqlUpdateSchema
 		Repository.AdviseElementChange(artifact.ElementID)
+		'set redefine stereotypes on unresolved items
+		'TODO: setRedefineStereotypes unresolvedItems, artifact
 	end if
 	'set timestamp
 	Repository.WriteOutput outPutName, now() & " Finished Redirect profile", artifact.ElementID
 end function
 
+function setRedefineStereotypes(unresolvedItems, artifact)
+	dim package
+	set package = Repository.GetPackageByID(artifact.PackageID)
+	dim packageTreeIDString
+	set packageTreeIDString = getPackageTreeIDString(package)
+	'TODO:
+	' get elements, attributes and associations that are the subset equivalents of the unresolved items.
+	' then set the stereotype to make them redefined.
+	dim item
+	dim key
+	dim stereotype
+	for each key in unresolvedItems.Keys
+		dim guid
+		guid = unresolvedItems(key)
+		if left(key, len("Element")) = "Element" then
+			set item = Repository.GetElementByGuid(guid)
+			stereotype = "RedefineElement"
+		elseif left(key, len("Attribute")) = "Attribute" then
+			set item = Repository.GetAttributeByGuid(guid)
+			stereotype = "RedefineAttribute"
+		else 'connector
+			set item = Repository.GetConnectorByGuid(guid)
+			stereotype = "RedefineAssociation"
+		end if
+	next
+	'set stereotype
+	item.Stereotype = stereotype
+	item.Update
+end function
+
+function getSubsetElements(unresolvedItems, packageTreeIDString)
+	dim sqlGetData
+	sqlGetData = ""
+end function
+
+
+
 function redirectProfile(xmlDom)
-	'default false
-	redirectProfile = false
+	'default nothing
+	set redirectProfile = nothing
+	
 	dim originalSourcePackage as EA.Package
-	dim newSourcePackage as EA.Package
 	msgbox "Please select the original source package"
 	set originalSourcePackage = selectPackage()
 	if originalSourcePackage is nothing then
 		exit function
 	end if
+	dim newSourcePackage as EA.Package
 	msgbox "Please select the new source package"
 	set newSourcePackage = selectPackage()
 	if newSourcePackage is nothing then
@@ -90,7 +127,11 @@ function redirectProfile(xmlDom)
 	'get the list of old/new guid's
 	dim guidDictionary
 	set guidDictionary = CreateObject("Scripting.Dictionary")
-	tracePackageElements originalSourcePackage, newSourcePackage, guidDictionary
+	'get the list of guids in the schema
+	dim schemaGuids
+	set schemaGuids = getGUIDsFromSchema(xmlDom)
+	dim unresolvedItems
+	set unresolvedItems = tracePackageElements(originalSourcePackage, newSourcePackage, guidDictionary, schemaguids)
 	'get the string from the xmlDom
 	dim xmlString 
 	xmlString =  xmlDom.xml
@@ -101,16 +142,112 @@ function redirectProfile(xmlDom)
 		newGUID = guidDictionary(originalGuid)
 		'replace
 		xmlString = Replace(xmlString, originalGuid, newGUID)
-		'mark successful
-		redirectProfile = true
 	next
 	'write it back to the xmlDom
 	xmlDom.LoadXML xmlString
+	dim key
+	for each key in unresolvedItems.Keys
+		'report unresolved items
+		Repository.WriteOutput outPutName, now() & " ERROR: no match found for key '" &key & "' with guid " & unresolvedItems(key)  , 0
+	next
+	'return unresolvedItems
+	set redirectProfile = unresolvedItems
+end function
+
+function getGUIDsFromSchema(xmlDom)
+	dim guidsDictionary
+	set guidsDictionary = CreateObject("Scripting.Dictionary")
+	dim guidNodes
+	set guidNodes = xmlDom.selectNodes("//*[@guid]")
+	dim node
+	for each node in guidNodes
+		dim guid
+		guid = node.getAttribute("guid")
+		if not guidsDictionary.Exists(guid) then
+			guidsDictionary.Add guid, guid
+		end if
+	next
+	'return
+	set getGUIDsFromSchema = guidsDictionary
 end function
 
 
 
-function tracePackageElements(originalPackage, copyPackage, guidDictionary)
+function tracePackageElements(originalSourcePackage, copyPackage, guidDictionary, schemaguids)
+	dim unresolvedItems
+	set unresolvedItems = CreateObject("Scripting.Dictionary")
+	'get contents from original source and new source
+	dim originalContents
+	set originalContents = getContentsDict(originalSourcePackage, schemaguids)
+	dim newContents 
+	set newContents = getContentsDict(copyPackage, nothing)
+	dim originalKey
+	for each originalKey in originalContents.keys
+		if newContents.Exists(originalKey) then
+			if not guidDictionary.Exists(originalContents(originalKey)) then
+				guidDictionary.Add originalContents(originalKey), newContents(originalKey)
+			end if
+		else
+			unresolvedItems.Add originalKey, originalContents(originalKey)
+		end if
+	next
+	'return unresolvedItems
+	set tracePackageElements = unresolvedItems
+end function
+
+function getContentsDict(package, schemaguids)
+	dim contentsDict
+	set contentsDict = CreateObject("Scripting.Dictionary")
+	dim whereClause
+	whereclause = ""
+	if not package is nothing then
+		whereClause = " and o.Package_ID in (" & getPackageTreeIDString(package) & ")"
+	end if
+	if not schemaguids is nothing then
+		dim schemaGUIDsString
+		schemaGUIDsString = "'" & Join(schemaguids.Keys, "','") & "'"
+		whereClause = whereClause & " and o.ea_guid in (" & schemaGUIDsString & ")"
+	end if
+	dim sqlGetData
+	sqlGetData = "select 'Element' + '.' + o.Name +'.'+ o.Object_Type +'.' + o.Stereotype as elementKey, o.ea_guid             " & vbNewLine & _
+				" from t_object o                                                                                             " & vbNewLine & _
+				" where o.Object_Type in ('Class', 'Datatype','PrimitiveType', 'Enumeration')                                 " & vbNewLine & _
+				" #whereClause#                                                                                               " & vbNewLine & _
+				" union                                                                                                       " & vbNewLine & _
+				" select 'Attribute' + '.' + isnull(o.Name, '') +'.'+ isnull(a.Name, '') + '.' + isnull(a.Type, '')           " & vbNewLine & _
+				" +'.' + isnull(a.Stereotype, '') as elementKey, a.ea_guid                                                    " & vbNewLine & _
+				" from t_attribute a                                                                                          " & vbNewLine & _
+				" inner join t_object o on o.Object_ID = a.Object_id                                                          " & vbNewLine & _
+				" where o.Object_Type in ('Class', 'Datatype','PrimitiveType', 'Enumeration')                                 " & vbNewLine & _
+				" #whereClause#                                                                                               " & vbNewLine & _
+				" union                                                                                                       " & vbNewLine & _
+				" select 'Connector' + '.' + isnull(o.Name, '') +'.' + isnull(oe.Name, '') + '.' + isnull(c.name, '') + '.'   " & vbNewLine & _
+				" + isnull(c.DestRole, '') + '.'  + '.' + + isnull(c.Stereotype, '') as elementKey, c.ea_guid                 " & vbNewLine & _
+				" from t_connector c                                                                                          " & vbNewLine & _
+				" inner join t_object o on o.Object_ID = c.Start_Object_ID                                                    " & vbNewLine & _
+				" inner join t_object oe on oe.Object_ID = c.End_Object_ID                                                    " & vbNewLine & _
+				" where o.Object_Type in ('Class', 'Datatype','PrimitiveType', 'Enumeration')                                 " & vbNewLine & _
+				" and c.Connector_Type in ('Association', 'Aggregation')                                                      " & vbNewLine & _
+				" #whereClause#                                                                                               "
+	'set the where clause
+	sqlGetData = replace (sqlGetData, "#whereClause#", whereClause)
+	dim results
+	set results = getArrayListFromQuery(sqlGetData)
+	dim row
+	for each row in results
+		dim key
+		key = row(0)
+		dim guid
+		guid = row(1)
+		if not contentsDict.Exists(key) then
+			contentsDict.Add key, guid
+		end if
+	next
+	'return 
+	set getContentsDict = contentsDict
+end function
+
+function tracePackageElementsOld(originalPackage, copyPackage, guidDictionary)
 
 	dim originalElement as EA.Element
 	dim copyElement as EA.Element

@@ -13,16 +13,6 @@ const msgMIGDGO = "MIGDGO"
 const msgMIGPPP = "MIGPPP"
 const msgJSON = "JSON"
 
-'UMIG publication sets
-const umNA = "NA"
-const umUMIG = "UMIG"
-const umUMIGAO = "UMIG AO"
-const umUMIGDGO = "UMIG DGO"
-const umUMIGPaP = "UMIG PaP"
-const umUMIGPPP = "UMIG PPP"
-const umUMIGTPDA = "UMIG TPDA"
-const umUMIGTSO = "UMIG TSO"
-
 Class Message
 	'private variables
 	Private m_Name
@@ -37,9 +27,6 @@ Class Message
 	Private m_IncludeDetails
 	Private m_Fisses
 	Private m_Version
-	Private m_Domain
-	Private m_Package
-	
 	
 	'constructor
 	Private Sub Class_Initialize
@@ -55,8 +42,6 @@ Class Message
 		m_IncludeDetails = false
 		set m_Fisses = nothing
 		m_Version = ""
-		m_Domain = ""
-		set m_Package = nothing
 	End Sub
 	
 	'public properties
@@ -130,9 +115,6 @@ Class Message
 	End Property
 	Public Property Let IncludeDetails(value)
 		m_IncludeDetails = value
-		if not me.RootNode is nothing then
-			me.RootNode.IncludeDetails = value
-		end if
 	End Property
 	
 	' Fisses property.
@@ -158,12 +140,14 @@ Class Message
 	' Version property.
 	Public Property Get Version
 		if len(m_Version) = 0 then
-			dim taggedValue as EA.TaggedValue
 			select case messageType
 				case msgJSON
 					m_version = me.RootNode.SourceElement.Version
 				case else
-					for each taggedValue in me.Package.Element.TaggedValues
+					dim parentPackage as EA.Package
+					set parentPackage = Repository.GetPackageByID(me.RootNode.SourceElement.PackageID)
+					dim taggedValue as EA.TaggedValue
+					for each taggedValue in parentPackage.Element.TaggedValues
 						if lcase(taggedValue.Name) = "versionid" _
 						  or lcase(taggedValue.Name) = "version" then
 							m_Version = taggedValue.Value
@@ -175,49 +159,6 @@ Class Message
 		'return
 		Version = m_Version
 	End Property
-	
-	'Domain property
-	Public Property Get Domain
-		if len(m_Domain) = 0 then
-			dim domainPackage
-			set domainPackage = getDomainPackage(me.Package)
-			if not domainPackage  is nothing then
-				m_Domain = domainPackage.Name
-			end if
-		end if
-		Domain = m_Domain
-	end Property
-	
-	'Package Property
-	Public Property Get Package
-		if m_Package is nothing then
-			set m_Package = getEAPackageForPackageID(me.RootNode.SourceElement.PackageID)
-		end if
-		set Package = m_Package
-	end Property
-	
-	'packageVersion property
-	Public Property Get PackageVersion
-		PackageVersion = me.Package.Version
-	end property
-	
-	private function getDomainPackage(package)
-		dim domainPackage 
-		set domainPackage = nothing
-		'search until the parent package name ends with "XSDs"
-		if package.ParentID > 0 then
-			dim parentPackage
-			set parentPackage = getEAPackageForPackageID(package.ParentID)
-			if right(parentPackage.Name, 4) = "XSDs" then
-				set domainPackage = package
-			else
-				'go up one level
-				set domainPackage = getDomainPackage(parentPackage)
-			end if
-		end if
-		'return
-		set getDomainPackage = domainPackage
-	end function
 	
 	private function loadFisses()
 		set m_Fisses = CreateObject("System.Collections.ArrayList")
@@ -275,23 +216,27 @@ Class Message
 		
 		'set the name of the message
 		'the name of the message is equal to the name of the owning package
-		dim ownerPackage
-		set ownerPackage = getEAPackageForPackageID(eaRootNodeElement("Package_ID"))
+		dim ownerPackage as EA.Package
+		set ownerPackage = Repository.GetPackageByID(eaRootNodeElement.PackageID)
 		me.Name = ownerPackage.Name
 		'set alias
-		me.Alias = eaRootNodeElement("Alias")
+		me.Alias = eaRootNodeElement.Alias
 		'set the prefix
 		m_Prefix = getPrefix(ownerPackage)
 		'set MessageType (default = MIGDGO)
+		dim rootNodeStereotypes
 		dim rootNodeStereotype
-		rootNodeStereotype = eaRootNodeElement.Stereotype
-		if lcase(rootNodeStereotype) = "ma" then
-			me.MessageType = msgMIG6
-			'for message assemblies the name is stored on the element
-			me.Name = eaRootNodeElement.Name
-		elseif lcase(rootNodeStereotype) = "json_schema" then
-			me.MessageType = msgJSON
-		end if
+		rootNodeStereotypes = split(eaRootNodeElement.StereotypeEx, ",")
+		for each rootNodeStereotype in rootNodeStereotypes
+			if rootNodeStereotype = "MA" then
+				me.MessageType = msgMIG6
+				'for message assemblies the name is stored on the element
+				me.Name = eaRootNodeElement.Name
+				exit for
+			elseif rootNodeStereotype = "JSON_Schema" then
+				me.MessageType = msgJSON
+			end if
+		next
 		'if messagetype is still MIGDGO then check if this should not be PPP
 		if me.MessageType = msgMIGDGO then
 			if left(ownerPackage.Name,3) = "PPP" then
@@ -302,7 +247,7 @@ Class Message
 		me.RootNode = new MessageNode
 		me.RootNode.IncludeDetails = me.IncludeDetails
 		me.RootNode.Message = me
-		me.RootNode.intitializeWithSource eaRootNodeElement, "1..1", nothing, nothing
+		me.RootNode.intitializeWithSource eaRootNodeElement, nothing, "1..1", nothing, nothing
 		setBaseTypesAndEnumerations(me.RootNode)
 		'link the message validation rules
 		getMessageValidationRules()
@@ -310,7 +255,7 @@ Class Message
 	
 	private function getPrefix(ownerPackage)
 		getPrefix = ""
-		dim taggedValue
+		dim taggedValue as EA.TaggedValue
 		for each taggedValue in ownerPackage.Element.TaggedValues
 			if taggedValue.Name = "targetNamespacePrefix" then
 				getPrefix = taggedValue.Value
@@ -349,20 +294,20 @@ Class Message
 			foundEnumeration = false
 			'check if the typeElement is an enumeration
 			if not messageNode.TypeElement is nothing then
-				if messageNode.TypeElement.ElementType = "Enumeration"_
+				if messageNode.TypeElement.Type = "Enumeration"_
 				OR messageNode.TypeElement.Stereotype = "Enumeration" then
 					foundEnumeration = true
-					if not me.Enumerations.Exists(messageNode.NameOfType) then
+					if not me.Enumerations.Exists(messageNode.TypeName) then
 						'add to enumerations list
-						me.Enumerations.Add messageNode.NameOfType, messageNode.TypeElement
+						me.Enumerations.Add messageNode.TypeName, messageNode.TypeElement
 					end if
 				end if
 			end if
 			'if we haven't found an enumeration we add the type to the basetypes
 			if not foundEnumeration then
-				if not me.BaseTypes.Exists(messageNode.NameOfType) then
+				if not me.BaseTypes.Exists(messageNode.TypeName) then
 					'add to BaseTypes list
-					me.BaseTypes.Add messageNode.NameOfType, messageNode.TypeElement
+					me.BaseTypes.Add messageNode.TypeName, messageNode.TypeElement
 				end if
 			end if
 		else
@@ -374,7 +319,7 @@ Class Message
 		end if
 		'add the base type to the list of types
 		if not messageNode.BaseTypeElement is nothing then
-			if messageNode.BaseTypeElement.ElementType = "Enumeration"_
+			if messageNode.BaseTypeElement.Type = "Enumeration"_
 			OR messageNode.BaseTypeElement.Stereotype = "Enumeration"  then
 				if not me.Enumerations.Exists(messageNode.BaseTypeName) then
 					'add to enumerations list
@@ -396,7 +341,7 @@ Class Message
 		dim currentPath
 		set currentPath = CreateObject("System.Collections.ArrayList")
 		'start with the rootnode
-		set outputList = me.RootNode.getOutput(1,currentPath,me.MessageDepth, includeRules)
+		set outputList = me.RootNode.getOuput(1,currentPath,me.MessageDepth, includeRules)
 		'return outputlist
 		set createOuput = outputList
 	end function
@@ -408,7 +353,7 @@ Class Message
 		dim currentPath
 		set currentPath = CreateObject("System.Collections.ArrayList")
 		'start with the rootnode
-		set outputList = me.RootNode.getOutput(1,currentPath,depth, includeRules)
+		set outputList = me.RootNode.getOuput(1,currentPath,depth, includeRules)
 		'return outputlist
 		set createUnifiedOutput = outputList
 	end function
@@ -487,7 +432,7 @@ Class Message
 				set enumElement = getBaseEnum(enumElement)
 			end if
 			'loop the enum literals
-			for each enumLiteral in enumElement.Attributes.Items
+			for each enumLiteral in enumElement.Attributes
 				elementOrder = elementOrder + 1
 				dim enumLiteralProperties
 				set enumLiteralProperties = getEnumLiteralProperties(enumElement,enumLiteral)
@@ -512,12 +457,13 @@ Class Message
 						" 							and c.Stereotype = 'trace'           " & _
 						" where o.Object_Type = 'Enumeration'                            " & _
 						" and c.Start_Object_ID = " & enumElement.ElementID & "          "
-		dim result
-		set result = getFirstColumnArrayListFromQuery(sqlGetBaseEnum)
-		if result.Count > 0 then
-			'with the ID's we get the element
-			set getBaseEnum = getEAElementForElementID(result(0))
-		end if
+		dim baseEnums
+		dim baseEnum as EA.Element
+		set baseEnums = getElementsFromQuery(sqlGetBaseEnum)
+		for each baseEnum in baseEnums
+			set getBaseEnum = baseEnum
+			exit for 'we only need the first one
+		next
 	end function
 	
 	Public function getMessageTypes()
@@ -622,10 +568,12 @@ Class Message
 	
 	private function getDerivedFrom(baseType)
 		'the base type either inherits from a standard XSD type, or has it stored separately (gentype?)
+		dim baseTypeBaseTypes 
+		set baseTypeBaseTypes = baseType.BaseClasses
 		dim derivedFrom as EA.Element
 		set derivedFrom = nothing
 		'get the first base class
-		for each derivedFrom in baseType.BaseClasses.Items
+		for each derivedFrom in baseType.BaseClasses
 			exit for
 		next
 		if not IsObject(derivedFrom) then
@@ -734,36 +682,4 @@ private function getMessageTypesHeaders(unified)
 		headers.Add("Facets") '5
 		'return the headers
 		set getMessageTypesHeaders = headers
-end function
-
-function getUserSelectedPublication()
-	getUserSelectedPublication = umNA
-	dim publications
-	set publications = CreateObject("Scripting.Dictionary")
-	publications.Add 0, umNA
-	publications.Add 1, umUMIG 
-	publications.Add 2, umUMIGDGO 
-	publications.Add 3, umUMIGPPP
-'	publications.Add 4, umUMIGAO
-'	publications.Add 5, umUMIGPaP
-'	publications.Add 6, umUMIGTPDA
-'	publications.Add 7, umUMIGTSO
-	dim selectMessage
-	selectMessage = "Please enter the number of the publication"
-	dim publicationID
-	for each publicationID in publications.Keys
-		selectMessage = selectMessage & vbNewLine & publicationID & ": " & publications(publicationID)
-	next
-	dim response
-	response = InputBox(selectMessage, "Select the Publication ID", "0" )
-	if isNumeric(response) then
-		if Cstr(Cint(response)) = response then 'check if response is integer
-			dim selectedID
-			selectedID = Cint(response)
-			if publications.Exists(selectedID)  then
-				'return the version publication
-				getUserSelectedPublication = publications(selectedID)
-			end if
-		end if
-	end if
 end function
