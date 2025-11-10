@@ -32,10 +32,10 @@ function MyRtfData (sqlGetData, language)
 		processRow rowNode, language, xmlDOM, itemsCache
 	next
 	'debug
-	set fileSystemObject = CreateObject( "Scripting.FileSystemObject" )
-	set outputFile = fileSystemObject.CreateTextFile( "c:\temp\NLFRtest.xml", true )
-	outputFile.Write outputString
-	outputFile.Close
+'	set fileSystemObject = CreateObject( "Scripting.FileSystemObject" )
+'	set outputFile = fileSystemObject.CreateTextFile( "c:\temp\NLFRtest.xml", true )
+'	outputFile.Write outputString
+'	outputFile.Close
 	MyRtfData = xmlDOM.xml
 end function
 

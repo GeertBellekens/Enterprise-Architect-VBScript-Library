@@ -27,7 +27,9 @@ sub main
 	'set timestamp
 	Repository.WriteOutput outPutName, now() & " Starting " & outPutName & " for '"& diagram.Name &"'", 0
 	'do the actual work
-	translateDiagram diagram, "", false
+	dim secundaryLanguages
+	set secundaryLanguages = getSecondaryLanguages()
+	translateDiagram diagram, "", false, secundaryLanguages
 	'set timestamp
 	Repository.WriteOutput outPutName, now() & " Finished " & outPutName & " for '"& diagram.Name &"'", 0
 	

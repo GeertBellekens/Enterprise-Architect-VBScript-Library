@@ -13,8 +13,6 @@
 'define common colors used by multiple scripts
 dim atriasRed
 atriasRed =  RGB(153, 20, 37)
-dim eliaOrange
-eliaOrange = RGB(255, 115,0)
 dim white
 white = RGB(255,255,255)
 
@@ -71,23 +69,36 @@ end function
 
 'set the given diagram as composite diagram for this element
 function setCompositeDiagram (element, diagram)
-	if not diagram is nothing then
-		'Tell EA this element is composite
-		dim objectQuery
-		objectQuery = "update t_object set NType = 8 where Object_ID = " & element.ElementID
-		Repository.Execute objectQuery
-		if element.Type = "Object" then
-			'Tell EA which diagram is the composite diagram
-			dim xrefQuery
-			xrefquery = "insert into t_xref (XrefID, Name, Type, Visibility, Partition, Client, Supplier) values ('"&CreateGuid&"', 'DefaultDiagram', 'element property', 'Public', '0', '"& element.ElementGUID & "', '"& diagram.DiagramGUID &"')"
-			Repository.Execute xrefquery
-		elseif element.Type = "Activity" then
-			'for activities we need to update PDATA1 with the diagramID
-			dim updatequery
-			updatequery = "update t_object set PDATA1 = "& diagram.DiagramID & " where Object_ID = " & element.ElementID
-			Repository.Execute updatequery
+	if diagram is nothing then
+		exit function
+	end if
+	'check if needed
+	dim currentCompositeDiagram as EA.Diagram
+	set currentCompositeDiagram = element.CompositeDiagram
+	if not currentCompositeDiagram is nothing then
+		if currentCompositeDiagram.DiagramID = diagram.DiagramID then
+			exit function
 		end if
 	end if
+	'set it using the API
+	element.SetCompositeDiagram diagram.DiagramGUID
+	element.Update
+	
+'	'Tell EA this element is composite
+'	dim objectQuery
+'	objectQuery = "update t_object set NType = 8 where Object_ID = " & element.ElementID
+'	Repository.Execute objectQuery
+'	if element.Type = "Object" then
+'		'Tell EA which diagram is the composite diagram
+'		dim xrefQuery
+'		xrefquery = "insert into t_xref (XrefID, Name, Type, Visibility, Partition, Client, Supplier) values ('"&CreateGuid&"', 'DefaultDiagram', 'element property', 'Public', '0', '"& element.ElementGUID & "', '"& diagram.DiagramGUID &"')"
+'		Repository.Execute xrefquery
+'	elseif element.Type = "Activity" then
+'		'for activities we need to update PDATA1 with the diagramID
+'		dim updatequery
+'		updatequery = "update t_object set PDATA1 = "& diagram.DiagramID & " where Object_ID = " & element.ElementID
+'		Repository.Execute updatequery
+'	end if
 end function
 
 ' Returns a unique Guid on every call. Removes any cruft.
@@ -155,21 +166,6 @@ function copyTaggedValues(source, target)
 			targetTag.Notes = sourceTag.Notes
 			targetTag.Update
 			target.Update
-		end if
-	next
-end function
-
-function deleteConnector(ownerID, connectorID)
-	dim owner as EA.Element
-	set owner = Repository.GetElementByID(ownerID)
-	dim i
-		for i = owner.Connectors.Count -1 to 0 step -1
-		dim connector as EA.Connector
-		set connector = owner.Connectors.GetAt(i)
-		if connector.ConnectorID = connectorID then
-			'found it, so delete it
-			owner.Connectors.DeleteAt i, false
-			exit function
 		end if
 	next
 end function
@@ -263,25 +259,6 @@ function getElementDictionaryFromQuery(sqlQuery)
 		end if
 	next
 	set getElementDictionaryFromQuery = result
-end function
-
-function getDictionaryFromQuery(sqlQuery)
-	dim result
-	set result = CreateObject("Scripting.Dictionary")
-	dim tempArrayResult
-	set tempArrayResult = getArrayListFromQuery(sqlQuery)
-	dim row
-	for each row in tempArrayResult
-		dim key
-		dim value
-		key = row(0)
-		value = row(1)
-		if not result.Exists(key) then
-			result.Add key, value
-		end if
-	next
-	'return
-	set getDictionaryFromQuery = result
 end function
 
 function getElementTreeIDString(element)
@@ -677,10 +654,43 @@ Public Function convertQueryResultToArray(xmlQueryResult)
     convertQueryResultToArray = result
 End Function
 
+'returns a dictionary with the first column as key, and the second column as value
+function getDictionaryFromQuery(sqlQuery)
+	dim dictionary
+	set dictionary = CreateObject("Scripting.Dictionary")
+	dim results
+	set results = getArrayListFromQuery(sqlQuery)
+	dim row
+	dim key
+	dim value
+	for each row in results
+		if row.Count > 1 then
+			key = row(0)
+			value = row(1)
+			if not dictionary.Exists(key) then
+				dictionary.Add key, value
+			end if
+		end if
+	next
+	'return
+	set getDictionaryFromQuery = dictionary
+end function
+
 function getArrayListFromQuery(sqlQuery)
 	dim xmlResult
 	xmlResult = Repository.SQLQuery(sqlQuery)
 	set getArrayListFromQuery = convertQueryResultToArrayList(xmlResult)
+end function
+
+function getArrayListFromQueryWithHeaders(sqlQuery)
+	dim result
+	dim xmlResult
+	xmlResult = Repository.SQLQuery(sqlQuery)
+	'get data
+	set result = convertQueryResultToArrayList(xmlResult)
+	'add headers
+	result.Insert 0, getHeadersFromQueryResults(xmlResult)
+	set getArrayListFromQueryWithHeaders = result
 end function
 
 Function convertQueryResultToArrayList(xmlQueryResult)
@@ -708,6 +718,8 @@ Function convertQueryResultToArrayList(xmlQueryResult)
 			result.Add rowArrayList
 		Next
 	end if
+'	'try to fix memory leak
+'	set xDoc = nothing
     set convertQueryResultToArrayList = result
 end function
 
@@ -715,6 +727,43 @@ function getVerticalArrayListFromQuery(sqlQuery)
 	dim xmlResult
 	xmlResult = Repository.SQLQuery(sqlQuery)
 	set getVerticalArrayListFromQuery = convertQueryResultToVerticalArrayList(xmlResult)
+end function
+
+function getFirstColumnArrayListFromQuery(sqlQuery)
+	dim firstRowArrayList
+	set firstRowArrayList = CreateObject("System.Collections.ArrayList")
+	dim result
+	set result = getVerticalArrayListFromQuery(sqlQuery)
+	if result.Count > 0 then
+		set firstRowArrayList = result(0)
+	end if
+	'return
+	set getFirstColumnArrayListFromQuery = firstRowArrayList
+end function
+
+function getHeadersFromQueryResults(xmlResult)
+	Dim result
+	set result = CreateObject("System.Collections.ArrayList")
+    Dim xDoc 
+    Set xDoc = CreateObject( "MSXML2.DOMDocument" )
+    'load the resultset in the xml document
+    If xDoc.LoadXML(xmlResult) Then        
+		'select the rows
+		Dim rowList
+		Set rowList = xDoc.SelectNodes("//Row")
+		Dim rowNode 
+		Dim fieldNode
+		'loop rows and find fields
+		For Each rowNode In rowList
+			'loop the field nodes
+			For Each fieldNode In rowNode.ChildNodes
+				'add the contents
+				result.Add fieldNode.tagName
+			Next
+			exit for 'we only need to process the first row to get the metadata
+		Next
+	end if
+    set getHeadersFromQueryResults = result
 end function
 
 function getSingleValueFromQuery(sqlQuery)
@@ -772,12 +821,23 @@ end function
 'let the user select a package
 function selectPackage()
 	'start from the selected package in the project browser
-	dim constructpickerString
-	constructpickerString = "IncludedTypes=Package"
+	dim startPackageGUID
 	dim treeselectedPackage as EA.Package
 	set treeselectedPackage = Repository.GetTreeSelectedPackage()
 	if not treeselectedPackage is nothing then
-		constructpickerString = constructpickerString &	";Selection=" & treeselectedPackage.PackageGUID
+		startPackageGUID = treeselectedPackage.PackageGUID
+	end if
+	'return
+	set selectPackage = selectPackageWithStartSelection(startPackageGUID)
+end function
+
+function selectPackageWithStartSelection(startPackageGUID)
+	'start from the selected package in the project browser
+	dim constructpickerString
+	constructpickerString = "IncludedTypes=Package"
+
+	if len(startPackageGUID) > 0 then
+		constructpickerString = constructpickerString &	";Selection=" & startPackageGUID
 	end if
 	dim packageElementID 		
 	packageElementID = Repository.InvokeConstructPicker(constructpickerString) 
@@ -789,7 +849,7 @@ function selectPackage()
 	else
 		set package = nothing
 	end if 
-	set selectPackage = package
+	set selectPackageWithStartSelection = package
 end function
 
 function getConnectorsFromQuery(sqlQuery)
@@ -850,26 +910,6 @@ function getAttributesFromQuery(sqlQuery)
 		end if
 	next
 	set getattributesFromQuery = attributes
-end function
-
-function getOperationsFromQuery(sqlQuery)
-	dim xmlResult
-	xmlResult = Repository.SQLQuery(sqlQuery)
-	dim operationIDs
-	operationIDs = convertQueryResultToArray(xmlResult)
-	dim operations 
-	set operations = CreateObject("System.Collections.ArrayList")
-	dim operationID
-	dim operation as EA.Method
-	for each operationID in operationIDs
-		if operationID > 0 then
-			set operation = Repository.GetMethodByID(operationID)
-			if not operation is nothing then
-				operations.Add(operation)
-			end if
-		end if
-	next
-	set getOperationsFromQuery = operations
 end function
 
 function getPackagesFromQuery(sqlQuery)
@@ -940,7 +980,7 @@ function getExistingOrNewTaggedValue(owner, tagname)
 	set returnTag = nothing
 	'check if a tag with that name alrady exists
 	for each taggedValue in owner.TaggedValues
-		if lcase(taggedValue.Name) = lcase(tagName) then
+		if taggedValue.Name = tagName then
 			set returnTag = taggedValue
 			exit for
 		end if
@@ -976,6 +1016,7 @@ function isRequireUserLockEnabled()
 end function
 
 function copyDiagram(diagram, targetOwner)
+	
 	dim copiedDiagram as EA.Diagram
 	'initialize at nothing
 	set copiedDiagram = nothing
@@ -994,9 +1035,19 @@ function copyDiagram(diagram, targetOwner)
 			end if
 		end if
 	end if
-	'then actually clone the owner package
+	'create new temporary package
+	dim tempPackage as EA.Package
+	set tempPackage = ownerPackage.Packages.AddNew("temp", "")
+	tempPackage.update
+	'move the diagram to the temp package
+	dim originalParentID
+	originalParentID = diagram.ParentID
+	diagram.PackageID = tempPackage.PackageID
+	diagram.ParentID = 0
+	diagram.Update
+	'then actually clone the temp package
 	dim clonedPackage as EA.Package
-	set clonedPackage = ownerPackage.Clone()
+	set clonedPackage = tempPackage.Clone()
 '	if isRequireUserLockEnabled() then
 '		clonedPackage.ApplyUserLockRecursive true,true,true
 '	end if
@@ -1005,13 +1056,21 @@ function copyDiagram(diagram, targetOwner)
 	'set the owner of the copied diagram
 	if targetOwner.ObjectType = otElement then
 		copiedDiagram.ParentID = targetOwner.ElementID
-	else
-		copiedDiagram.PackageID = targetOwner.PackageID
 	end if
+	'set the packageID anyway
+	copiedDiagram.PackageID = targetOwner.PackageID
 	'save the update to the owner
 	copiedDiagram.Update
 	'delete the cloned package
-	deletePackage(clonedPackage)
+	deletePackage clonedPackage
+	'move the diagram back to it's original package
+	diagram.PackageID = ownerPackage.PackageID
+	diagram.ParentID = originalParentID
+	diagram.Update
+	'delete the temporary package
+	deletePackage tempPackage
+	'reload the target for the copied diagram
+	Repository.ReloadPackage(copiedDiagram.PackageID)
 	'return the copied diagram
 	set copyDiagram = copiedDiagram
 end function
@@ -1163,12 +1222,6 @@ function makeArrayListsFromTwoDimensionalArray(twoDArray)
 	set result = CreateObject("System.Collections.ArrayList")
 	dim i
 	dim j
-	if not IsArrayInitialized(twoDArray) then
-		'return
-		set makeArrayListsFromTwoDimensionalArray = result
-		exit function
-	end if
-	'loop the array
 	for i = LBound(twoDArray) to UBound(twoDArray)
 		dim row
 		set row = CreateObject("System.Collections.ArrayList")
@@ -1183,39 +1236,24 @@ function makeArrayListsFromTwoDimensionalArray(twoDArray)
 	set makeArrayListsFromTwoDimensionalArray = result
 end function
 
-Function IsArrayInitialized(a)    
-    Err.Clear
-    On Error Resume Next
-    UBound(a)
-    If (Err.Number = 0) Then 
-        IsArrayInitialized = True
-    End If
-	On Error Goto 0
-End Function
-
 ' EA uses a lot of key=value pairs in different types of fields (such as StyleEx etc.)
 ' each of them separated by a ";"
 ' this function will search for the value of the key and return the value if it is present in the given search string
-function getValueForkeyEx(searchString, key, separator)
+function getValueForkey(searchString, key)
 	dim returnValue
 	returnValue = ""
 	dim keyValuePairDictionary
-	set keyValuePairDictionary = getKeyValuePairsEx(searchString, separator)
+	set keyValuePairDictionary = getKeyValuePairs(searchString)
 	if keyValuePairDictionary.Exists(key) then
 		returnValue = keyValuePairDictionary(key)
 	end if
 	'return the value
-	getValueForkeyEx = returnValue
+	getValueForkey = returnValue
 end function
 
-function getValueForkey(searchString, key)
-	'return the value
-	getValueForkey = getValueForkeyEx(searchString, key, ";")
-end function
-
-function setValueForKeyEx(searchString, key, value, separator)
+function setValueForKey(searchString, key, value)
 	dim keyValues
-	set keyValues = getKeyValuePairsEx(searchString, separator)
+	set keyValues = getKeyValuePairs(searchString)
 	if not keyValues.exists(key) then
 		dim newKeyValues
 		set newKeyValues = CreateObject("Scripting.Dictionary")
@@ -1233,39 +1271,31 @@ function setValueForKeyEx(searchString, key, value, separator)
 	end if
 	'join keyValuePairs
 	dim joinedString
-	joinedString = joinKeyValuePairsEx(keyValues, separator)
+	joinedString = joinKeyValuePairs(keyValues)
 	'return
-	setValueForKeyEx = joinedString
+	setValueForKey = joinedString
 end function
 
-function setValueForKey(searchString, key, value)
-	setValueForKey = setValueForKeyEx(searchString, key, value, ";")
-end function
-
-function joinKeyValuePairsEx(keyValuePairs, separator)
+function joinKeyValuePairs(keyValuePairs)
 	dim joinedString
 	joinedString = ""
 	dim key
 	for each key in keyValuePairs.Keys
-		joinedString = joinedString & key & "=" & keyValuePairs(key) & separator
+		joinedString = joinedString & key & "=" & keyValuePairs(key) & ";"
 	next
 	'return
-	joinKeyValuePairsEx = joinedString
-end function
-
-function joinKeyValuePairs(keyValuePairs, separator)
-	joinKeyValuePairs = joinKeyValuePairsEx(keyValuePairs, ";")
+	joinKeyValuePairs = joinedString
 end function
 
 ' EA uses a lot of key=value pairs in different types of fields (such as StyleEx etc.)
 ' each of them separated by a ";"
 ' returns a dictionary witht the key value pairs
-function getKeyValuePairsEx(keyValueString, separator)
+function getKeyValuePairs(keyValueString)
 	dim keyValuePairDictionary
 	Set keyValuePairDictionary = CreateObject("Scripting.Dictionary")
 	dim keyValuePairs
 	'first split in keyvalue pairs using ";"
-	keyValuePairs = split(keyValueString,separator)
+	keyValuePairs = split(keyValueString,";")
 	'then loop the key value pairs
 	dim keyValuePairString
 	for each keyValuePairString in keyValuePairs
@@ -1285,11 +1315,7 @@ function getKeyValuePairsEx(keyValueString, separator)
 		end if
 	next
 	'return
-	set getKeyValuePairsEx = keyValuePairDictionary
-end function
-
-function getKeyValuePairs(keyValueString)
-	getKeyValuePairs = getKeyValuePairs(keyValueString, ";")
+	set getKeyValuePairs = keyValuePairDictionary
 end function
 
 'merge two array together. First a1, then a2
@@ -1360,25 +1386,37 @@ function getVersionControlIDsForPackages(packageIDs)
 end function
 
 function setTagValue(element, taggedValueName, value)
-	dim found
-	found = false
+	setTagValue = false 'indicate if element was updated
 	dim taggedValue as EA.TaggedValue
-	'refresh to be sure
-	element.TaggedValues.Refresh
 	for each taggedValue in element.TaggedValues
 		if lcase(taggedValue.Name) = lcase(taggedValueName) then
-			taggedValue.Value = value
-			taggedValue.Update
-			found = true
-			exit for
+			if taggedValue.Value <> value then
+				taggedValue.Value = value
+				taggedValue.Update
+				setTagValue = true
+				exit for
+			end if
 		end if
 	next
-	'if not found then create tag ad update it
-	if not found then
-		set taggedValue = element.TaggedValues.AddNew(taggedValueName, "")
-		taggedValue.Value = value
-		taggedValue.Update
-	end if
+end function
+
+function getTaggedValuesDictionary(element, lowerCase)
+	dim dictionary 
+	set dictionary  = CreateObject("Scripting.Dictionary")
+	dim tag
+	for each tag in element.TaggedValues
+		dim tagName
+		if lowerCase then
+			tagName = lcase(tag.Name)
+		else
+			tagName = tag.Name
+		end if
+		if not dictionary.Exists(tagName) then
+			dictionary.Add tagName, tag
+		end if
+	next
+	'return
+	set getTaggedValuesDictionary = dictionary
 end function
 
 function deleteTag(element, taggedValueName)
@@ -1430,65 +1468,27 @@ function deleteFile (filePath)
 	end if
 end function
 
-function isUserPartOfGroup(groupName)
-	isUserPartOfGroup = false 'default value
-	dim userGuid
-	userGuid = Repository.GetCurrentLoginUser(true)
-	'query to check if user is part of group with the given name
+function getSelectedElementsOnDiagram(diagram)
+	dim selectedElements
+	set selectedElements = CreateObject("System.Collections.ArrayList")
+	dim selectedDiagramObjects
+	set selectedDiagramObjects = diagram.SelectedObjects
+	dim selectedDiagramObject as EA.DiagramObject
+	for each selectedDiagramObject in selectedDiagramObjects
+		dim selectedElement
+		set selectedElement = Repository.GetElementByID(selectedDiagramObject.ElementID)
+		if not selectedElement is nothing then
+			selectedElements.Add selectedElement
+		end if
+	next	
+	set getSelectedElementsOnDiagram = selectedElements
+end function
+
+function getElementsOnDiagram(diagram)
 	dim sqlGetData
-	sqlGetData = "select ug.UserID from t_secusergroup ug                       " & vbNewLine & _
-				" inner join t_secgroup g on ug.GroupID = g.GroupID            " & vbNewLine & _
-				" where ug.UserID = '" & userGuid & "'                         " & vbNewLine & _
-				" and g.GroupName = '" & groupName & "'                        "
-	dim results
-	set results = getArrayListFromQuery(sqlGetData)
-	if results.Count > 0 then
-		isUserPartOfGroup = true
-	end if
-end function
-
-function isExistingAuthor(author)
-	isExistingAuthor = false 'default value
-	dim currentAuthor as EA.Author
-	for each currentAuthor in Repository.Authors
-		if currentAuthor.Name = author then
-			isExistingAuthor = true
-		end if
-	next
-end function
-
-function getUserSelectedLanguage()
-	dim userSelectedLanguage
-	userSelectedLanguage = ""
-	dim sqlGetdata
-	sqlGetdata = "select u.Value from usys_system u where u.Property = 'TranslateSecondary'"
-	dim result
-	result = getSingleValueFromQuery(sqlGetdata)
-	dim languages
-	languages = split(result, ";")
-	dim selectMessage
-	selectMessage = "Please select the language"
-	dim language
-	dim i
-	i = 1
-	for each language in languages
-		if len(language) > 0 then
-			selectMessage = selectMessage & vbNewLine & i & ": " & language
-			i = i + 1
-		end if
-	next
-	dim response
-	response = InputBox(selectMessage, "Language to translate to", "1" )
-	if isNumeric(response) then
-		  if Cstr(Cint(response)) = response then 'check if response is integer
-				 dim selectedID
-				 selectedID = Cint(response)
-				 if selectedID > 0 and selectedID <= UBound(languages) then
-					   'set the user selected language
-					   userSelectedLanguage = languages(selectedID)
-				 end if
-		  end if
-	end if
-	'return
-	getUserSelectedLanguage = userSelectedLanguage
+	sqlGetData = "select dod.Object_ID from t_diagramobjects dod      " & vbNewLine & _
+				" where dod.Diagram_ID = " & diagram.DiagramID & "   "
+	dim elements
+	set elements = getElementsFromQuery(sqlGetData)
+	set getElementsOnDiagram = elements
 end function

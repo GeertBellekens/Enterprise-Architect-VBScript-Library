@@ -11,6 +11,7 @@
 !INC Utils.XML
 !INC Utils.Util
 !INC Utils.EA Enums
+!INC Utils.Translation
 
 'Author: Geert Bellekens
 'Date: 2015-12-07

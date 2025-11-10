@@ -10,7 +10,10 @@
 '
 const defaultLanguage = "en"
 
+
 function createTranslatedCopy(diagram)
+	dim secondaryLanguages
+	set secondaryLanguages = getSecondaryLanguages()
 	dim diagramOwner
 	set diagramOwner = nothing
 	if diagram.ParentID > 0 then
@@ -21,13 +24,18 @@ function createTranslatedCopy(diagram)
 	end if
 	'get the language
 	dim language
-	language = getUserSelectedLanguage()
+	language = getUserSelectedLanguage(secondaryLanguages)
 	if len(language) = 0 then
 		exit function
 	end if
 	dim translatedDiagram
 	set translatedDiagram = copyDiagram(diagram, diagramOwner)
-	translatedDiagram.Name = diagram.Name & "_" & uCase(language)
+	'delete the previous translated diagram
+	dim translatedDiagramName
+	translatedDiagramName = diagram.Name & "_" & uCase(language)
+	deleteExistingTranslateion diagram, translatedDiagramName
+	'set the translated name
+	translatedDiagram.Name = translatedDiagramName
 	translatedDiagram.Update
 	'set the "use alias switch
 	if instr(translatedDiagram.ExtendedStyle, "UseAlias=0") > 0 then
@@ -36,37 +44,59 @@ function createTranslatedCopy(diagram)
 		translatedDiagram.ExtendedStyle = translatedDiagram.ExtendedStyle & "UseAlias=1;"
 	end if
 	translatedDiagram.Update
-	translateDiagram translatedDiagram, language, true
+	translateDiagram translatedDiagram, language, true, secondaryLanguages
 	'reload the original diagram
 	Repository.ReloadDiagram diagram.DiagramID
 	'open the translated diagram
 	Repository.OpenDiagram translatedDiagram.DiagramID
+	'reload the package of the diagram
+	Repository.ReloadPackage diagram.PackageID
 end function
 
-function translateItem(item, language, recursive, aliasOnly)
-	Repository.WriteOutput outPutName, now() & " Processing '" & item.Name & "'", 0
+function deleteExistingTranslateion(diagram, translatedDiagramName)
+	'get owner of diagram
+	dim owner as EA.Element
+	set owner = nothing
+	if diagram.ParentID > 0 then
+		set owner = Repository.GetElementByID(diagram.ParentID)
+	end if
+	if owner is nothing then
+		set owner = Repository.GetPackageByID(diagram.PackageID)
+	end if
+	dim i
+	for i = owner.Diagrams.Count - 1 to 0 step -1
+		dim currentDiagram as EA.Diagram
+		set currentDiagram = owner.Diagrams.GetAt(i)
+		if currentDiagram.Name = translatedDiagramName then
+			owner.Diagrams.DeleteAt i, false
+		end if
+	next
+end function
+
+function translateItem(item, language, recursive, aliasOnly, secondaryLanguages)
 	if item.ObjectType = otPackage then
 		'translate the package object itself
-		translateItem item.Element, language, recursive, aliasOnly
+		translateItem item.Element, language, recursive, aliasOnly, secondaryLanguages
 		if recursive then
 			'process elements
 			dim element as EA.Element
 			for each element in item.Elements
-				translateElement element, language, recursive, aliasOnly
+				translateElement element, language, recursive, aliasOnly, secondaryLanguages
 			next
 			'process subPackages
 			dim subPackage as EA.Package
 			for each subPackage in item.Packages
-				translateItem subPackage, language, recursive, aliasOnly
+				translateItem subPackage, language, recursive, aliasOnly, secondaryLanguages
 			next
 		end if
 	elseif item.ObjectType = otElement then
 		'translate element
-		translateElement item, language, recursive, aliasOnly
+		translateElement item, language, recursive, aliasOnly, secondaryLanguages
 	end if
 end function
 
-function translateElement(element, language, recursive, aliasOnly)
+function translateElement(element, language, recursive, aliasOnly, secondaryLanguages)
+	Repository.WriteOutput outPutName, now() & " Processing '" & element.Name & "'", 0
 	dim dirty
 	dirty = false
 	if not aliasOnly then
@@ -78,18 +108,28 @@ function translateElement(element, language, recursive, aliasOnly)
 			element.Name = translatedName
 			dirty = true
 		end if
-	end if
-	'alias
-	dim translatedAlias
-	translatedAlias = element.GetTXAlias(language, 0)
-	if len(translatedAlias) > 0 _
-	  and not element.Alias = translatedAlias then
-		element.Alias = translatedAlias
-		dirty = true
+		dim otherLanguage
+		otherLanguage = getOtherLanguage(language, secondaryLanguages)
+		'alias in the other language
+		dim translatedAlias
+		translatedAlias = element.GetTXName(otherLanguage, 0)
+		if len(translatedAlias) > 0 _
+		  and not element.Alias = translatedAlias then
+			element.Alias = translatedAlias
+			dirty = true
+		end if
+	else
+		'fill alias with name
+		translatedAlias = element.GetTXName(language, 0)
+		if len(translatedAlias) > 0 _
+		  and not element.Alias = translatedAlias then
+			element.Alias = translatedAlias
+			dirty = true
+		end if
 	end if
 	'notes
 	dim notes
-	notes = getTranslatedNotes(element)
+	notes = getTranslatedNotes(element, secondaryLanguages)
 	if not element.Notes = notes then
 		element.Notes = notes
 		dirty = true
@@ -100,26 +140,21 @@ function translateElement(element, language, recursive, aliasOnly)
 	if recursive then
 		dim subElement
 		for each subElement in element.Elements
-			translateElement subElement, language, recursive, aliasOnly
+			translateElement subElement, language, recursive, aliasOnly, secondaryLanguages
 		next
 		for each subElement in element.EmbeddedElements
-			translateElement subElement, language, recursive, aliasOnly
+			translateElement subElement, language, recursive, aliasOnly, secondaryLanguages
 		next
 	end if
 end function
 
-function getTranslatedNotes(element)
+
+function getTranslatedNotes(element, languages)
 	dim notesText
-	dim languages
-	set languages = getSecondaryLanguages()
 	dim language
 	'Name
 	for each language in languages
 		notesText = notesText &  "<b> Name " & Ucase(language) & ": </b>" & element.GetTXName(language, 0) & vbNewLine
-	next
-	'Alias
-	for each language in languages
-		notesText = notesText &  "<b> Alias " & Ucase(language) & ": </b>" & element.GetTXAlias(language, 0) & vbNewLine
 	next
 	'Notes
 	'first check if the translated notes are empty. 
@@ -155,8 +190,10 @@ function isTranslatedNotesEmpty(element, languages)
 end function
 
 function translateProjectBrowser()
+	dim secondaryLanguages 
+	set secondaryLanguages = getSecondaryLanguages()
 	dim language
-	language = getUserSelectedLanguage()
+	language = getUserSelectedLanguage(secondaryLanguages)
 	if len(language) = 0 then
 		exit function
 	end if
@@ -172,22 +209,22 @@ function translateProjectBrowser()
 		Repository.WriteOutput outPutName, now() & " Starting " & outPutName & " for " & treeSelectedElements.Count & " selected elements" ,  0
 		dim item
 		for each item in treeSelectedElements
-			translateItem item, language, true, false
+			translateItem item, language, true, false, secondaryLanguages
 		next
 		Repository.WriteOutput outPutName, now() & " Finished " & outPutName & " for " & treeSelectedElements.Count & " selected elements" ,  0
 	else
 	dim selectedItem
 	set selectedItem = Repository.GetTreeSelectedObject
 		Repository.WriteOutput outPutName, now() & " Starting " & outPutName & " for '"& selectedItem.Name &"'", 0
-		translateItem selectedItem, language, true, false
+		translateItem selectedItem, language, true, false, secondaryLanguages
 		Repository.WriteOutput outPutName, now() & " Finished " & outPutName & " for '"& selectedItem.Name &"'", 0
 	end if
 end function
 
-function translateDiagram(diagram, language, aliasOnly)
+function translateDiagram(diagram, language, aliasOnly,secondaryLanguages)
 	'get the language
 	if len(language) = 0 then
-		language = getUserSelectedLanguage()
+		language = getUserSelectedLanguage(secondaryLanguages)
 	end if
 	if len(language) = 0 then
 		exit function
@@ -201,16 +238,14 @@ function translateDiagram(diagram, language, aliasOnly)
 	'translate the elements
 	dim element as EA.Element
 	for each element in elements
-		translateItem element, language, false, aliasOnly
+		translateItem element, language, false, aliasOnly, secondaryLanguages
 	next
 	'reload the diagram
 	Repository.ReloadDiagram(diagram.DiagramID)
 end function
 
-function getUserSelectedLanguage()
+function getUserSelectedLanguage(enabledLanguages)
 	getUserSelectedLanguage = "" 'default empty string
-	dim enabledLanguages
-	set enabledLanguages = getSecondaryLanguages()
 	if enabledLanguages.Count = 0 then
 		exit function
 	end if
@@ -240,29 +275,41 @@ function getUserSelectedLanguage()
 	getUserSelectedLanguage = language
 end function
 
+function getOtherLanguage(language, secondaryLangauges)
+	dim otherLanguage
+	otherLanguage = ""
+	dim currentLanguage
+	for each currentLanguage in secondaryLangauges
+		if not currentLanguage = language then
+			otherLanguage = currentLanguage
+			exit for
+		end if
+	next
+	'return
+	getOtherLanguage = otherLanguage
+end function
+
 function getSecondaryLanguages()
-	dim languages
-	set languages = CreateObject("System.Collections.ArrayList")
-	set getSecondaryLanguages = languages
+	dim secondaryLangauges
+	set secondaryLangauges = CreateObject("System.Collections.ArrayList")
 	'get all enabled languages
 	dim sqlGetData
 	sqlGetData = "select u.Value from usys_system u          " & vbNewLine & _
 				" where u.Property = 'TranslateSecondary'   "
 	dim languagesString
 	languagesString = getSingleValueFromQuery(sqlGetData)
-	if len(languagesString) = 0 then
-		exit function 'no translation configured
-	end if
-	dim languageParts
-	languageParts = split(languagesString, ";")
+	if len(languagesString) > 0 then
+		dim languageParts
+		languageParts = split(languagesString, ";")
 	
-	dim languagePart
-	for each languagePart in languageParts
-		if len(languagePart) = 2 _
-		  and not languagePart = defaultLanguage then 'language codes have two characters
-			languages.Add languagePart
-		end if
-	next
+		dim languagePart
+		for each languagePart in languageParts
+			if len(languagePart) = 2 _
+			  and not languagePart = defaultLanguage then 'language codes have two characters
+				secondaryLangauges.Add languagePart
+			end if
+		next
+	end if
 	'return
-	set getSecondaryLanguages = languages
+	set getSecondaryLanguages = secondaryLangauges
 end function
