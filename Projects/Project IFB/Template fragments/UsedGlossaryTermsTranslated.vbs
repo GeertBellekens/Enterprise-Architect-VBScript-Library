@@ -11,7 +11,7 @@
 ' Date: 2025-11-05
 '
 
-function MyRtfData (ObjectID, language)
+function MyRtfData (ObjectID, language, relatedElementsQuery)
 	dim xmlQueryResult
 	xmlQueryResult = Repository.SQLQuery(sqlGetData)
 	dim xmlDOM 
@@ -19,7 +19,7 @@ function MyRtfData (ObjectID, language)
 	dim businessProcess as EA.Element
 	set businessProcess = Repository.GetElementByID(objectID)
 	dim usedGlossaryterms
-	set usedGlossaryterms = getUsedGlossaryTerms(businessProcess, language)
+	set usedGlossaryterms = getUsedGlossaryTerms(businessProcess, language, relatedElementsQuery)
 	addGlossaryTermsToEAData xmlDom, usedGlossaryterms
 	'debug
 	set fileSystemObject = CreateObject( "Scripting.FileSystemObject" )
@@ -72,7 +72,7 @@ function addGlossaryTermsToEAData(xmlDom, usedGlossaryterms)
 	next
 end function
 
-function getUsedGlossaryTerms(element, language)
+function getUsedGlossaryTerms(element, language, relatedElementsQuery)
 	dim usedGlossaryTerms
 	set usedGlossaryTerms = CreateObject("Scripting.Dictionary")
 	'get dictionary of all glossaryterms
@@ -80,7 +80,7 @@ function getUsedGlossaryTerms(element, language)
 	set glossaryDictionary = getGlossaryDictionary()
 	'get full translated string
 	dim fullTranslatedString
-	fullTranslatedString = getFullTranslatedString(element, language)
+	fullTranslatedString = getFullTranslatedString(element, language, relatedElementsQuery)
 	'build regular expression
 	dim regexp
 	set regexp = CreateObject("VBScript.RegExp")
@@ -145,16 +145,14 @@ function getGlossaryDictionary()
 		'then add the row
 		entry.Add row
 	next
-	'debug
-	Session.Output "glossaryDictionary.Count: " & glossaryDictionary.Count
 	'return dictionary
 	set getGlossaryDictionary = glossaryDictionary
 end function
 
-function getFullTranslatedString(element, language)
+function getFullTranslatedString(element, language, relatedElementsQuery)
 	'get all related elements
 	dim relatedElements
-	set relatedElements = getRelatedElements(element)
+	set relatedElements = getElementsFromQuery(relatedElementsQuery)
 	'build string with name and notes in the requested language
 	dim fullString
 	fullString = ""
@@ -167,43 +165,43 @@ function getFullTranslatedString(element, language)
 	getFullTranslatedString = fullString
 end function
 
-function getRelatedElements(element)
-	dim sqlGetData
-	sqlGetData = "select  o.Object_ID from t_object bp                                                                                                 " & vbNewLine & _
-				" left join t_object o1 on o1.ParentID = bp.Object_ID                                                                                 " & vbNewLine & _
-				" left join t_object o2 on o2.ParentID = o1.Object_ID                                                                                 " & vbNewLine & _
-				" left join t_object o3 on o3.ParentID = o2.Object_ID                                                                                 " & vbNewLine & _
-				" inner join t_object o on o.Object_ID in (bp.Object_ID, o1.Object_ID, o2.Object_ID, o3.Object_ID)                                    " & vbNewLine & _
-				" where bp.Object_ID = " & element.ElementID & "                                                                                      " & vbNewLine & _
-				" and o.Object_Type not in ('Text', 'Note', 'Artifact')                                                                               " & vbNewLine & _
-				" union                                                                                                                               " & vbNewLine & _
-				" select oo.Object_ID from t_object bp                                                                                                " & vbNewLine & _
-				" left join t_object o1 on o1.ParentID = bp.Object_ID                                                                                 " & vbNewLine & _
-				" left join t_object o2 on o2.ParentID = o1.Object_ID                                                                                 " & vbNewLine & _
-				" left join t_object o3 on o3.ParentID = o2.Object_ID                                                                                 " & vbNewLine & _
-				" inner join t_object o on o.Object_ID in (bp.Object_ID, o1.Object_ID, o2.Object_ID, o3.Object_ID)                                    " & vbNewLine & _
-				" inner join t_objectproperties tv on tv.Object_ID = o.Object_ID                                                                      " & vbNewLine & _
-				" inner join t_object oo on oo.ea_guid = tv.Value                                                                                     " & vbNewLine & _
-				" where bp.Object_ID = " & element.ElementID & "                                                                                      " & vbNewLine & _
-				" and o.Object_Type not in ('Text', 'Note', 'Artifact')                                                                               " & vbNewLine & _
-				" union                                                                                                                               " & vbNewLine & _
-				" select oo.Object_ID from t_object bp                                                                                                " & vbNewLine & _
-				" left join t_object o1 on o1.ParentID = bp.Object_ID                                                                                 " & vbNewLine & _
-				" left join t_object o2 on o2.ParentID = o1.Object_ID                                                                                 " & vbNewLine & _
-				" left join t_object o3 on o3.ParentID = o2.Object_ID                                                                                 " & vbNewLine & _
-				" inner join t_object o on o.Object_ID in (bp.Object_ID, o1.Object_ID, o2.Object_ID, o3.Object_ID)                                    " & vbNewLine & _
-				" inner join t_connector c on o.Object_ID in (c.End_Object_ID, c.Start_Object_ID)                                                     " & vbNewLine & _
-				" 						and c.Stereotype = 'trace'                                                                                    " & vbNewLine & _
-				" inner join t_object oo on oo.Object_ID in (c.End_Object_ID, c.Start_Object_ID)                                                      " & vbNewLine & _
-				" 						and oo.Object_ID <> o.Object_ID                                                                               " & vbNewLine & _
-				" 						and oo.Stereotype in ('Risk', 'ArchiMate_ApplicationComponent','ArchiMate_Location', 'ArchiMate_Equipment')   " & vbNewLine & _
-				" where bp.Object_ID = " & element.ElementID & "                                                                                      " & vbNewLine & _
-				" and o.Object_Type not in ('Text', 'Note', 'Artifact')                                                                               "
-	dim result
-	set result = getElementsFromQuery(sqlGetData)
-	'return
-	set getRelatedElements = result
-end function
+'function getRelatedElements(element)
+'	dim sqlGetData
+'	sqlGetData = "select  o.Object_ID from t_object bp                                                                                                 " & vbNewLine & _
+'				" left join t_object o1 on o1.ParentID = bp.Object_ID                                                                                 " & vbNewLine & _
+'				" left join t_object o2 on o2.ParentID = o1.Object_ID                                                                                 " & vbNewLine & _
+'				" left join t_object o3 on o3.ParentID = o2.Object_ID                                                                                 " & vbNewLine & _
+'				" inner join t_object o on o.Object_ID in (bp.Object_ID, o1.Object_ID, o2.Object_ID, o3.Object_ID)                                    " & vbNewLine & _
+'				" where bp.Object_ID = " & element.ElementID & "                                                                                      " & vbNewLine & _
+'				" and o.Object_Type not in ('Text', 'Note', 'Artifact')                                                                               " & vbNewLine & _
+'				" union                                                                                                                               " & vbNewLine & _
+'				" select oo.Object_ID from t_object bp                                                                                                " & vbNewLine & _
+'				" left join t_object o1 on o1.ParentID = bp.Object_ID                                                                                 " & vbNewLine & _
+'				" left join t_object o2 on o2.ParentID = o1.Object_ID                                                                                 " & vbNewLine & _
+'				" left join t_object o3 on o3.ParentID = o2.Object_ID                                                                                 " & vbNewLine & _
+'				" inner join t_object o on o.Object_ID in (bp.Object_ID, o1.Object_ID, o2.Object_ID, o3.Object_ID)                                    " & vbNewLine & _
+'				" inner join t_objectproperties tv on tv.Object_ID = o.Object_ID                                                                      " & vbNewLine & _
+'				" inner join t_object oo on oo.ea_guid = tv.Value                                                                                     " & vbNewLine & _
+'				" where bp.Object_ID = " & element.ElementID & "                                                                                      " & vbNewLine & _
+'				" and o.Object_Type not in ('Text', 'Note', 'Artifact')                                                                               " & vbNewLine & _
+'				" union                                                                                                                               " & vbNewLine & _
+'				" select oo.Object_ID from t_object bp                                                                                                " & vbNewLine & _
+'				" left join t_object o1 on o1.ParentID = bp.Object_ID                                                                                 " & vbNewLine & _
+'				" left join t_object o2 on o2.ParentID = o1.Object_ID                                                                                 " & vbNewLine & _
+'				" left join t_object o3 on o3.ParentID = o2.Object_ID                                                                                 " & vbNewLine & _
+'				" inner join t_object o on o.Object_ID in (bp.Object_ID, o1.Object_ID, o2.Object_ID, o3.Object_ID)                                    " & vbNewLine & _
+'				" inner join t_connector c on o.Object_ID in (c.End_Object_ID, c.Start_Object_ID)                                                     " & vbNewLine & _
+'				" 						and c.Stereotype = 'trace'                                                                                    " & vbNewLine & _
+'				" inner join t_object oo on oo.Object_ID in (c.End_Object_ID, c.Start_Object_ID)                                                      " & vbNewLine & _
+'				" 						and oo.Object_ID <> o.Object_ID                                                                               " & vbNewLine & _
+'				" 						and oo.Stereotype in ('Risk', 'ArchiMate_ApplicationComponent','ArchiMate_Location', 'ArchiMate_Equipment')   " & vbNewLine & _
+'				" where bp.Object_ID = " & element.ElementID & "                                                                                      " & vbNewLine & _
+'				" and o.Object_Type not in ('Text', 'Note', 'Artifact')                                                                               "
+'	dim result
+'	set result = getElementsFromQuery(sqlGetData)
+'	'return
+'	set getRelatedElements = result
+'end function
 
 
 

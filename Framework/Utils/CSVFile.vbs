@@ -44,6 +44,10 @@ Class CSVFile
 		m_TextFile.LoadContents
 	End Property
 	
+	public function UserSelect(initialDir)
+		UserSelect = m_TextFile.UserSelect(initialDir, "CSV files|*.csv")
+	end function
+	
 	public Function getUserSelectedFileName()
 		dim selectedFileName
 		dim project
@@ -78,7 +82,7 @@ Class CSVFile
 			set row = CreateObject("System.Collections.ArrayList")
 			data.Add row
 			dim parts
-			parts = split(line, ",")
+			parts = split(line, ";")
 			dim part
 			for each part in parts
 				part = replace(part, """", "") 'remove all double quotes from the text
@@ -106,7 +110,7 @@ Class CSVFile
 					row(i) = """" & value & """"
 				end if
 			next
-			rowString = Join(row.ToArray(), ",")
+			rowString = Join(row.ToArray(), ";")
 			csvString = csvString & rowString
 		next
 		'return

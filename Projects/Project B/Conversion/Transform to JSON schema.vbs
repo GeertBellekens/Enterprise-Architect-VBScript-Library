@@ -553,9 +553,15 @@ function convertElementToJSONProfile(element)
 	select case lcase(element.Type)
 		case "class"
 			if element.Stereotype = "LDM_Message" then
+				dim targetFile
+				targetFile = getTaggedValueValue(element, "targetJSONFile")
 				updateElementStereotype element, messageStereotype
 				'set default schema version
 				setTagValue element, "schema", defaultSchemaVersion
+				'set JSON file
+				if len(targetFile) > 0 then
+					setTagValue element, "schemaFileName", targetFile
+				end if
 			else
 				updateElementStereotype element, classStereotype
 			end if

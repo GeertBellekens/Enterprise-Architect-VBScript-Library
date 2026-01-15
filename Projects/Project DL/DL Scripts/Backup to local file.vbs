@@ -9,47 +9,47 @@ option explicit
 ' Date: 07/11/2018
 
 '
-sub DeLijnDEV
+sub Backup1
 
- Dim CurrentDate
- Currentdate = (Year(Date) & (Right(String(2,"0") & Month(Date), 2)) & (Right(String(2,"0") & Day(Date), 2)))  'yyyymmdd'
+	Dim CurrentDate
+	Currentdate = (Year(Date) & (Right(String(2,"0") & Month(Date), 2)) & (Right(String(2,"0") & Day(Date), 2)))  'yyyymmdd'
 
- 'dim repository
- dim projectInterface
- 'set repository = CreateObject("EA.Repository")
+	'dim repository
+	dim projectInterface
+	'set repository = CreateObject("EA.Repository")
 
- Dim FileName
- Filename = "EA_Export.eap"
-  
- dim LogFilePath
- LogFilePath = "H:\backups\"&CurrentDate & " DeLijnDEV (back-up).log"
+	Dim FileName
+	Filename = "EA_Export.eap"
 
- dim TargetFilePath
- TargetFilePath = "H:\Backups\"&CurrentDate & " DeLijnDEV (back-up).eapx"
+	dim LogFilePath
+	LogFilePath = "H:\backups\"&CurrentDate & " DeLijnDEV (back-up).log"
 
- dim eapString
- eapString = "DBType=3;Connect=Provider=OraOLEDB.Oracle.1;Password=SDu_udr_7rfFErtsw99_a4f;Persist Security Info=True;User ID=enterprisearchitectuurdev;Data Source=caoracdcmvvm-scan.vvm.addelijn.be:1551/DSHARED.delijn.be;"
+	dim TargetFilePath
+	TargetFilePath = "H:\Backups\"&CurrentDate & " DeLijnDEV (back-up).eapx"
 
- 'get project interface
- set projectInterface = Repository.GetProjectInterface()
+	dim eapString
+	eapString = "DBType=3;Connect=Provider=OraOLEDB.Oracle.1;Password=password;Persist Security Info=True;User ID=enterprisearchitectuurdev;Data Source=caoracdcmvvm-scan.vvm.addelijn.be:1551/DSHARED.delijn.be;"
 
- projectInterface.ProjectTransfer eapString, TargetFilePath, LogFilePath
+	'get project interface
+	set projectInterface = Repository.GetProjectInterface()
 
- 'repository.CloseFile
- 'repository.Exit 
+	projectInterface.ProjectTransfer eapString, TargetFilePath, LogFilePath
 
-' Dim newFilename 
-' newFilename = "H:\Backups\"&CurrentDate & " DeLijnDEV (back-up).eap"
-'
-' Dim Fso
-' Set Fso = WScript.CreateObject("Scripting.FileSystemObject")
-' Fso.MoveFile TargetFilePath, newFileName
+	'repository.CloseFile
+	'repository.Exit 
+
+	' Dim newFilename 
+	' newFilename = "H:\Backups\"&CurrentDate & " DeLijnDEV (back-up).eap"
+	'
+	' Dim Fso
+	' Set Fso = WScript.CreateObject("Scripting.FileSystemObject")
+	' Fso.MoveFile TargetFilePath, newFileName
    
 end sub
 
 
 
-DeLijnDEV
+Backup1
 'DeLijnTEST
 'DeLijnPROD
 

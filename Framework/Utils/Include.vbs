@@ -12,6 +12,7 @@
 !INC Utils.Util
 !INC Utils.EA Enums
 !INC Utils.Translation
+!INC Utils.CSVFile
 
 'Author: Geert Bellekens
 'Date: 2015-12-07

@@ -755,6 +755,13 @@ function convertRootElement(element)
 	targetNameSpace = getTaggedValueValue(element, "targetNamespace")
 	setTagValue package.Element, "targetNamespace", targetNameSpace
 	setTagValue package.Element, "defaultNamespace", targetNameSpace
+	'set target file
+	dim targetFile
+	targetFile = getTaggedValueValue(element, "targetXSDFile")
+	if len(targetFile) > 0 then
+		package.Element.Genfile = targetFile
+		package.Element.Update
+	end if
 	'create a xsdTopLevelElement with the same name as the message element
 	dim topLevelElement as EA.Element
 	set topLevelElement  = package.Elements.AddNew(element.Name, messageStereotype)

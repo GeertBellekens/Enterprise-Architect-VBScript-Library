@@ -11,31 +11,31 @@ option explicit
 ' Purpose: Update the applied metamodel for the diagrams under the Business Process Block element
 ' Date: 2025-08-29
 
-function EA_OnPostNewDiagram(Info)
-	msgbox "EA_OnPostNewDiagram"
-	dim returnValue
-	returnValue = false
-	 'Add code here
-	dim diagram as EA.Diagram
-	set diagram = Repository.GetDiagramByID(Info.Get("DiagramID"))
-	msgbox diagram.MetaType
-	'get owner
-	if diagram.ParentID = 0 _
-	  or not diagram.MetaType = "BPMN2.0::Business Process" then
-		exit function
-	end if
-	dim owner as EA.Element 
-	set owner = Repository.GetElementByID(diagram.ParentID)
-	if owner.Stereotype = "ArchiMate_BusinessProcess" then
-		diagram.ExtendedStyle = setValueForKey(diagram.ExtendedStyle, "MDGView", "Elia Modelling::Business Process Diagram")
-		diagram.Update
-		msgbox "updated"
-		returnValue = true
-	end if
-	msgbox "Finished EA_OnPostNewDiagram"
-	'return
-	EA_OnPostNewDiagram = returnValue
-end function
+'function EA_OnPostNewDiagram(Info)
+'	'msgbox "EA_OnPostNewDiagram"
+'	dim returnValue
+'	returnValue = false
+'	 'Add code here
+'	dim diagram as EA.Diagram
+'	set diagram = Repository.GetDiagramByID(Info.Get("DiagramID"))
+'	msgbox diagram.MetaType
+'	'get owner
+'	if diagram.ParentID = 0 _
+'	  or not diagram.MetaType = "BPMN2.0::Business Process" then
+'		exit function
+'	end if
+'	dim owner as EA.Element 
+'	set owner = Repository.GetElementByID(diagram.ParentID)
+'	if owner.Stereotype = "ArchiMate_BusinessProcess" then
+'		diagram.ExtendedStyle = setValueForKey(diagram.ExtendedStyle, "MDGView", "Elia Modelling::Business Process Diagram")
+'		diagram.Update
+'		msgbox "updated"
+'		returnValue = true
+'	end if
+'	'msgbox "Finished EA_OnPostNewDiagram"
+'	'return
+'	EA_OnPostNewDiagram = returnValue
+'end function
 
 function setValueForKeyEx(searchString, key, value, separator)
 	dim keyValues

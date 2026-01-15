@@ -1492,3 +1492,24 @@ function getElementsOnDiagram(diagram)
 	set elements = getElementsFromQuery(sqlGetData)
 	set getElementsOnDiagram = elements
 end function
+
+function getItemFromGUID(itemGUID)
+	dim result
+	set result = nothing
+	'first try element
+	set result = Repository.GetElementByGuid(itemGUID)
+	'try connector
+	if result is nothing then
+		set result = Repository.GetConnectorByGuid(itemGUID)
+	end if
+	'try attribute
+	if result is nothing then
+		set result = Repository.GetAttributeByGuid(itemGUID)
+	end if
+	'try operation
+	if result is nothing then
+		set result = Repository.GetMethodByGuid(itemGUID)
+	end if
+	'return
+	set getItemFromGUID = result
+end function
