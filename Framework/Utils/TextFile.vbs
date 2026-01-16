@@ -77,6 +77,9 @@ Class TextFile
 	sub Save
 		Dim fso, MyFile
 		Set fso = CreateObject("Scripting.FileSystemObject")
+		if len(me.FileName) = 0 then
+			me.FullPath = Repository.InvokeFileDialog("All files|*.*",1,0)
+		end if
 		'first make sure the directory exists
 		me.Folder.Save
 		'then create file
@@ -118,30 +121,5 @@ Class TextFile
 			me.Contents = ts.ReadAll
 		end if
 	end function
-	'appends the given string to the end of the textfile
-	public function append(contentToAppend)
-		dim fso
-		Set fso = CreateObject("Scripting.FileSystemObject")
-		dim fsoFile
-		if not fso.FileExists(me.FullPath) then
-			'create as new file
-			me.Contents = contentToAppend
-			me.save
-		else
-			'then append to the file
-			Set fsoFile = fso.OpenTextFile(me.FullPath, ForAppending,TristateUseDefault)
-			fsoFile.Write contentToAppend
-			fsoFile.Close
-		end if
-	end function
 	
 end class
-
-'Static functions
-function writeFile(filename, contents)
-	dim file
-	set file = New TextFile
-	file.FullPath = filename
-	file.Contents = contents
-	file.Save
-end function 

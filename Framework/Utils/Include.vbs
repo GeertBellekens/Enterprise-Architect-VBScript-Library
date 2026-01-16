@@ -1,6 +1,7 @@
 '[path=\Framework\Utils]
 '[group=Utils]
 !INC Utils.BinaryFile
+!INC Utils.CSVFile
 !INC Utils.DocGenHelpers
 !INC Utils.ExcelFile
 !INC Utils.FileSystem
@@ -11,8 +12,6 @@
 !INC Utils.XML
 !INC Utils.Util
 !INC Utils.EA Enums
-!INC Utils.Translation
-!INC Utils.CSVFile
 
 'Author: Geert Bellekens
 'Date: 2015-12-07

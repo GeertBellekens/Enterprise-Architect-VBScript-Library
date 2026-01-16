@@ -46,9 +46,17 @@ function Main ()
 	dim schemaContent
 	set schemaContent = getSchemaContent(artifact)
 	xmlDom.appendChild schemaContent.documentElement
+	dim userSelectedRootElement
+	set userSelectedRootElement = getUserSelectedRootNodeElement(xmlDom)
+	'chek type of userSelectedRoot element to figure out if user pressed cancel
+	if lcase(TypeName(userSelectedRootElement)) <> "idualelement" _
+	  and not userSelectedRootElement is nothing then
+		Repository.WriteOutput outPutName, now() & " Script cancelled by user", artifact.ElementID
+		exit function
+	end if
 '	'debug
 '	writefile "c:\\temp\\schemaContents.xml", xmlDom.xml
-	selectAllInProfile xmlDom
+	selectAllInProfile xmlDom, userSelectedRootElement
 '	'debug
 '	writefile "c:\\temp\\schemaContents_cleaned.xml", xmlDom.xml
 	'ask for permission to save schema content
@@ -65,7 +73,58 @@ function Main ()
 	Repository.WriteOutput outPutName, now() & " Finished Select All in Schema", artifact.ElementID
 end function
 
-function selectAllInProfile(xmlDom)
+function getUserSelectedRootNodeElement(xmlDom)
+	set getUserSelectedRootNodeElement = nothing 'default
+	dim rootNodes
+	set rootNodes = xmlDom.selectNodes("//class[@root='true']")
+	if rootNodes.Length < 2 then
+		exit function 'only ask user if there are at least 2 rootnodes
+	end if
+	'build select message
+	dim selectMessage
+	selectMessage = "Please select the Root Node"  & vbNewLine & vbNewLine & _
+					"0: Select all             " & vbNewLine 
+	dim i
+	i = 1
+	dim rootNode
+	dim elementDictionary
+	set elementDictionary = CreateObject("Scripting.Dictionary")
+	'add default 
+	elementDictionary.Add 0, nothing
+	for each rootNode in rootNodes
+		dim guid
+		guid = rootNode.GetAttribute("guid")
+		'get element
+		dim element
+		set element = Repository.GetElementByGuid(guid)
+		if not element is nothing then
+			'add to dictionary
+			elementDictionary.Add i, element
+			'extend select message
+			selectMessage = selectMessage & vbNewLine & i & ": " & element.FQName & vbNewLine 
+		end if
+		i = i + 1 'increase counter
+	next
+	dim rootNodeElement as EA.Element
+	set rootNodeElement = nothing
+	dim response
+	response = InputBox(selectMessage, "Select Root Node", "0" )
+	if isEmpty(response) then
+		set getUserSelectedRootNodeElement = Repository 'return some default existing object
+		exit function
+	end if
+	if isNumeric(response) then
+		if Cstr(Cint(response)) = response then 'check if response is integer
+			if Cint(response) <= rootNodes.Length then
+				set rootNodeElement = elementDictionary(Cint(response))
+			end if
+		end if
+	end if
+	'return
+	set getUserSelectedRootNodeElement = rootNodeElement
+end function
+
+function selectAllInProfile(xmlDom, userSelectedRootElement)
 	dim xmlSchema
 	set xmlSchema = xmlDOM.selectSingleNode("//schema")
 	dim allClassNodes
@@ -73,15 +132,21 @@ function selectAllInProfile(xmlDom)
 	set allClassNodes = getClassNodes(xmlDom)
 	dim processedNodes
 	set processedNodes = CreateObject("Scripting.Dictionary")
-	dim elementGUID
-	for each elementGUID in allClassNodes.Keys
-		'get the element
-		dim element as EA.Element
-		set element = Repository.GetElementByGuid(elementGUID)
-		if not element is nothing then
-			createOrUpdateElementNode xmlDOM, xmlSchema, element, allClassNodes, processedNodes
-		end if
-	next
+	if not userSelectedRootElement is nothing then
+		'only process this root node
+		createOrUpdateElementNode xmlDOM, xmlSchema, userSelectedRootElement, allClassNodes, processedNodes
+	else
+		'process all nodes
+		dim elementGUID
+		for each elementGUID in allClassNodes.Keys
+			'get the element
+			dim element as EA.Element
+			set element = Repository.GetElementByGuid(elementGUID)
+			if not element is nothing then
+				createOrUpdateElementNode xmlDOM, xmlSchema, element, allClassNodes, processedNodes
+			end if
+		next
+	end if
 	'update the count attribute in the schema node
 	dim schemaNode
 	set schemaNode = xmlDom.selectSingleNode("//schema")
@@ -210,32 +275,33 @@ function addElementDetails(xmlClass, xmlDOM, xmlSchema, element, allNodes, proce
 		set propertyNode = xmlProperties.selectSingleNode("./property[@guid='" & attribute.AttributeGUID & "']")
 		if propertyNode is nothing then
 			xmlProperties.appendChild createPropertyNode (xmlDOM, attribute.AttributeGUID, "attribute")
-			'add an element node for the type of this attribute
-			if attribute.ClassifierID > 0 then
-				dim attributeType as EA.Element
-				set attributeType = Repository.GetElementByID(attribute.ClassifierID)
-				'add the node for the attributeType 
-				createOrUpdateElementNode xmlDOM, xmlSchema, attributeType, allNodes, processedNodes
-			end if
+		end if
+		'add an element node for the type of this attribute
+		if attribute.ClassifierID > 0 then
+			dim attributeType as EA.Element
+			set attributeType = Repository.GetElementByID(attribute.ClassifierID)
+			'add the node for the attributeType 
+			createOrUpdateElementNode xmlDOM, xmlSchema, attributeType, allNodes, processedNodes
 		end if
 	next
 	
 	'add associations only if they start at the given element
+	dim associations
+	set associations = getOutgoingAssociations(element)
 	dim relation as EA.Connector
-	for each relation in element.Connectors
-		if (relation.Type = "Association" _
-		or relation.Type = "Aggregation" ) then
-			'check if propertyNode exists
-			set propertyNode = xmlProperties.selectSingleNode("./property[@guid='" & relation.ConnectorGUID & "']")
-			if propertyNode is nothing then
-				'add association node
-				xmlProperties.appendChild createPropertyNode (xmlDOM, relation.ConnectorGUID, "association")
-				'add element node for the target of the relation
-				dim targetElement as EA.Element
-				set targetElement = Repository.GetElementByID(relation.SupplierID)
-				'add the node for the target
-				createOrUpdateElementNode xmlDOM, xmlSchema, targetElement, allNodes, processedNodes
-			end if
+	for each relation in associations
+		'check if propertyNode exists
+		set propertyNode = xmlProperties.selectSingleNode("./property[@guid='" & relation.ConnectorGUID & "']")
+		if propertyNode is nothing then
+			'add association node
+			xmlProperties.appendChild createPropertyNode (xmlDOM, relation.ConnectorGUID, "association")
+		end if
+		'add element node for the target of the relation
+		dim targetElement as EA.Element
+		set targetElement = Repository.GetElementByID(relation.SupplierID)
+		if not targetElement is nothing then
+			'add the node for the target
+			createOrUpdateElementNode xmlDOM, xmlSchema, targetElement, allNodes, processedNodes
 		end if
 	next
 	'add subclasses for classes (not datatypes)
@@ -248,6 +314,18 @@ function addElementDetails(xmlClass, xmlDOM, xmlSchema, element, allNodes, proce
 			createOrUpdateElementNode xmlDOM, xmlSchema, subClass, allNodes, processedNodes
 		next
 	end if
+end function
+
+function getOutgoingAssociations(element)
+	dim sqlGetData
+	sqlGetData = "select c.Connector_ID                                       " & vbNewLine & _
+				" from t_connector c                                         " & vbNewLine & _
+				" where c.Connector_Type in ('Association', 'Aggregation')   " & vbNewLine & _
+				" and c.Start_Object_ID = " & element.ElementID
+	dim result
+	set result = getConnectorsFromQuery(sqlGetData)
+	'return
+	set getOutgoingAssociations = result
 end function
 
 function getSubClasses(element)
@@ -305,7 +383,14 @@ function addAncestry(xmlClass, xmlDOM, xmlSchema, element, allNodes, processedNo
 			createOrUpdateElementNode xmlDOM, xmlSchema, baseElement, allNodes, processedNodes
 		next
 		'add to xmlClassNode
-		xmlClass.appendChild xmlAncestry
+		If xmlClass.hasChildNodes Then
+			' Insert before the first existing child
+			xmlClass.insertBefore xmlAncestry, xmlClass.firstChild
+		Else
+			' No children, just append
+			xmlClass.appendChild xmlAncestry
+		End If
+		'xmlClass.appendChild xmlAncestry
 	end if
 end function
 

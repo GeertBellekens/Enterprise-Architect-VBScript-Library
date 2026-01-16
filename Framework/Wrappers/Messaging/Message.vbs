@@ -7,59 +7,46 @@
 ' Purpose: A wrapper class for a message node in a messaging structure
 ' Date: 2017-03-14
 
-'Message types
-const msgMIG6 = "MIG6"
-const msgMIGDGO = "MIGDGO"
-const msgMIGPPP = "MIGPPP"
-const msgJSON = "JSON"
-
 Class Message
 	'private variables
 	Private m_Name
-	Private m_Alias
 	Private m_RootNode
 	Private m_MessageDepth
 	Private m_BaseTypes
 	Private m_Enumerations
 	Private m_Prefix
 	private m_ValidationRules
-	Private m_MessageType
+	Private m_CustomOrdering
 	Private m_IncludeDetails
-	Private m_Fisses
-	Private m_Version
-	
+	Private m_isJSON
+
 	'constructor
 	Private Sub Class_Initialize
 		m_Name = ""
-		m_Alias = ""
 		set m_RootNode = nothing
 		m_MessageDepth = 0
 		set m_BaseTypes = CreateObject("Scripting.Dictionary")
 		set m_Enumerations = CreateObject("Scripting.Dictionary")
 		m_Prefix = ""
 		set m_ValidationRules = CreateObject("System.Collections.ArrayList")
-		m_MessageType = msgMIGDGO
+		m_CustomOrdering = false
 		m_IncludeDetails = false
-		set m_Fisses = nothing
-		m_Version = ""
+		m_isJSON = false
 	End Sub
 	
 	'public properties
-	
+	Public Property Get isJSON
+		isJSON = m_isJSON 
+	End Property
+	Public Property Let isJSON(value)
+		m_isJSON = value
+	End Property
 	' Name property.
 	Public Property Get Name
 	  Name = m_Name
 	End Property
 	Public Property Let Name(value)
 	  m_Name = value
-	End Property
-		
-	' Alias property.
-	Public Property Get Alias
-	  Alias = m_Alias
-	End Property
-	Public Property Let Alias(value)
-	  m_Alias = value
 	End Property
 	
 	' RootNode property.
@@ -101,12 +88,12 @@ Class Message
 	  set m_ValidationRules = value
 	End Property
 	
-	'MessageType
-	Public Property Get MessageType
-	  MessageType = m_MessageType
+	'CustomOrdering
+	Public Property Get CustomOrdering
+	  CustomOrdering = m_CustomOrdering
 	End Property
-	Public Property Let MessageType(value)
-		m_MessageType = value
+	Public Property Let CustomOrdering(value)
+		m_CustomOrdering = value
 	End Property
 	
 	' IncludeDetails property.
@@ -117,140 +104,74 @@ Class Message
 		m_IncludeDetails = value
 	End Property
 	
-	' Fisses property.
-	Public Property Get Fisses
-		if m_Fisses is nothing then
-			loadFisses
-		end if
-		set Fisses = m_Fisses
-	End Property
-	Public Property Let Fisses(value)
-		set Fisses = value
-	End Property
-	
-	' HasMappings property.
-	Public Property Get HasMappings
-	  if me.RootNode.Mappings.Count > 0 then
-		HasMappings = true
-	  else
-		HasMappings = false
-	  end if
-	End Property
-	
-	' Version property.
-	Public Property Get Version
-		if len(m_Version) = 0 then
-			select case messageType
-				case msgJSON
-					m_version = me.RootNode.SourceElement.Version
-				case else
-					dim parentPackage as EA.Package
-					set parentPackage = Repository.GetPackageByID(me.RootNode.SourceElement.PackageID)
-					dim taggedValue as EA.TaggedValue
-					for each taggedValue in parentPackage.Element.TaggedValues
-						if lcase(taggedValue.Name) = "versionid" _
-						  or lcase(taggedValue.Name) = "version" then
-							m_Version = taggedValue.Value
-							exit for
-						end if
-					next
-			end select
-		end if
-		'return
-		Version = m_Version
-	End Property
-	
-	private function loadFisses()
-		set m_Fisses = CreateObject("System.Collections.ArrayList")
-		'MA(subset) -trace-> MA(messaging Model) -realize-> Message -realize-> FIS
-		dim getFissesSQL
-		getFissesSQL = "select fis.Object_ID from t_object o                                             " & _
-					" inner join t_connector c on c.Start_Object_ID = o.Object_ID                      " & _
-					" 							and c.Connector_Type = 'Abstraction'                   " & _
-					" 							and c.Stereotype = 'trace'                             " & _
-					" inner join t_object om on om.Object_ID = c.End_Object_ID                         " & _
-					" 						and om.Name = o.Name                                       " & _
-					" 						and om.Object_Type = o.Object_Type                         " & _
-					" inner join t_connector omc on omc.Start_Object_ID = om.Object_ID                 " & _
-					" 						 and omc.Connector_Type in ('Realization', 'Realisation')  " & _
-					" inner join t_object msg on msg.object_ID = omc.End_Object_ID                     " & _
-					" 						and msg.Object_Type = 'Class'                              " & _
-					" 						and msg.Stereotype = 'Message'                             " & _
-					" inner join t_connector msgc on msgc.Start_Object_ID = msg.Object_ID              " & _
-					" 						 and msgc.Connector_Type in ('Realization', 'Realisation') " & _
-					" inner join t_object fis on fis.Object_ID = msgc.End_Object_ID                    " & _
-					" 						and fis.Object_Type = 'Class'                              " & _
-					" 						and fis.Stereotype = 'Message'                             " & _
-					" where o.Object_ID = " & me.RootNode.ElementID & "                                " & _
-					" union                                                                            " & _
-					" select fis.Object_ID from t_object o                                             " & _
-					" inner join t_connector omc on omc.Start_Object_ID = o.Object_ID                  " & _
-					" 						 and omc.Connector_Type in ('Realization', 'Realisation')  " & _
-					" inner join t_object msg on msg.object_ID = omc.End_Object_ID                     " & _
-					" 						and msg.Object_Type = 'Class'                              " & _
-					" 						and msg.Stereotype = 'Message'                             " & _
-					" inner join t_connector msgc on msgc.Start_Object_ID = msg.Object_ID              " & _
-					" 						 and msgc.Connector_Type in ('Realization', 'Realisation') " & _
-					" inner join t_object fis on fis.Object_ID = msgc.End_Object_ID                    " & _
-					" 						and fis.Object_Type = 'Class'                              " & _
-					" 						and fis.Stereotype = 'Message'                             " & _
-					" where o.Object_ID =  " & me.RootNode.ElementID & "                               " & _
-					" union                                                                            " & _
-					" select fis.Object_ID from t_object o                                             " & _
-					" inner join t_connector msgc on msgc.Start_Object_ID = o.Object_ID                " & _
-					" 						 and msgc.Connector_Type in ('Realization', 'Realisation') " & _
-					" inner join t_object fis on fis.Object_ID = msgc.End_Object_ID                    " & _
-					" 						and fis.Object_Type = 'Class'                              " & _
-					" 						and fis.Stereotype = 'Message'                             " & _
-					" where o.Object_ID =  " & me.RootNode.ElementID & "                               " & _
-					" and o.Stereotype = 'JSON_Schema'                                                 "
-		dim fisses
-		set fisses = getElementsFromQuery(getFissesSQL)
-		dim fis as EA.Element
-		for each fis in fisses
-			m_Fisses.Add fis
-		next
-	end function
-	
 	public function loadMessage(eaRootNodeElement)
-		
 		'set the name of the message
-		'the name of the message is equal to the name of the owning package
+		
+		'the name of the message is equal to the name of the owning package, unless the rootnodeElement is a package
 		dim ownerPackage as EA.Package
-		set ownerPackage = Repository.GetPackageByID(eaRootNodeElement.PackageID)
-		me.Name = ownerPackage.Name
-		'set alias
-		me.Alias = eaRootNodeElement.Alias
+		if eaRootNodeElement.ObjectType = otPackage then
+			set ownerPackage = eaRootNodeElement
+		else
+			set ownerPackage = Repository.GetPackageByID(eaRootNodeElement.PackageID)
+		end if
+		me.Name = eaRootNodeElement.Name
 		'set the prefix
 		m_Prefix = getPrefix(ownerPackage)
-		'set MessageType (default = MIGDGO)
+		'set the customOrdering property (check if MA is one of the stereotypes
 		dim rootNodeStereotypes
 		dim rootNodeStereotype
 		rootNodeStereotypes = split(eaRootNodeElement.StereotypeEx, ",")
 		for each rootNodeStereotype in rootNodeStereotypes
 			if rootNodeStereotype = "MA" then
-				me.MessageType = msgMIG6
+				me.CustomOrdering = true
 				'for message assemblies the name is stored on the element
 				me.Name = eaRootNodeElement.Name
 				exit for
-			elseif rootNodeStereotype = "JSON_Schema" then
-				me.MessageType = msgJSON
+			end if
+			if rootNodeStereotype = "JSON_Schema" then
+				me.isJSON = true
 			end if
 		next
-		'if messagetype is still MIGDGO then check if this should not be PPP
-		if me.MessageType = msgMIGDGO then
-			if left(ownerPackage.Name,3) = "PPP" then
-				me.MessageType = msgMIGPPP
-			end if
-		end if
 		'create the root node
 		me.RootNode = new MessageNode
+		me.RootNode.CustomOrdering = me.CustomOrdering
 		me.RootNode.IncludeDetails = me.IncludeDetails
-		me.RootNode.Message = me
 		me.RootNode.intitializeWithSource eaRootNodeElement, nothing, "1..1", nothing, nothing
+		'if the rootnode has no subnodes and it has a nested complex type then we initialize it with that complex type
+		if me.RootNode.ChildNodes.Count = 0 then
+			dim nestedClass as EA.Element
+			for each nestedClass in eaRootNodeElement.Elements
+				if nestedClass.Stereotype = "XSDcomplexType" then
+					me.RootNode.intitializeWithSource nestedClass, nothing, "1..1", nothing, nothing
+					me.RootNode.Name = eaRootNodeElement.Name
+				end if
+			next
+		end if
+		'set base types and enumerations
 		setBaseTypesAndEnumerations(me.RootNode)
+		'sort enumerations
+		sortEnumerations
 		'link the message validation rules
 		getMessageValidationRules()
+	end function
+	
+	private function sortEnumerations
+		dim sortedKeys 
+		set sortedKeys = CreateObject("System.Collections.ArrayList")
+		dim key
+		for each key in me.Enumerations.Keys
+			sortedKeys.Add key
+		next
+		'sort the keys alphabetically
+		sortedKeys.Sort
+		'create new dictionary in the correct order
+		dim newEnumDic
+		set newEnumDic = CreateObject("Scripting.Dictionary")
+		for each key in sortedKeys
+			newEnumDic.Add key, m_Enumerations(key)
+		next
+		'set the new dictionary
+		set m_Enumerations = newEnumDic
 	end function
 	
 	private function getPrefix(ownerPackage)
@@ -335,16 +256,28 @@ Class Message
 	end function
 	
 	'create an arraylist of arraylists with the details of this message
-	public function createOuput(includeRules)
+	public function createOutput(includeRules)
 		dim outputList
 		'create empty list for current path
 		dim currentPath
 		set currentPath = CreateObject("System.Collections.ArrayList")
 		'start with the rootnode
-		set outputList = me.RootNode.getOuput(1,currentPath,me.MessageDepth, includeRules)
+		set outputList = me.RootNode.getOutput(1,currentPath,me.MessageDepth, includeRules)
 		'return outputlist
-		set createOuput = outputList
+		set createOutput = outputList
 	end function
+	
+	public function createStructureOutput(exportType)
+		dim outputList
+		'create empty list for current path
+		dim currentPath
+		set currentPath = CreateObject("System.Collections.ArrayList")
+		'start with the rootnode
+		set outputList = me.RootNode.getStructureOutput(1,currentPath,me.MessageDepth, exportType)
+		'return outputlist
+		set createStructureOutput = outputList
+	end function
+	
 	
 	'create an arraylist of arraylists with the details of this message
 	public function createUnifiedOutput(includeRules, depth)
@@ -353,7 +286,7 @@ Class Message
 		dim currentPath
 		set currentPath = CreateObject("System.Collections.ArrayList")
 		'start with the rootnode
-		set outputList = me.RootNode.getOuput(1,currentPath,depth, includeRules)
+		set outputList = me.RootNode.getOutput(1,currentPath,depth, includeRules)
 		'return outputlist
 		set createUnifiedOutput = outputList
 	end function
@@ -362,7 +295,7 @@ Class Message
 	public function createFullOutput(includeRules)
 		dim fullOutput
 		dim headers
-		set fullOutput = me.createOuput(includeRules)
+		set fullOutput = me.createOutput(includeRules)
 		set headers = getHeaders(includeRules)
 		'insert the headers before the rest of the output
 		fullOutput.Insert 0, headers
@@ -378,70 +311,37 @@ Class Message
 	end function
 	
 	public function getHeaders(includeRules)
-		set getHeaders = getMessageHeaders(includeRules, me.MessageDepth, me.MessageType, me.IncludeDetails, me.Fisses, me.HasMappings)
+		set getHeaders = getMessageHeaders(includeRules, me.MessageDepth, me.CustomOrdering, me.IncludeDetails)
 	end function
-	
-	private function getTypesHeaders()
-		set getTypesHeaders = getMessageTypesHeaders(me.IncludeDetails)
-	end function 
-	
-	Public function getUnifiedMessageTypes()
-		set getUnifiedMessageTypes = getMyMessageTypes(true)
-	end function
-	
-	private function getMyMessageTypes(unified)
+		
+	private function getMyMessageTypes()
 		dim types
 		set types = CreateObject("System.Collections.ArrayList")
 		'add base types
 		dim baseTypeName
 		dim baseTypeElement
-		dim elementOrder
-		elementOrder = 0
-		for each baseTypeName in me.BaseTypes.Keys
-			elementOrder = elementOrder + 1
-			set baseTypeElement = me.BaseTypes.Item(baseTypeName)
-			if not IsObject(baseTypeElement) then
-				set baseTypeElement = nothing
-			end if
-			if not baseTypeElement is nothing then
-				if baseTypeElement.Stereotype <> "BDT" then
-					'first add the properties for the base type itself
-					dim baseTypeProperties
-					set baseTypeProperties = getBaseTypeProperties(baseTypeElement, me.MessageType)
-					if unified then
-						'add the messageName
-						baseTypeProperties.Insert 0, me.Name
-					end if
-					'add properties to list
-					types.add baseTypeProperties
-				end if
-			end if
-		next
 		'add enumerations
 		dim enumName
 		dim enumElement as EA.Element
+		'add the enumeration
 		for each enumName in me.Enumerations.Keys
-			elementOrder = elementOrder + 1
 			set enumElement = me.Enumerations.Item(enumName)
+			'add the enumeration itself
+			types.add getEnumProperties(enumElement)
 			'add all the literal values
 			dim enumLiteral as EA.Attribute
-			'if the enum has no values then ALL values are allowed
-			'so we look for the enum this enum was based on
-			if enumElement.Attributes.Count = 0 then
-				'replace enumElement with base enum
-				set enumElement = getBaseEnum(enumElement)
-			end if
 			'loop the enum literals
 			for each enumLiteral in enumElement.Attributes
-				elementOrder = elementOrder + 1
 				dim enumLiteralProperties
 				set enumLiteralProperties = getEnumLiteralProperties(enumElement,enumLiteral)
-				if unified then
-					'add the messageName
-					enumLiteralProperties.Insert 0, me.Name
-				end if
 				types.add enumLiteralProperties
 			next
+			'add an empty row
+			dim emptyRow 
+			set emptyRow = CreateObject("System.Collections.ArrayList")
+			'first fill the array with empty strings
+			fillArrayList emptyRow, "", 4
+			types.add emptyRow
 		next
 		'return the types
 		set getMyMessageTypes = types
@@ -469,43 +369,67 @@ Class Message
 	Public function getMessageTypes()
 		dim types
 		set types = CreateObject("System.Collections.ArrayList")
-		'first add the headers
-		dim typeHeaders
-		set typeHeaders = getTypesHeaders()
-		'Session.Output typeHeaders.Count
-		types.add typeHeaders
 		'get the actual content
-		types.AddRange getMyMessageTypes(false)
+		types.AddRange getMyMessageTypes()
 		'return the types
 		set getMessageTypes = types
+	end function
+	
+	Private function getEnumProperties(enumElement)
+		dim enumProperties 
+		set enumProperties = CreateObject("System.Collections.ArrayList")
+		'first fill the array with empty strings
+		fillArrayList enumProperties, "", 4
+		'Type
+		enumProperties(0) = enumElement.Name
+		'Description
+		enumProperties(2) = enumElement.Alias & " " & Repository.GetFormatFromField("TXT", enumElement.Notes)
+		'Extra functional information
+		dim tv as EA.TaggedValue
+		for each tv in enumElement.TaggedValues
+			if tv.Name = "remark API-Portal" then
+				enumProperties(3) = tv.Value
+				exit for
+			end if
+		next
+		'return the properties
+		set getEnumProperties = enumProperties
 	end function
 	
 	Private function getEnumLiteralProperties(enumElement,enumLiteral)
 		dim enumLiteralProperties 
 		set enumLiteralProperties = CreateObject("System.Collections.ArrayList")
 		'first fill the array with empty strings
-		fillArrayList enumLiteralProperties, "", 6
-		'category
-		enumLiteralProperties(0) = "Enumeration"
-		'Type
-		enumLiteralProperties(1) = enumElement.Name
-		'Code
-		enumLiteralProperties(2) = "'" & enumLiteral.Name
-		'Description
-		enumLiteralProperties(3) = enumLiteral.Alias
-		'Get the CodeName tagged value if it exists
-		dim codeNameTv as EA.AttributeTag
-		for each codeNameTv in enumLiteral.TaggedValues
-			if lcase(codeNameTv.Name) = "codename" then
-				enumLiteralProperties(3) = codeNameTv.Value
-				exit for
+		fillArrayList enumLiteralProperties, "", 4
+		if me.isJSON then
+			'Code
+			if len(enumLiteral.Alias) > 0 then
+				enumLiteralProperties(1) = "'" & enumLiteral.Alias
+				'Description
+				enumLiteralProperties(2) = enumLiteral.Name & " " & Repository.GetFormatFromField("TXT", enumLiteral.Notes)
+			else
+				enumLiteralProperties(1) = "'" & enumLiteral.Name
+				'Description
+				enumLiteralProperties(2) = Repository.GetFormatFromField("TXT", enumLiteral.Notes)
+			end if
+		else
+			'Code
+			enumLiteralProperties(1) = "'" & enumLiteral.Name
+			'Description
+			enumLiteralProperties(2) = enumLiteral.Alias & " " & Repository.GetFormatFromField("TXT", enumLiteral.Notes)
+		end if
+		'Extra functional information
+		dim tv as EA.AttributeTag
+		for each tv in enumLiteral.TaggedValues
+			if tv.Name = "remark API-Portal" then
+				enumLiteralProperties(3) = tv.Value
 			end if
 		next
 		'return the properties
 		set getEnumLiteralProperties = enumLiteralProperties
 	end function
 	
-	Private function getBaseTypeProperties(baseType, messageType)
+	Private function getBaseTypeProperties(baseType)
 		dim baseTypeProperties 
 		set baseTypeProperties = CreateObject("System.Collections.ArrayList")
 		'first fill the array with empty strings
@@ -528,21 +452,11 @@ Class Message
 		facetSpecification = "" 'initial value
 		dim tv as EA.TaggedValue
 		for each tv in baseType.TaggedValues
-			if messageType = msgJSON then
-				select case lcase(tv.Name)
-					case tv_minlength, tv_maxlength, tv_pattern, tv_format, tv_enum, tv_minimum, _
-					tv_exclusiveminimum, tv_maximum, tv_exclusivemaximum, tv_multipleof
-						facetSpecification = addFacetSpecification(facetSpecification, tv)
-				end select
-			else
-				select case tv.Name
-					case tvxml_pattern, tvxml_enumeration, tvxml_fractionDigits, tvxml_length, tvxml_maxExclusive, _
-					tvxml_maxInclusive, tvxml_maxLength, tvxml_minExclusive, tvxml_minInclusive, tvxml_minLength, _
-					tvxml_totalDigits, tvxml_whiteSpace
-						facetSpecification = addFacetSpecification(facetSpecification, tv)
-				end select
-			end if
-
+			select case tv.Name
+				case "fractionDigits", "length", "maxExclusive", "maxInclusive", "maxLength", "minExclusive","minInclusive","minLength",_
+				"pattern","totalDigits","whiteSpace", "enumeration"
+					facetSpecification = addFacetSpecification(facetSpecification, tv)
+			end select
 		next
 		baseTypeProperties(5) = facetSpecification
 		'return the base type properties
@@ -608,46 +522,28 @@ end Class
 
 '"Static" functions
 
-public function getMessageHeaders(includeRules, depth, messageType, technical, fisses, withMappings)
+public function getMessageHeaders(includeRules, depth, customOrdering, technical)
 	dim headers
 	set headers = CreateObject("System.Collections.ArrayList")
 	'first order
 	headers.add("Order")
+	'level
+	headers.add("Level")
 	'then Message
 	headers.Add("Message")
-	'add the levels
-	dim i
-	for i = 1 to depth -1 step +1
-		headers.add("L" & i)
-	next
+	'Element Name
+	headers.Add("Name")
+	'Description
+	headers.Add("Description")
 	'Cardinality
 	headers.Add("Cardinality")
 	'Type
 	headers.Add("Type")
 	'base type
 	headers.Add("Base Type")
-	'Constraints (facets)
-	headers.Add("Constraints")
-	if withMappings and not technical then
-			'LDM mapping
-			'LDM Class
-			headers.Add("LDM Class")
-			'LDM Attribute
-			headers.Add("LDM Attribute")
-	end if
-	'add business usage
-	if withMappings and not technical  _
-	and not fisses is nothing then
-		dim fis as EA.Element
-		for each fis in fisses
-			headers.Add fis.Name
-		next
-	end if
-	if technical and _
-	  messageType = msgJSON then
-		headers.Add "Description"
-	end if
-	'add message test rules
+	'Facets
+	headers.Add("Facets")
+	
 	if includeRules then
 		'with our without test rules
 		'Test Rule ID
@@ -661,25 +557,3 @@ public function getMessageHeaders(includeRules, depth, messageType, technical, f
 	set getMessageHeaders = headers
 end function
 
-private function getMessageTypesHeaders(unified)
-		dim headers
-		set headers = CreateObject("System.Collections.ArrayList")
-		'Message
-		if unified then
-			headers.Add("Message")
-		end if
-		'Category
-		headers.Add("Category") 'Enumeration or BaseType '0
-		'Type
-		headers.Add("Type") '1
-		'Code
-		headers.Add("Code") '2
-		'Description
-		headers.Add("Description") '3
-		'Restriction Base
-		headers.Add("Restriction Base") '4
-		'Facets
-		headers.Add("Facets") '5
-		'return the headers
-		set getMessageTypesHeaders = headers
-end function
